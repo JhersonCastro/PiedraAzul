@@ -2,6 +2,9 @@
 
 @if (Parent.CurrentStep == Index)
 {
+    <SlideComponent MaxSteps="@Parent.Steps.Count"
+                    CurrentStep="@(Index+1)"
+                    Title="@Title" />
     @ChildContent
 }
 
