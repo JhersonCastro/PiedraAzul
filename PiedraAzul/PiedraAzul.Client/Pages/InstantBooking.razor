@@ -1,0 +1,166 @@
+﻿@page "/instant-medical-booking"
+
+@using Microsoft.AspNetCore.Components.Forms
+@using PiedraAzul.Client.Components
+@using PiedraAzul.Client.Components.StepTag
+@using PiedraAzul.Client.Models
+
+
+<EditForm Model="@Model" class="flex justify-center mt-10">
+
+    <DataAnnotationsValidator />
+
+    <Stepper TModel="BookingModel">
+
+        <!-- STEP 1 -->
+        <Step TModel="BookingModel"
+              Title="Identificación"
+              Fields="@(new[] { nameof(Model.Nombre), nameof(Model.Telefono) })">
+
+            <div class="flex flex-col items-center shadow-2xl p-8 max-w-lg mx-auto bg-white rounded-xl w-full">
+
+                <div class="w-full mb-6">
+                    <p class="text-sm text-gray-500 font-semibold">PASO 1 DE 3</p>
+                    <p class="text-lg font-bold">Identificación</p>
+
+                    <div class="w-full mt-2">
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-primary h-2 rounded-full w-1/3"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-col items-center text-center mb-6">
+
+                    <h2 class="text-2xl font-bold">
+                        ¡Hola! Bienvenido a su Clínica
+                    </h2>
+
+                    <p class="text-gray-600 mt-2">
+                        Estamos aquí para ayudarle. Para comenzar su reserva médica,
+                        por favor ingrese los siguientes datos.
+                    </p>
+
+                </div>
+
+                <div class="flex flex-col gap-5 w-full border-2 border-gray-200 rounded p-5">
+
+                    <!-- Nombre -->
+                    <div class="flex flex-col">
+
+                        <div class="flex gap-2 items-center">
+
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 height="24"
+                                 viewBox="0 -960 960 960"
+                                 width="24"
+                                 fill="#257D8D">
+
+                                <path d="M367-527q-47-47-47-113t47-113q47-47 113-47t113 47q47 47 47 113t-47 113q-47 47-113 47t-113-47ZM160-160v-112q0-34 17.5-62.5T224-378q62-31 126-46.5T480-440q66 0 130 15.5T736-378q29 15 46.5 43.5T800-272v112H160Z" />
+
+                            </svg>
+
+                            <label class="text-lg font-semibold">
+                                Nombre completo
+                            </label>
+
+                        </div>
+
+                        <InputText class="border-2 border-gray-300 rounded-md py-3 px-4 mt-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                                   @bind-Value="Model.Nombre"
+                                   placeholder="Ej: Juan López" />
+
+                        <ValidationMessage For="@(() => Model.Nombre)"
+                                           class="text-red-500 text-sm mt-1" />
+
+                    </div>
+
+                    <!-- Telefono -->
+                    <div class="flex flex-col">
+
+                        <div class="flex gap-2 items-center">
+
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                 height="24"
+                                 viewBox="0 -960 960 960"
+                                 width="24"
+                                 fill="#257D8D">
+
+                                <path d="M798-120q-125 0-247-54.5T329-329Q229-429 174.5-551T120-798q0-18 12-30t30-12h162q14 0 25 9.5t13 22.5l26 140q2 16-1 27t-11 19l-97 98q20 37 47.5 71.5T387-386q31 31 65 57.5t72 48.5l94-94q9-9 23.5-13.5T670-390l138 28q14 4 23 14.5t9 23.5v162q0 18-12 30t-30 12Z" />
+
+                            </svg>
+
+                            <label class="text-lg font-semibold">
+                                Número de teléfono
+                            </label>
+
+                        </div>
+
+                        <InputText class="border-2 border-gray-300 rounded-md py-3 px-4 mt-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                                   @bind-Value="Model.Telefono"
+                                   placeholder="Ej: 301 123 4567" />
+
+                        <ValidationMessage For="@(() => Model.Telefono)"
+                                           class="text-red-500 text-sm mt-1" />
+
+                    </div>
+
+                    <p class="text-gray-500 text-center">
+                        Sus datos están seguros con nosotros.
+                    </p>
+
+                </div>
+
+                <p class="mt-4 text-md text-primary">
+                    ¿Necesitas ayuda telefónica? Llame al +57 301 123 4567
+                </p>
+
+            </div>
+
+        </Step>
+
+
+        <!-- STEP 2 -->
+        <Step TModel="BookingModel"
+              Title="Selecciona una Doctor"
+              Fields="@(new[] { nameof(Model.DoctorId)})">
+
+            <MenuTypeMedic  OnSelected="SelectedMedic"/>
+            <ValidationMessage For="() => Model.DoctorId" />
+
+        </Step>
+
+
+        <!-- STEP 3 -->
+        <Step TModel="BookingModel" Title="Confirmación">
+
+            <div class="flex flex-col items-center shadow-2xl p-8 max-w-lg mx-auto bg-white rounded-xl w-full">
+
+                <h2 class="text-2xl font-bold mb-4">
+                    Confirmar datos
+                </h2>
+
+                <div class="flex flex-col gap-2 text-lg">
+
+                    <p><b>Nombre:</b> @Model.Nombre</p>
+                    <p><b>Teléfono:</b> @Model.Telefono</p>
+                    <p><b>Dirección:</b> @Model.Direccion</p>
+
+                </div>
+
+            </div>
+
+        </Step>
+
+    </Stepper>
+
+</EditForm>
+
+@code {
+
+    BookingModel Model = new();
+    private void SelectedMedic(string args)
+    {
+        Model.DoctorId = args;
+    }
+}

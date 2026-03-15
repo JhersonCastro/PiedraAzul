@@ -1,0 +1,40 @@
+#blazor-error-ui {
+    all: unset;
+}
+
+a {
+    text-decoration: none;
+}
+
+.bg-primary {
+    background-color: #257D8D;
+}
+
+.bg-secondary {
+    background-color: #64748B;
+}
+
+.bg-strong {
+    background-color: #0F172A;
+}
+
+.bg-light {
+    background-color: #D8EDF2;
+}
+
+.bg-neutral {
+    background-color: #F1F5F9;
+}
+
+.bg-white {
+    background-color: #FFFFFF;
+}
+
+.text-primary {
+    color: #257D8D;
+}
+
+.radio-card:checked + .card {
+    border-color: #257D8D;
+    background: #eef7f9;
+}

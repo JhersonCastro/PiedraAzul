@@ -1,0 +1,44 @@
+﻿@page "/grpc-test"
+
+@using PiedraAzul.Client.Services
+
+<h3>Test gRPC</h3>
+
+<input @bind="name" placeholder="Nombre" />
+
+<button @onclick="TestGrpc">
+    Llamar gRPC
+</button>
+
+<p>@result</p>
+
+@code {
+
+    [Inject] IServiceProvider Services { get; set; }
+
+    GreeterService GreeterService;
+
+    string name = "Jherson";
+    string result = string.Empty;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        GreeterService = Services.GetRequiredService<GreeterService>();
+    }
+
+    async Task TestGrpc()
+    {
+        try
+        {
+            var reply = await GreeterService.SayHello("Michael Jordan");
+            result = reply.Message;
+        }
+        catch (Exception ex)
+        {
+            result = ex.Message;
+        }
+    }
+
+}

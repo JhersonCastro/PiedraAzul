@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="PiedraAzul/PiedraAzul.Client/PiedraAzul.Client.csproj" />
+  <Project Path="PiedraAzul/PiedraAzul.Shared/PiedraAzul.Shared.csproj" />
+  <Project Path="PiedraAzul/PiedraAzul.Test/PiedraAzul.Test.csproj" Id="1c8769c4-4777-484e-9477-3512f9cea038" />
+  <Project Path="PiedraAzul/PiedraAzul/PiedraAzul.csproj" />
+</Solution>

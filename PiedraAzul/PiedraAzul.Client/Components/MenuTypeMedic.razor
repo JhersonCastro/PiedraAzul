@@ -1,0 +1,157 @@
+﻿@using PiedraAzul.Shared
+
+<div class="mx-auto flex max-w-4xl flex-col rounded-xl bg-white p-8 shadow-2xl">
+    <div class="mb-6 flex flex-col items-center text-center">
+        <h2 class="text-2xl font-bold">¿Qué tipo de médico necesitas?</h2>
+
+        <p class="mt-2 text-gray-600">Toque el botón grande de la especialidad que busca.</p>
+
+        <div class="mt-6 grid w-full gap-4 md:grid-cols-2">
+            <!-- OPCION 1 -->
+            <label class="h-full w-full cursor-pointer select-none">
+                <input type="radio" name="servicio" class="radio-card hidden" />
+
+                <div class="card flex h-full min-h-[90px] items-center gap-3 rounded-lg border-2 border-gray-200 p-4 shadow transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" class="text-primary size-12 fill-current">
+                        <path d="M540-80q-108 0-184-76t-76-184v-23q-86-14-143-80.5T80-600v-240h120v-40h80v160h-80v-40h-40v160q0 66 47 113t113 47q66 0 113-47t47-113v-160h-40v40h-80v-160h80v40h120v240q0 90-57 156.5T360-363v23q0 75 52.5 127.5T540-160q75 0 127.5-52.5T720-340v-67q-35-12-57.5-43T640-520q0-50 35-85t85-35q50 0 85 35t35 85q0 39-22.5 70T800-407v67q0 108-76 184T540-80Z" />
+                    </svg>
+
+                    <div>
+                        <h3 class="font-bold">TERAPIA NATURAL</h3>
+                        <h4 class="text-sm text-gray-500">Médico de cabecera</h4>
+                    </div>
+                </div>
+            </label>
+            <!-- OPCION 2 -->
+            <label class="h-full w-full cursor-pointer select-none">
+                <input type="radio" name="servicio" class="radio-card hidden" />
+
+                <div class="card flex h-full min-h-[90px] items-center gap-3 rounded-lg border-2 border-gray-200 p-4 shadow transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" class="text-primary size-12 fill-current">
+                        <path d="M423.5-743.5Q400-767 400-800t23.5-56.5Q447-880 480-880t56.5 23.5Q560-833 560-800t-23.5 56.5Q513-720 480-720t-56.5-23.5ZM360-80v-520q-60-5-122-15t-118-25l20-80q78 21 166 30.5t174 9.5q86 0 174-9.5T820-720l20 80q-56 15-118 25t-122 15v520h-80v-240h-80v240h-80Z" />
+                    </svg>
+
+                    <div>
+                        <h3 class="font-bold">QUIROPRAXIA</h3>
+                        <h4 class="text-sm text-gray-500">Corazón y presión</h4>
+                    </div>
+                </div>
+            </label>
+            <!-- OPCION 3 -->
+            <label class="h-full w-full cursor-pointer select-none">
+                <input type="radio" name="servicio" class="radio-card hidden" />
+
+                <div class="card flex h-full min-h-[90px] items-center gap-3 rounded-lg border-2 border-gray-200 p-4 shadow transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" class="text-primary size-12 fill-current">
+                        <path d="M607.5-372.5Q660-425 660-500t-52.5-127.5Q555-680 480-680t-127.5 52.5Q300-575 300-500t52.5 127.5Q405-320 480-320t127.5-52.5Zm-204-51Q372-455 372-500t31.5-76.5Q435-608 480-608t76.5 31.5Q588-545 588-500t-31.5 76.5Q525-392 480-392t-76.5-31.5ZM214-281.5Q94-363 40-500q54-137 174-218.5T480-800q146 0 266 81.5T920-500q-54 137-174 218.5T480-200q-146 0-266-81.5ZM480-500Zm207.5 160.5Q782-399 832-500q-50-101-144.5-160.5T480-720q-113 0-207.5 59.5T128-500q50 101 144.5 160.5T480-280q113 0 207.5-59.5Z" />
+                    </svg>
+                    <div>
+                        <h3 class="font-bold">OPTICA</h3>
+                        <h4 class="text-sm text-gray-500">Examen de la vista</h4>
+                    </div>
+                </div>
+            </label>
+            <!-- OPCION 4 -->
+            <label class="h-full w-full cursor-pointer select-none">
+                <input type="radio" name="servicio" class="radio-card hidden" />
+
+                <div class="card flex h-full min-h-[90px] items-center gap-3 rounded-lg border-2 border-gray-200 p-4 shadow transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" class="text-primary size-12 fill-current">
+                        <path d="m320-40-64-48 104-139v-213q0-31 5-67.5t15-67.5l-60 33v142h-80v-188l176-100q25-14 43.5-21.5T494-717q25 0 45.5 21.5T587-628q32 54 58 81t56 41q11-8 19-11t19-3q25 0 43 18t18 42v420h-40v-420q0-8-6-14t-14-6q-8 0-14 6t-6 14v50h-40v-19q-54-23-84-51.5T543-557q-11 28-17.5 68.5T521-412l79 112v260h-80v-200l-71-102-9 142L320-40Zm220-700q-33 0-56.5-23.5T460-820q0-33 23.5-56.5T540-900q33 0 56.5 23.5T620-820q0 33-23.5 56.5T540-740Z" />
+                    </svg>
+
+                    <div>
+                        <h3 class="font-bold">FISIOTERAPIA</h3>
+                        <h4 class="text-sm text-gray-500">Cuidado del adulto mayor</h4>
+                    </div>
+                </div>
+            </label>
+        </div>
+    </div>
+    <!-- lista de medicos -->
+    <div class="flex flex-col gap-3">
+
+        <h3 class="text-left font-bold">
+            MÉDICOS DISPONIBLES
+        </h3>
+
+        <ul class="flex flex-col gap-3">
+
+            @foreach (var medic in MedicsDTO)
+            {
+                var selected = SelectedMedicId == medic.Id;
+
+                <li class="border rounded-lg p-3 shadow-sm cursor-pointer transition
+                    @(selected
+                                            ? "border-primary bg-primary/10"
+                                            : "border-gray-200 hover:bg-gray-50")"
+                    @onclick="() => SelectMedic(medic.Id)">
+
+                    <MedicSelectCard MedicDTO="medic"
+                                     Selected="selected" />
+
+                </li>
+            }
+
+        </ul>
+
+    </div>
+
+</div>
+
+
+@code {
+    
+    [Parameter, EditorRequired]
+    public EventCallback<string> OnSelected { get; set; }
+
+    string? SelectedMedicId;
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        OnSelected.InvokeAsync(null);
+    }
+    async Task SelectMedic(string id)
+    {
+        SelectedMedicId = id;
+
+        await OnSelected.InvokeAsync(id);
+    }
+
+    public List<MedicDTO> MedicsDTO { get; set; } = new()
+    {
+        new MedicDTO
+        {
+            Id = "1",
+            Name = "DRA. Martha Isabel Gómez",
+            AvatarUrl = "https://picsum.photos/200/200",
+            Specialty = "Quiropraxia",
+            Clinic = "Clínica Piedra Azul"
+        },
+        new MedicDTO
+        {
+            Id = "2",
+            Name = "DR. Juan Carlos Rodríguez",
+            AvatarUrl = "https://picsum.photos/200/200",
+            Specialty = "Terapia Natural",
+            Clinic = "Clínica Salud Total"
+        },
+        new MedicDTO
+        {
+            Id = "3",
+            Name = "DRA. Laura Martínez",
+            AvatarUrl = "https://picsum.photos/200/200",
+            Specialty = "Óptica",
+            Clinic = "Clínica Visión Perfecta"
+        },
+        new MedicDTO
+        {
+            Id = "4",
+            Name = "DR. Andrés Gómez",
+            AvatarUrl = "https://picsum.photos/200/200",
+            Specialty = "Fisioterapia",
+            Clinic = "Clínica Movimiento Saludable"
+        }
+    };
+
+}

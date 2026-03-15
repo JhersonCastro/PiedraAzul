@@ -1,0 +1,38 @@
+﻿@using PiedraAzul.Shared
+
+<div class="flex items-center gap-4">
+    
+    <!-- Avatar -->
+    <img src="@MedicDTO.AvatarUrl"
+         alt=""
+         class="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 object-cover rounded-md flex-shrink-0" />
+
+    <!-- info -->
+    <div class="flex flex-col flex-1 min-w-0">
+        <p class="font-semibold text-sm sm:text-base truncate">@MedicDTO.Name</p>
+        <span class="text-xs text-gray-600">@MedicDTO.Specialty</span>
+        <span class="text-xs text-gray-500">@MedicDTO.Clinic</span>
+    </div>
+
+    <!-- botón -->
+    <button type="button"
+            class="ml-3 shrink-0 rounded-md px-3 py-2 text-sm font-medium transition
+        @(Selected
+                        ? "bg-primary text-white"
+                        : "bg-neutral-200 hover:bg-neutral-300")">
+
+        @(Selected ? "SELECCIONADO" : "SELECCIONAR")
+
+    </button>
+
+</div>
+
+@code {
+
+    [Parameter, EditorRequired]
+    public MedicDTO MedicDTO { get; set; }
+
+    [Parameter]
+    public bool Selected { get; set; }
+
+}

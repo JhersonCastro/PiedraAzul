@@ -1,0 +1,105 @@
+﻿@typeparam TModel
+@using Microsoft.AspNetCore.Components.Forms
+
+<CascadingValue Value="this">
+    <CascadingValue Value="EditContext">
+
+        <div class="flex flex-col items-center">
+
+            @ChildContent
+
+            <div class="flex justify-between mt-6 w-full max-w-lg">
+
+                <button type="button"
+                        class="px-4 py-2 border rounded"
+                        disabled="@(CurrentStep == 0)"
+                        @onclick="Prev">
+                    Atrás
+                </button>
+
+                <button type="button"
+                        class="px-4 py-2 bg-primary text-white rounded"
+                        @onclick="Next">
+                    Siguiente
+                </button>
+
+            </div>
+
+        </div>
+
+    </CascadingValue>
+</CascadingValue>
+
+@code {
+
+    [CascadingParameter]
+    EditContext EditContext { get; set; }
+
+    public Func<Task<bool>>? OnNext;
+
+    internal List<StepItem> Steps = new();
+
+    public int CurrentStep { get; set; }
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    internal int Register(StepItem step)
+    {
+        Steps.Add(step);
+        return Steps.Count - 1;
+    }
+
+    public async Task Next()
+    {
+        var step = Steps[CurrentStep];
+
+        if (!ValidateStep(step))
+            return;
+
+        if (OnNext != null)
+        {
+            var result = await OnNext.Invoke();
+
+            if (!result)
+                return;
+        }
+
+        if (CurrentStep < Steps.Count - 1)
+            CurrentStep++;
+    }
+
+
+    bool ValidateStep(StepItem step)
+    {
+        var isValid = true;
+
+        foreach (var field in step.Fields)
+        {
+            var identifier = new FieldIdentifier(EditContext.Model, field);
+
+            EditContext.NotifyFieldChanged(identifier);
+
+            if (EditContext.GetValidationMessages(identifier).Any())
+                isValid = false;
+        }
+
+        EditContext.NotifyValidationStateChanged();
+
+        return isValid;
+    }
+
+    void Prev()
+    {
+        if (CurrentStep > 0)
+            CurrentStep--;
+    }
+
+    internal class StepItem
+    {
+        public string Title { get; set; }
+
+        public List<string> Fields { get; set; } = new();
+    }
+
+}
