@@ -1,3 +1,4 @@
+#region NameSpaces
 using Lucene.Net.Analysis;
 using Lucene.Net.Analysis.Standard;
 using Lucene.Net.Index;
@@ -12,6 +13,7 @@ using PiedraAzul.Components;
 using PiedraAzul.Data;
 using System.Security.Claims;
 using System.Text;
+#endregion
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,17 +32,21 @@ builder.Services.AddSingleton<Analyzer>(analyzer);
 builder.Services.AddSingleton<IndexWriter>(writer);
 
 #endregion
+
 #region Mapperly
 
 #endregion
+
 #region DbContext
 builder.Services.AddDbContextFactory<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 #endregion
+
 #region JWTAndRefreshToken
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<RefreshTokenService, RefreshTokenService>();
 #endregion
+
 #region AuthenticationAndAuthorization
 builder.Services.AddAuthentication(options =>
 {
@@ -89,12 +95,14 @@ builder.Services.AddIdentityApiEndpoints<ApplicationUser>(
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<AppDbContext>();
 #endregion
+
 #region RazorComponents
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddInteractiveWebAssemblyComponents();
 #endregion
+
 #region gRPC
 builder.Services.AddGrpc(options =>
 {
@@ -102,9 +110,9 @@ builder.Services.AddGrpc(options =>
 });
 #endregion
 
-
 var app = builder.Build();
 
+#region DevelopRuleSet
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -116,6 +124,7 @@ else
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
+#endregion
 
 #region RoleCreation
 using (var scope = app.Services.CreateScope())
@@ -131,21 +140,21 @@ using (var scope = app.Services.CreateScope())
     }
 }
 #endregion
+
+#region Middleware
 app.UseHttpsRedirection();
-
-app.MapStaticAssets();
-
-
-app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
-
 app.UseAntiforgery();
+#endregion
+
+#region UI
+app.MapStaticAssets();
+app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
     .AddInteractiveWebAssemblyRenderMode()
     .AddAdditionalAssemblies(typeof(PiedraAzul.Client._Imports).Assembly);
-
-
+#endregion
 
 #region AuthenticationAndAuthorization
 app.UseAuthentication();
