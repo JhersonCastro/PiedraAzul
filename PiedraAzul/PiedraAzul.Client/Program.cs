@@ -17,8 +17,6 @@ builder.Services.AddScoped<HttpDelegatingHandler>();
 #endregion
 
 
-#endregion
-
 #region gRPC CHANNELS
 
 // 🔹 Canal para AUTH (sin handler para evitar loop)

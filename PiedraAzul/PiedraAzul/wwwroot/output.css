@@ -234,9 +234,6 @@
   .left-1\/2 {
     left: calc(1 / 2 * 100%);
   }
-  .-mx-2 {
-    margin-inline: calc(var(--spacing) * -2);
-  }
   .mx-auto {
     margin-inline: auto;
   }
@@ -341,20 +338,11 @@
   .w-16 {
     width: calc(var(--spacing) * 16);
   }
-  .w-24 {
-    width: calc(var(--spacing) * 24);
-  }
   .w-\[90\%\] {
     width: 90%;
   }
   .w-full {
     width: 100%;
-  }
-  .w-max {
-    width: max-content;
-  }
-  .max-w-4xl {
-    max-width: var(--container-4xl);
   }
   .max-w-6xl {
     max-width: var(--container-6xl);
@@ -371,17 +359,8 @@
   .min-w-0 {
     min-width: calc(var(--spacing) * 0);
   }
-  .min-w-\[80px\] {
-    min-width: 80px;
-  }
-  .min-w-\[90px\] {
-    min-width: 90px;
-  }
   .min-w-\[100px\] {
     min-width: 100px;
-  }
-  .min-w-max {
-    min-width: max-content;
   }
   .flex-1 {
     flex: 1;
@@ -407,9 +386,6 @@
   }
   .grid-cols-2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .grid-cols-3 {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
   .flex-col {
     flex-direction: column;
@@ -471,9 +447,6 @@
   }
   .overflow-hidden {
     overflow: hidden;
-  }
-  .overflow-x-auto {
-    overflow-x: auto;
   }
   .rounded {
     border-radius: 0.25rem;
@@ -702,9 +675,6 @@
   .text-red-500 {
     color: var(--color-red-500);
   }
-  .text-teal-600 {
-    color: var(--color-teal-600);
-  }
   .text-teal-700 {
     color: var(--color-teal-700);
   }
@@ -765,13 +735,6 @@
   .select-none {
     -webkit-user-select: none;
     user-select: none;
-  }
-  .hover\:border-teal-400 {
-    &:hover {
-      @media (hover: hover) {
-        border-color: var(--color-teal-400);
-      }
-    }
   }
   .hover\:border-teal-500 {
     &:hover {
@@ -858,11 +821,6 @@
       width: calc(var(--spacing) * 20);
     }
   }
-  .sm\:min-w-\[90px\] {
-    @media (width >= 40rem) {
-      min-width: 90px;
-    }
-  }
   .sm\:grid-cols-3 {
     @media (width >= 40rem) {
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -897,12 +855,6 @@
   .md\:grid-cols-5 {
     @media (width >= 48rem) {
       grid-template-columns: repeat(5, minmax(0, 1fr));
-    }
-  }
-  .md\:text-2xl {
-    @media (width >= 48rem) {
-      font-size: var(--text-2xl);
-      line-height: var(--tw-leading, var(--text-2xl--line-height));
     }
   }
   .lg\:sticky {

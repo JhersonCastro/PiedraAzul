@@ -1,6 +1,7 @@
 syntax = "proto3";
 import "google/protobuf/timestamp.proto";
 option csharp_namespace = "Shared.Grpc";
+import "Protos/common.proto";
 
 package auth;
 
@@ -12,9 +13,9 @@ service AuthService {
 
   rpc RefreshToken (RefreshTokenRequest) returns (AuthResponse);
 
-  rpc RevokeToken (RevokeTokenRequest) returns (Empty);
+  rpc RevokeToken (RevokeTokenRequest) returns (common.Empty);
 
-  rpc GetCurrentUser (Empty) returns (UserResponse);
+  rpc GetCurrentUser (common.Empty) returns (UserResponse);
 }
 
 message RegisterRequest {
@@ -67,4 +68,3 @@ message UserResponse {
   repeated string roles = 6;
 }
 
-message Empty {}
