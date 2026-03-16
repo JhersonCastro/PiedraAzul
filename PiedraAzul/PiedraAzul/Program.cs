@@ -17,21 +17,26 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-#region Lucene.Net
-// Config
-var luceneVersion = LuceneVersion.LUCENE_48;
-var indexPath = builder.Configuration["LuceneIndexPath"] ?? "lucene_index";
+var isEf = args.Any(a => a.Contains("ef", StringComparison.OrdinalIgnoreCase));
+IndexWriter? writer = null;
+if (!isEf)
+{
+    #region Lucene.Net
+    // Config
+    var luceneVersion = LuceneVersion.LUCENE_48;
+    var indexPath = builder.Configuration["LuceneIndexPath"] ?? "lucene_index";
 
-var dir = FSDirectory.Open(indexPath);
-var analyzer = new StandardAnalyzer(luceneVersion);
-var indexConfig = new IndexWriterConfig(luceneVersion, analyzer);
-var writer = new IndexWriter(dir, indexConfig);
+    var dir = FSDirectory.Open(indexPath);
+    var analyzer = new StandardAnalyzer(luceneVersion);
+    var indexConfig = new IndexWriterConfig(luceneVersion, analyzer);
+    writer = new IndexWriter(dir, indexConfig);
 
-// Services
-builder.Services.AddSingleton<Analyzer>(analyzer);
-builder.Services.AddSingleton<IndexWriter>(writer);
+    // Services
+    builder.Services.AddSingleton<Analyzer>(analyzer);
+    builder.Services.AddSingleton<IndexWriter>(writer);
+    #endregion
+}
 
-#endregion
 
 #region Mapperly
 
@@ -166,6 +171,9 @@ app.UseGrpcWeb();
 #region gRPCServices
 
 #endregion
+if (!isEf && writer != null)
+{
+    app.Lifetime.ApplicationStopping.Register(() => writer.Dispose());
+}
 
-app.Lifetime.ApplicationStopping.Register(() => writer.Dispose());
 app.Run();
