@@ -1,7 +1,7 @@
 ﻿using Microsoft.JSInterop;
+
 using System.Net;
-using System.Net.Http.Headers;
-using Shared.Grpc;
+
 
 namespace PiedraAzul.Client.DelegatingHandlers;
 
