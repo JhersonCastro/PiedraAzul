@@ -10,7 +10,6 @@ using Microsoft.IdentityModel.Tokens;
 using PiedraAzul.ApplicationServices.Services;
 using PiedraAzul.Components;
 using PiedraAzul.Data;
-using PiedraAzul.GrcpServices;
 using System.Security.Claims;
 using System.Text;
 
@@ -156,8 +155,6 @@ app.UseAuthorization();
 #region gRPCWeb
 app.UseGrpcWeb();
 
-app.MapGrpcService<GreeterService>()
-    .EnableGrpcWeb();
 #endregion
 
 app.Lifetime.ApplicationStopping.Register(() => writer.Dispose());
