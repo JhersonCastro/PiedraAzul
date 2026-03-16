@@ -182,7 +182,16 @@
 
     DoctorType SelectedType = DoctorType.NaturalMedicine;
     Dictionary<DoctorType, List<MedicDTO>> MedicsByType = new();
-    List<MedicDTO> _currentMedicDTOs = new();
+    List<MedicDTO> _currentMedicDTOs = new()
+    {
+        new MedicDTO
+        {
+            Id = "1",
+            Name = "Dr. Juan Pérez",
+            Specialty = "Terapia Natural",
+            AvatarUrl = "https://picsum.photos/200/200"
+        }
+    };
 
     string? SelectedMedicId;
     bool _isLoading;
@@ -190,7 +199,7 @@
     protected override async Task OnInitializedAsync()
     {
         await OnSelected.InvokeAsync(null);
-        await LoadMedicsByDoctorType(DoctorType.NaturalMedicine);
+        //await LoadMedicsByDoctorType(DoctorType.NaturalMedicine);
     }
 
     async Task SelectMedic(string id)
