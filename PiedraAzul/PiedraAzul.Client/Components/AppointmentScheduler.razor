@@ -1,0 +1,188 @@
+﻿<!-- 1 Seleccionar día -->
+<h2 class="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-700">
+    1. Seleccione el día
+</h2>
+
+<div class="grid grid-cols-2 md:grid-cols-5 mb-6 pb-2 gap-3">
+
+    @foreach (var day in Days)
+    {
+        <button @onclick="() => SelectDay(day)"
+                class="@GetDayClass(day)">
+
+            <span class="text-xs uppercase">@day.DayName</span>
+            <span class="text-xl font-bold">@day.DayNumber</span>
+            <span class="text-xs">@day.Month</span>
+
+        </button>
+    }
+
+</div>
+
+<hr class="my-6">
+
+<!-- seleccionar hora -->
+<h2 class="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-700">
+    2. Seleccione la hora
+</h2>
+
+<!-- mañana -->
+<div class="mb-3">
+    <span class="rounded-full bg-teal-100 px-3 py-1 text-xs font-semibold text-teal-700">
+        JORNADA MAÑANA
+    </span>
+</div>
+
+<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">
+
+    @foreach (var slot in MorningSlots)
+    {
+        <button disabled="@(!slot.Available)"
+                @onclick="() => SelectSlot(slot)"
+                class="@GetSlotClass(slot)">
+
+            <span class="font-semibold">@slot.Time</span>
+
+            @if (!slot.Available)
+            {
+                <span class="text-xs">NO DISPONIBLE</span>
+            }
+
+            @if (SelectedSlot == slot)
+            {
+                <span>✓</span>
+            }
+
+        </button>
+    }
+
+</div>
+
+<!-- tarde -->
+<div class="mb-3">
+    <span class="rounded-full bg-teal-100 px-3 py-1 text-xs font-semibold text-teal-700">
+        JORNADA TARDE
+    </span>
+</div>
+
+<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+
+    @foreach (var slot in AfternoonSlots)
+    {
+        <button disabled="@(!slot.Available)"
+                @onclick="() => SelectSlot(slot)"
+                class="@GetSlotClass(slot)">
+
+            <span class="font-semibold">@slot.Time</span>
+
+            @if (!slot.Available)
+            {
+                <span class="text-xs">NO DISPONIBLE</span>
+            }
+
+            @if (SelectedSlot == slot)
+            {
+                <span>✓</span>
+            }
+
+        </button>
+    }
+
+</div>
+
+@code {
+
+    [Parameter, EditorRequired]
+    public string DoctorId { get; set; }
+
+    private DayItem? SelectedDay;
+    private TimeSlot? SelectedSlot;
+
+    private List<DayItem> Days = new();
+    private List<TimeSlot> MorningSlots = new();
+    private List<TimeSlot> AfternoonSlots = new();
+
+    protected override void OnInitialized()
+    {
+        Days =
+        [
+            new() { DayName = "SÁB", DayNumber = "07", Month = "MARZO" },
+            new() { DayName = "DOM", DayNumber = "08", Month = "MARZO" },
+            new() { DayName = "LUN", DayNumber = "09", Month = "MARZO" },
+            new() { DayName = "MAR", DayNumber = "10", Month = "MARZO" },
+            new() { DayName = "MIÉ", DayNumber = "11", Month = "MARZO" }
+        ];
+
+        SelectedDay = Days.First();
+
+        MorningSlots =
+        [
+            new() { Time = "08:00 AM", Available = true },
+            new() { Time = "09:30 AM", Available = true },
+            new() { Time = "10:15 AM", Available = true },
+            new() { Time = "11:00 AM", Available = true }
+        ];
+
+        AfternoonSlots =
+        [
+            new() { Time = "01:30 PM", Available = true },
+            new() { Time = "02:40 PM", Available = true },
+            new() { Time = "03:20 PM", Available = false },
+            new() { Time = "04:10 PM", Available = true },
+            new() { Time = "05:00 PM", Available = true }
+        ];
+    }
+
+    protected override void OnParametersSet()
+    {
+        Console.WriteLine($"DoctorId: {DoctorId}");
+    }
+
+    void SelectDay(DayItem day)
+    {
+        SelectedDay = day;
+    }
+
+    void SelectSlot(TimeSlot slot)
+    {
+        if (!slot.Available)
+            return;
+
+        SelectedSlot = slot;
+    }
+
+    string BaseButton =>
+        "h-20 min-w-[100px] flex flex-col items-center justify-center gap-1 rounded-lg border text-center transition-all duration-150 flex-shrink-0";
+
+    string GetDayClass(DayItem day)
+    {
+        if (SelectedDay == day)
+            return $"{BaseButton} border-teal-600 bg-teal-600 text-white shadow-md";
+
+        return $"{BaseButton} border-gray-200 hover:border-teal-500";
+    }
+
+    string GetSlotClass(TimeSlot slot)
+    {
+        if (!slot.Available)
+            return $"{BaseButton} border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed";
+
+        if (SelectedSlot == slot)
+            return $"{BaseButton} border-teal-600 bg-teal-50 text-teal-700 font-semibold";
+
+        return $"{BaseButton} border-gray-200 hover:border-teal-500";
+    }
+
+    class DayItem
+    {
+        public string DayName { get; set; }
+        public string DayNumber { get; set; }
+        public string Month { get; set; }
+    }
+
+    class TimeSlot
+    {
+        public string Time { get; set; }
+        public bool Available { get; set; }
+    }
+}
