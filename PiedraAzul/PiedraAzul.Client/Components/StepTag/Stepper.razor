@@ -9,18 +9,17 @@
             @ChildContent
 
             <div class="flex justify-between mt-6 w-full max-w-lg">
-
-                <button type="button"
-                        class="px-4 py-2 border rounded"
-                        disabled="@(CurrentStep == 0)"
-                        @onclick="Prev">
-                    Atrás
-                </button>
+                    <button type="button"
+                        class="px-4 py-2 border rounded @(CurrentStep != 0 ? "" : "none ")"
+                            disabled="@(CurrentStep == 0)"
+                            @onclick="Prev">
+                        Atrás
+                    </button>
 
                 <button type="button"
                         class="px-4 py-2 bg-primary text-white rounded"
                         @onclick="Next">
-                    Siguiente
+                    @(CurrentStep == Steps.Count-1 ? FinishText : "Siguiente")
                 </button>
 
             </div>
@@ -31,6 +30,11 @@
 </CascadingValue>
 
 @code {
+    [Parameter, EditorRequired]
+    public EventCallback OnFinish { get; set; }
+
+    [Parameter, EditorRequired]
+    public string FinishText { get; set; }
 
     [CascadingParameter]
     EditContext EditContext { get; set; }
@@ -56,6 +60,13 @@
 
         if (!ValidateStep(step))
             return;
+
+        if (CurrentStep == Steps.Count - 1)
+        {
+            if (OnFinish.HasDelegate)
+                await OnFinish.InvokeAsync();
+            return;
+        }
 
         if (OnNext != null)
         {
