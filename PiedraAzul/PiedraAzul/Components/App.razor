@@ -25,7 +25,7 @@
         </div>
     </div>
 
-    <div id="app">
+    <div id="app" style="display:none">
         <Routes @rendermode="InteractiveAuto" />
     </div>
 
@@ -34,6 +34,7 @@
         const app = document.querySelector("#app");
         if (app && app.children.length > 0) {
         document.getElementById("landing").style.display = "none";
+            app.style.display = "block";
         observer.disconnect();
         }
         });
