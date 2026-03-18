@@ -1,21 +1,21 @@
 ﻿@inherits LayoutComponentBase
 
 
-<div class="min-h-screen flex flex-col bg-gray-50">
+<div class="flex min-h-screen flex-col bg-gray-50">
 
     <!-- TOP BAR -->
-    <div class="bg-primary text-white text-sm">
-        <div class="max-w-7xl mx-auto flex justify-between px-6 py-2">
+    <div class="bg-primary text-sm text-white">
+        <div class="mx-auto flex max-w-7xl justify-between px-6 py-2">
             <span>Llámanos: (301) 123-4567</span>
             <span>WhatsApp: Escríbenos ahora</span>
         </div>
     </div>
 
     <!-- HEADER -->
-    <header class="bg-white border-b">
-        <div class="max-w-7xl mx-auto flex items-center justify-between px-6 py-4">
+    <header class="border-b bg-white">
+        <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
 
-            <a href="/" class="flex items-center gap-2 text-teal-700 font-semibold text-lg">
+            <a href="/" class="flex items-center gap-2 text-lg font-semibold text-teal-700">
                 <span class="text-xl"></span>
                 Piedra Azul
             </a>
@@ -24,7 +24,7 @@
                 <a class="hover:text-gray-900">Servicios</a>
                 <a class="hover:text-gray-900">Ayuda</a>
 
-                <button class="bg-primary text-white px-4 py-2 rounded-md hover:bg-teal-800">
+                <button class="bg-primary rounded-md px-4 py-2 text-white hover:bg-teal-800">
                     Iniciar Sesión
                 </button>
             </nav>
@@ -32,16 +32,16 @@
         </div>
     </header>
 
-    <main class="flex-1">
+    <main class="flex flex-1 flex-col">
         @Body
     </main>
 
     <!-- FOOTER -->
     <footer class="bg-strong text-gray-300">
-        <div class="max-w-7xl mx-auto px-6 py-12 grid md:grid-cols-3 gap-10">
+        <div class="mx-auto grid max-w-7xl gap-10 px-6 py-12 md:grid-cols-3">
 
             <div>
-                <h3 class="text-white font-semibold text-lg mb-4 flex items-center gap-2">
+                <h3 class="mb-4 flex items-center gap-2 text-lg font-semibold text-white">
                     Piedra Azul
                 </h3>
 
@@ -52,7 +52,7 @@
             </div>
 
             <div>
-                <h4 class="text-white font-semibold mb-4">Enlaces</h4>
+                <h4 class="mb-4 font-semibold text-white">Enlaces</h4>
 
                 <ul class="space-y-2 text-sm">
                     <li><a class="hover:text-white">Acerca de nosotros</a></li>
@@ -63,15 +63,15 @@
             </div>
 
             <div>
-                <h4 class="text-white font-semibold mb-4">Contacto Directo</h4>
+                <h4 class="mb-4 font-semibold text-white">Contacto Directo</h4>
 
                 <div class="space-y-3">
 
-                    <button class="w-full bg-teal-600 hover:bg-teal-700 text-white py-2 rounded-md">
+                    <button class="w-full rounded-md bg-teal-600 py-2 text-white hover:bg-teal-700">
                         (+57) 301-1234567
                     </button>
 
-                    <button class="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-md">
+                    <button class="w-full rounded-md bg-green-600 py-2 text-white hover:bg-green-700">
                         WhatsApp
                     </button>
 
@@ -80,7 +80,7 @@
 
         </div>
 
-        <div class="border-t border-slate-700 text-center text-sm text-gray-500 py-4">
+        <div class="border-t border-slate-700 py-4 text-center text-sm text-gray-500">
             © 2026 Clínica Piedra Azul. Todos los derechos reservados.
         </div>
 
@@ -93,16 +93,16 @@
 
 <div id="blazor-error-ui"
      data-nosnippet
-     class="fixed bottom-0 left-1/2 -translate-x-1/2 bg-white border border-red-200 shadow-xl rounded-xl p-6 max-w-lg w-[90%]">
+     class="-translate-x-1/2 fixed bottom-0 left-1/2 w-[90%] max-w-lg rounded-xl border border-red-200 bg-white p-6 shadow-xl">
 
     <div class="flex items-start gap-4">
         <div class="flex-1">
 
-            <h2 class="text-lg font-semibold text-gray-800 mb-1">
+            <h2 class="mb-1 text-lg font-semibold text-gray-800">
                 Algo no salió como esperábamos
             </h2>
 
-            <p class="text-gray-600 text-sm mb-4">
+            <p class="mb-4 text-sm text-gray-600">
                 No se preocupe, esto a veces ocurre.
                 Puede intentar recargar la página para continuar.
             </p>
@@ -110,7 +110,7 @@
             <div class="flex gap-3">
 
                 <a href="."
-                       class="reload bg-[#3A7D8C] hover:bg-[#2f6773] text-white px-4 py-2 rounded-lg text-sm font-medium shadow">
+                       class="reload rounded-lg bg-[#3A7D8C] px-4 py-2 text-sm font-medium text-white shadow hover:bg-[#2f6773]">
                     Recargar página
                 </a>
             </div>
