@@ -38,7 +38,6 @@
 	<ItemGroup>
 		<Folder Include="ApplicationServices\AutoCompleteServices\" />
 		<Folder Include="ApplicationServices\Mapping\" />
-		<Folder Include="GrcpServices\" />
 	</ItemGroup>
 
 </Project>
