@@ -23,12 +23,13 @@ message RegisterRequest {
   string password = 2;
 
   string identificationNumber = 3;
-  string firstName = 4;
-  string lastName = 5;
-  string phone = 6;
+  string Name = 4;
+  string phone = 5;
 
-  GenderType gender = 7;
+  GenderType gender = 6;
+  string role = 7;
   google.protobuf.Timestamp birthDate = 8;
+  
 }
 
 
