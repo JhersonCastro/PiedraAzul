@@ -10,7 +10,7 @@
 
     <DataAnnotationsValidator />
 
-    <div class="flex flex-col shadow-2xl p-8 max-w-6xl mx-auto bg-white rounded-xl w-full my-6">
+    <div class="mx-auto my-6 flex w-full max-w-6xl flex-col rounded-xl bg-white p-8 shadow-2xl">
         <Stepper TModel="BookingModel" FinishText="Solicitar cita" OnFinish="HandlerSubmit">
 
                 <!-- STEP 1 -->
@@ -18,25 +18,25 @@
                       Title="Identificación"
                       Fields="@(new[] { nameof(Model.Nombre), nameof(Model.Telefono) })">
 
-                    <div class="flex flex-col items-center text-center mb-6">
+                    <div class="mb-6 flex flex-col items-center text-center">
 
                         <h2 class="text-2xl font-bold">
                             ¡Hola! Bienvenido a su Clínica
                         </h2>
 
-                        <p class="text-gray-600 mt-2">
+                        <p class="mt-2 text-gray-600">
                             Estamos aquí para ayudarle. Para comenzar su reserva médica,
                             por favor ingrese los siguientes datos.
                         </p>
 
                     </div>
 
-                    <div class="flex flex-col gap-5 w-full border-2 border-gray-200 rounded p-5">
+                    <div class="flex w-full flex-col gap-5 rounded border-2 border-gray-200 p-5">
 
                         <!-- Nombre -->
                         <div class="flex flex-col">
 
-                            <div class="flex gap-2 items-center">
+                            <div class="flex items-center gap-2">
 
                                 <svg xmlns="http://www.w3.org/2000/svg"
                                      height="24"
@@ -53,7 +53,7 @@
 
                             </div>
 
-                            <InputText class="border-2 border-gray-300 rounded-md py-3 px-4 mt-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                            <InputText class="mt-2 rounded-md border-2 border-gray-300 px-4 py-3 focus:ring-primary focus:outline-none focus:ring-2"
                                        @bind-Value="Model.Nombre"
                                        placeholder="Ej: Juan López" />
 
@@ -65,7 +65,7 @@
                         <!-- Telefono -->
                         <div class="flex flex-col">
 
-                            <div class="flex gap-2 items-center">
+                            <div class="flex items-center gap-2">
 
                                 <svg xmlns="http://www.w3.org/2000/svg"
                                      height="24"
@@ -82,7 +82,7 @@
 
                             </div>
 
-                            <InputText class="border-2 border-gray-300 rounded-md py-3 px-4 mt-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                            <InputText class="mt-2 rounded-md border-2 border-gray-300 px-4 py-3 focus:ring-primary focus:outline-none focus:ring-2"
                                        @bind-Value="Model.Telefono"
                                        placeholder="Ej: 301 123 4567" />
 
@@ -91,15 +91,11 @@
 
                         </div>
 
-                        <p class="text-gray-500 text-center">
+                        <p class="text-center text-gray-500">
                             Sus datos están seguros con nosotros.
                         </p>
 
                     </div>
-
-                    <p class="mt-4 text-md text-primary">
-                        ¿Necesitas ayuda telefónica? Llame al +57 301 123 4567
-                    </p>
 
                 </Step>
 
@@ -126,7 +122,7 @@
                 <!-- STEP 4 -->
                 <Step TModel="BookingModel" Title="Confirmación">
 
-                    <h2 class="text-2xl font-bold mb-4">
+                    <h2 class="mb-4 text-2xl font-bold">
                         Confirmar datos
                     </h2>
 
@@ -141,7 +137,11 @@
                 </Step>
 
 
+                    <p class="text-md text-primary mt-4 text-center">
+                        ¿Necesitas ayuda para hacer una cita? Llame al +57 301 123 4567
+                    </p>
         </Stepper>
+
     </div>
 </EditForm>
 
