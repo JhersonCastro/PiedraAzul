@@ -11,6 +11,7 @@ namespace PiedraAzul.ApplicationServices.Services
     public interface IJwtTokenService
     {
         Task<string> CreateTokenAsync(ApplicationUser user);
+        Task<string?> GetUserIdByToken(string token); 
     }
     public class JwtTokenService(UserManager<ApplicationUser> userManager, IConfiguration config) : IJwtTokenService
     {
@@ -41,5 +42,38 @@ namespace PiedraAzul.ApplicationServices.Services
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
+        public Task<string?> GetUserIdByToken(string token)
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+
+            var key = Encoding.UTF8.GetBytes(config["Jwt:Key"]!);
+
+            var parameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+
+                ValidIssuer = config["Jwt:Issuer"],
+                ValidAudience = config["Jwt:Audience"],
+                IssuerSigningKey = new SymmetricSecurityKey(key),
+
+                ClockSkew = TimeSpan.Zero 
+            };
+
+            try
+            {
+                var principal = tokenHandler.ValidateToken(token, parameters, out _);
+
+                var userId = principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+
+                return Task.FromResult(userId);
+            }
+            catch
+            {
+                return Task.FromResult<string?>(null);
+            }
+        }
     }
 }
