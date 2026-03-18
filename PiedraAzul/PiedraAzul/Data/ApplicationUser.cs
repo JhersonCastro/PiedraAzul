@@ -9,6 +9,7 @@ namespace PiedraAzul.Data
         public DateTime created_at { get; init; } = DateTime.UtcNow;
         public GenderType Gender { get; set; } = GenderType.NonSpecified;
         public DateTime? BirthDate { get; set; }
+        public string Name { get; set; }
 
     }
 }
