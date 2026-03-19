@@ -1,5 +1,7 @@
-﻿@using PiedraAzul.Shared
+﻿@using PiedraAzul.Client.Services
+@using PiedraAzul.Shared
 @using PiedraAzul.Shared.Enums
+@inject GrpcDoctorService DoctorService
 
 <div class="grid grid-cols-1 gap-8 lg:grid-cols-2">
 
@@ -139,20 +141,20 @@
 
     </div>
     <!-- MÉDICOS -->
-    <div class="flex flex-col gap-3 lg:sticky lg:top-6 h-fit">
+    <div class="flex h-fit flex-col gap-3 lg:sticky lg:top-6">
         <h3 class="text-left font-bold">
             MÉDICOS DISPONIBLES
         </h3>
         <ul class="flex flex-col gap-3">
             @if (_isLoading)
             {
-                <li class="text-gray-500 text-sm italic p-3">
+                <li class="p-3 text-sm italic text-gray-500">
                     Cargando médicos...
                 </li>
             }
             else if (_currentMedicDTOs.Count == 0)
             {
-                <li class="text-gray-500 text-sm italic p-3">
+                <li class="p-3 text-sm italic text-gray-500">
                     No hay médicos disponibles para esta especialidad.
                 </li>
             }
@@ -161,7 +163,7 @@
                 @foreach (var medic in _currentMedicDTOs)
                 {
                     var selected = SelectedMedicId == medic.Id;
-                    <li class="border rounded-lg p-3 shadow-sm cursor-pointer transition
+                    <li class="cursor-pointer rounded-lg border p-3 shadow-sm transition
                         @(selected
                                                     ? "border-primary bg-primary/10"
                                                     : "border-gray-200 hover:bg-gray-50")"
@@ -180,18 +182,9 @@
     [Parameter, EditorRequired]
     public EventCallback<string> OnSelected { get; set; }
 
-    DoctorType SelectedType = DoctorType.NaturalMedicine;
+    PiedraAzul.Shared.Enums.DoctorType SelectedType = DoctorType.NaturalMedicine;
     Dictionary<DoctorType, List<MedicDTO>> MedicsByType = new();
-    List<MedicDTO> _currentMedicDTOs = new()
-    {
-        new MedicDTO
-        {
-            Id = "1",
-            Name = "Dr. Juan Pérez",
-            Specialty = "Terapia Natural",
-            AvatarUrl = "https://picsum.photos/200/200"
-        }
-    };
+    List<MedicDTO> _currentMedicDTOs = new();
 
     string? SelectedMedicId;
     bool _isLoading;
@@ -213,9 +206,16 @@
         SelectedType = doctorType;
         if (!MedicsByType.TryGetValue(doctorType, out var medics))
         {
-            medics = new();
+            var response = await DoctorService.GetDoctorsByTypeAsync(doctorType);
+
+            medics = response.Select(ds => new MedicDTO()
+            {
+                Id = ds.DoctorId,
+                Specialty = ds.Specialty.ToString(),
+                Name = ds.Name,
+                AvatarUrl = ds.AvatarUrl
+            }).ToList();
             _isLoading = true;
-            await Task.Delay(1000);
             MedicsByType[doctorType] = medics;
         }
         _isLoading = false;

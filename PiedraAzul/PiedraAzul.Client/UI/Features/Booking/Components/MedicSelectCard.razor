@@ -3,13 +3,13 @@
 <div class="flex items-center gap-4">
     
     <!-- Avatar -->
-    <img src="@MedicDTO.AvatarUrl"
+    <img src=@("Avatars/" + MedicDTO.AvatarUrl)
          alt=""
-         class="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 object-cover rounded-md flex-shrink-0" />
+         class="h-16 w-16 flex-shrink-0 rounded-md object-cover sm:h-20 sm:w-20 md:h-24 md:w-24" />
 
     <!-- info -->
-    <div class="flex flex-col flex-1 min-w-0">
-        <p class="font-semibold text-sm sm:text-base truncate">@MedicDTO.Name</p>
+    <div class="flex min-w-0 flex-1 flex-col">
+        <p class="truncate text-sm font-semibold sm:text-base">@MedicDTO.Name</p>
         <span class="text-xs text-gray-600">@MedicDTO.Specialty</span>
         <span class="text-xs text-gray-500">@MedicDTO.Clinic</span>
     </div>
@@ -34,5 +34,6 @@
 
     [Parameter]
     public bool Selected { get; set; }
+
 
 }

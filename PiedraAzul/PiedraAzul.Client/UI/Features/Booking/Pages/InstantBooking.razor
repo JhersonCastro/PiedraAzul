@@ -2,6 +2,7 @@
 
 @using Microsoft.AspNetCore.Components.Forms
 @using PiedraAzul.Client.Models
+@using PiedraAzul.Client.UI.Features.Booking.Components
 @using PiedraAzul.Client.UI.Shared.Components.StepTag
 
 
@@ -112,10 +113,10 @@
                 <!-- STEP 3 -->
                 <Step TModel="BookingModel"
                       Title="Selecciona un doctor"
-                      Fields="@(new[] { nameof(Model.DoctorId)})">
+                      Fields="@(new[] { nameof(Model.SlotId)})">
 
-                <AppointmentScheduler DoctorId="@Model.DoctorId" />
-                    <ValidationMessage For="() => Model.DoctorId" />
+                <AppointmentScheduler DoctorId="@Model.DoctorId" OnSelected="SelectSlot"/>
+                <ValidationMessage For="() => Model.SlotId" />
 
                 </Step>
                 <!-- STEP 4 -->
@@ -129,7 +130,8 @@
 
                         <p><b>Nombre:</b> @Model.Nombre</p>
                         <p><b>Teléfono:</b> @Model.Telefono</p>
-                        <p><b>Dirección:</b> @Model.Direccion</p>
+                        <p><b>Doctor id:</b> @Model.DoctorId</p>
+                        <p><b>Slot id:</b> @Model.SlotId</p>
 
                     </div>
 
@@ -155,5 +157,10 @@
     {
 
         Console.WriteLine("meow");
+    }
+    private void SelectSlot((DateTime, string) args)
+    {
+        Model.SlotId = args.Item2;
+        Model.DayOfYear = args.Item1;
     }
 }

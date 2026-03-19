@@ -1,9 +1,12 @@
-﻿<!-- 1 Seleccionar día -->
+﻿@using PiedraAzul.Client.Services
+
+<!-- 1 Seleccionar día -->
+@inject GrpcAvailability AvailabilityClient
 <h2 class="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-700">
     1. Seleccione el día
 </h2>
 
-<div class="grid grid-cols-2 md:grid-cols-5 mb-6 pb-2 gap-3">
+<div class="mb-6 grid grid-cols-2 gap-3 pb-2 md:grid-cols-5">
 
     @foreach (var day in Days)
     {
@@ -33,7 +36,7 @@
     </span>
 </div>
 
-<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">
+<div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
 
     @foreach (var slot in MorningSlots)
     {
@@ -65,7 +68,7 @@
     </span>
 </div>
 
-<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+<div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
 
     @foreach (var slot in AfternoonSlots)
     {
@@ -94,61 +97,119 @@
 
     [Parameter, EditorRequired]
     public string DoctorId { get; set; }
+    [Parameter, EditorRequired]
+    public EventCallback<(DateTime,string)> OnSelected { get; set; }
 
+    private Dictionary<DateTime, List<TimeSlot>> cache = new();
     private DayItem? SelectedDay;
     private TimeSlot? SelectedSlot;
-
+    private CancellationTokenSource? _cts;
     private List<DayItem> Days = new();
     private List<TimeSlot> MorningSlots = new();
     private List<TimeSlot> AfternoonSlots = new();
 
     protected override void OnInitialized()
     {
-        Days =
-        [
-            new() { DayName = "SÁB", DayNumber = "07", Month = "MARZO" },
-            new() { DayName = "DOM", DayNumber = "08", Month = "MARZO" },
-            new() { DayName = "LUN", DayNumber = "09", Month = "MARZO" },
-            new() { DayName = "MAR", DayNumber = "10", Month = "MARZO" },
-            new() { DayName = "MIÉ", DayNumber = "11", Month = "MARZO" }
-        ];
+        var startDate = DateTime.Today.AddDays(0);
+
+        Days = Enumerable.Range(0, 14)
+            .Select(i =>
+            {
+                var date = startDate.AddDays(i);
+                return new DayItem
+                {
+                    Date = date,
+                    DayName = date.ToString("ddd").ToUpper(),
+                    DayNumber = date.ToString("dd"),
+                    Month = date.ToString("MMMM").ToUpper()
+                };
+            }).ToList();
 
         SelectedDay = Days.First();
-
-        MorningSlots =
-        [
-            new() { Time = "08:00 AM", Available = true },
-            new() { Time = "09:30 AM", Available = true },
-            new() { Time = "10:15 AM", Available = true },
-            new() { Time = "11:00 AM", Available = true }
-        ];
-
-        AfternoonSlots =
-        [
-            new() { Time = "01:30 PM", Available = true },
-            new() { Time = "02:40 PM", Available = true },
-            new() { Time = "03:20 PM", Available = false },
-            new() { Time = "04:10 PM", Available = true },
-            new() { Time = "05:00 PM", Available = true }
-        ];
     }
 
-    protected override void OnParametersSet()
+    protected override async Task OnParametersSetAsync()
     {
-        Console.WriteLine($"DoctorId: {DoctorId}");
+        if (SelectedDay != null)
+        {
+            await LoadSlots(SelectedDay.Date);
+        }
     }
 
-    void SelectDay(DayItem day)
+    async Task LoadSlots(DateTime date)
+    {
+        _cts?.Cancel();
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+
+
+        if (cache.TryGetValue(date.Date, out var cachedSlots))
+        {
+            await SetSlots(cachedSlots);
+            return;
+        }
+
+        try
+        {
+            var availability = await AvailabilityClient
+                .GetDoctorSlotsByDate(DoctorId, date, token); 
+
+            if (token.IsCancellationRequested)
+                return;
+
+            if (!availability.IsSuccess)
+            {
+                MorningSlots.Clear();
+                AfternoonSlots.Clear();
+                return;
+            }
+
+            var slots = availability.Value!.Slots;
+            MorningSlots.Clear();
+            AfternoonSlots.Clear();
+            await InvokeAsync(StateHasChanged);
+            var mapped = slots.Select(s => new TimeSlot
+            {
+                Id = s.Id,
+                Time = s.Start.ToDateTime().ToLocalTime().ToString("hh:mm tt"),
+                Available = s.IsAvailable
+            }).ToList();
+
+            cache[date.Date] = mapped;
+
+            await SetSlots(mapped);
+        }
+        catch (OperationCanceledException)
+        {
+            
+        }
+    }
+    async Task SetSlots(List<TimeSlot> slots)
+    {
+        MorningSlots = slots
+            .Where(s => DateTime.Parse(s.Time).Hour < 12)
+            .ToList();
+
+        AfternoonSlots = slots
+            .Where(s => DateTime.Parse(s.Time).Hour >= 12)
+            .ToList();
+        await InvokeAsync(StateHasChanged);
+
+    }
+    async void SelectDay(DayItem day)
     {
         SelectedDay = day;
+        SelectedSlot = null;
+
+        await LoadSlots(day.Date);
     }
 
     void SelectSlot(TimeSlot slot)
     {
         if (!slot.Available)
             return;
-
         SelectedSlot = slot;
+        OnSelected.InvokeAsync((SelectedDay!.Date, slot.Id));
     }
 
     string BaseButton =>
@@ -175,6 +236,7 @@
 
     class DayItem
     {
+        public DateTime Date { get; set; }
         public string DayName { get; set; }
         public string DayNumber { get; set; }
         public string Month { get; set; }
@@ -182,6 +244,7 @@
 
     class TimeSlot
     {
+        public string Id { get; set; }
         public string Time { get; set; }
         public bool Available { get; set; }
     }

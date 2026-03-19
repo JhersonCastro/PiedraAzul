@@ -16,6 +16,9 @@ namespace PiedraAzul.Client.Models
         public string Direccion { get; set; }
         [Required(ErrorMessage = "El doctor es obligatorio")]
         public string DoctorId { get; set; }
+        [Required(ErrorMessage = "Por favor selecciona una horario para la cita")]
+        public string SlotId { get; set; }
+        public DateTime DayOfYear { get; set; }
     }
 
 }
