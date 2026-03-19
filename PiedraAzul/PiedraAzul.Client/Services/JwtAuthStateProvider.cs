@@ -1,18 +1,28 @@
 ﻿using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.JSInterop;
+using PiedraAzul.Client.Services;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
 namespace PiedraAzul.Client.States
 {
-    public class JwtAuthStateProvider(IJSRuntime JS) : AuthenticationStateProvider
+    public class JwtAuthStateProvider(IJSRuntime JS, ITokenService tokenService) : AuthenticationStateProvider
     {
+        private static SemaphoreSlim _refreshLock = new(1, 1);
+
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
-            var token = await JS.InvokeAsync<string>("sessionStorage.getItem", "authToken");
+            var token = await tokenService.GetAccessTokenAsync();
 
             if (string.IsNullOrWhiteSpace(token))
-                return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
+            {
+                //Try refreshing the token
+                var refreshResult = await tokenService.RefreshTokenAsync();
+                if (refreshResult == null)
+                    return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
+
+                token = refreshResult;
+            }
 
             var handler = new JwtSecurityTokenHandler();
 
