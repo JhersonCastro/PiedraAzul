@@ -20,6 +20,9 @@ namespace PiedraAzul.Client.Extensions
             services.AddScoped<AuthenticationService>();
             services.AddScoped<JwtService>();
             services.AddScoped<RefreshAuthClient>();
+            services.AddScoped<ITokenService, TokenService>();
+            services.AddScoped<GrpcAvailability>();
+            services.AddScoped<GrpcDoctorService>();
             #endregion
 
             #region Auth
@@ -68,6 +71,13 @@ namespace PiedraAzul.Client.Extensions
             services.AddScoped(sp =>
                 new AuthService.AuthServiceClient(
                     sp.GetRequiredService<GrpcChannel>()));
+
+            services.AddScoped(sp =>
+                new AvailabilityService.AvailabilityServiceClient(
+                    sp.GetRequiredService<GrpcChannel>()));
+            services.AddScoped(sp =>
+                new DoctorService.DoctorServiceClient(
+                    sp.GetRequiredService<GrpcChannel>()));
             #endregion
 
             return services;
@@ -89,7 +99,24 @@ namespace PiedraAzul.Client.Extensions
 
                 return new AuthService.AuthServiceClient(channel);
             });
+            services.AddScoped(sp =>
+            {
+                var channel = GrpcChannel.ForAddress(grpcUrl, new GrpcChannelOptions
+                {
+                    HttpHandler = new HttpClientHandler()
+                });
 
+                return new AvailabilityService.AvailabilityServiceClient(channel);
+            });
+            services.AddScoped(sp =>
+            {
+                var channel = GrpcChannel.ForAddress(grpcUrl, new GrpcChannelOptions
+                {
+                    HttpHandler = new HttpClientHandler()
+                });
+
+                return new DoctorService.DoctorServiceClient(channel);
+            });
             return services;
         }
     }
