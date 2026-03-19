@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace PiedraAzul.Data.Models
 {
-    public class DoctorAvailabilityBlock
+    public class DoctorAvailabilitySlot
     {
 
         [Key]

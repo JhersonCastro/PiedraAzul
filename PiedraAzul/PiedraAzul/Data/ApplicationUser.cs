@@ -10,6 +10,6 @@ namespace PiedraAzul.Data
         public GenderType Gender { get; set; } = GenderType.NonSpecified;
         public DateTime? BirthDate { get; set; }
         public string Name { get; set; }
-
+        public string AvatarUrl { get; set; } = "default.png";
     }
 }
