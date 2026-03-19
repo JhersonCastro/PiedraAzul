@@ -6,10 +6,10 @@ namespace PiedraAzul.Shared.Enums
 {
     public enum DoctorType
     {
-        NaturalMedicine = 1,
-        Chiropractic = 2,
-        Optometry = 3,
-        Physiotherapy = 4,
+        NaturalMedicine = 0,
+        Chiropractic = 1,
+        Optometry = 2,
+        Physiotherapy = 3,
 
     }
 }

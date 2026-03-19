@@ -10,6 +10,7 @@ service DoctorService {
   rpc GetDoctors (common.Empty) returns (DoctorListResponse);
 
   rpc GetDoctor (DoctorRequest) returns (DoctorResponse);
+  rpc GetDoctorsByType(DoctorTypeRequest) returns (DoctorListResponse);
 }
 
 enum DoctorType
@@ -20,7 +21,9 @@ enum DoctorType
     Physiotherapy = 3;
 
 }
-
+message DoctorTypeRequest {
+  DoctorType doctorType = 1;
+}
 message DoctorRequest {
   string doctorId = 1;
 }
@@ -29,9 +32,11 @@ message DoctorResponse {
   string doctorId = 1;
   string userId = 2;
 
-  DoctorType specialty = 3;
-  string licenseNumber = 4;
-  string notes = 5;
+  string name = 3;
+  DoctorType specialty = 4;
+  string licenseNumber = 5;
+  string notes = 6;
+  string avatarUrl = 7;
 }
 
 message DoctorListResponse {
