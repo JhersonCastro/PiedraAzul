@@ -8,16 +8,16 @@
             
             @ChildContent
 
-            <div class="flex justify-between mt-6 w-full max-w-lg">
+            <div class="mt-6 flex w-full max-w-lg justify-between">
                     <button type="button"
-                        class="px-4 py-2 border rounded @(CurrentStep != 0 ? "" : "none ")"
+                        class="cursor-pointer rounded border px-4 @(CurrentStep != 0 ? "" : "none ") py-2"
                             disabled="@(CurrentStep == 0)"
                             @onclick="Prev">
                         Atrás
                     </button>
 
                 <button type="button"
-                        class="px-4 py-2 bg-primary text-white rounded"
+                        class="bg-primary cursor-pointer rounded px-4 py-2 text-white"
                         @onclick="Next">
                     @(CurrentStep == Steps.Count-1 ? FinishText : "Siguiente")
                 </button>
