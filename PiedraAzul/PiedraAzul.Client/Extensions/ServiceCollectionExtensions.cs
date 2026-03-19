@@ -82,7 +82,11 @@ namespace PiedraAzul.Client.Extensions
 
             services.AddScoped(sp =>
             {
-                var channel = GrpcChannel.ForAddress(grpcUrl);
+                var channel = GrpcChannel.ForAddress(grpcUrl, new GrpcChannelOptions
+                {
+                    HttpHandler = new HttpClientHandler()
+                });
+
                 return new AuthService.AuthServiceClient(channel);
             });
 

@@ -1,8 +1,7 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
-
 <CascadingAuthenticationState>
 
-    <Router AppAssembly="@typeof(Program).Assembly" NotFoundPage="typeof(Pages.NotFound)">
+    <Router AppAssembly="@typeof(Program).Assembly" NotFoundPage="typeof(PiedraAzul.Client.UI.Shared.Pages.NotFound)">
 
         <Navigating>
             <div class="flex h-screen items-center justify-center">
@@ -12,7 +11,7 @@
 
         <Found Context="routeData">
             <AuthorizeRouteView RouteData="routeData"
-                                DefaultLayout="typeof(Layout.MainLayout)">
+                                DefaultLayout="typeof(PiedraAzul.Client.UI.Shared.Layout.MainLayout)">
 
                 <Authorizing>
                     <div class="flex h-screen items-center justify-center">
