@@ -1,19 +1,13 @@
 #region NameSpaces
-using Lucene.Net.Analysis;
-using Lucene.Net.Analysis.Standard;
 using Lucene.Net.Index;
-using Lucene.Net.Store;
-using Lucene.Net.Util;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using PiedraAzul.ApplicationServices.Services;
 using PiedraAzul.Components;
 using PiedraAzul.Data;
+using PiedraAzul.Extensions;
 using PiedraAzul.GrcpServices;
-using System.Security.Claims;
-using System.Text;
+using PiedraAzul.Client.Extensions;
 #endregion
 
 var builder = WebApplication.CreateBuilder(args);
@@ -22,20 +16,7 @@ var isEf = args.Any(a => a.Contains("ef", StringComparison.OrdinalIgnoreCase));
 IndexWriter? writer = null;
 if (!isEf)
 {
-    #region Lucene.Net
-    // Config
-    var luceneVersion = LuceneVersion.LUCENE_48;
-    var indexPath = builder.Configuration["LuceneIndexPath"] ?? "lucene_index";
-
-    var dir = FSDirectory.Open(indexPath);
-    var analyzer = new StandardAnalyzer(luceneVersion);
-    var indexConfig = new IndexWriterConfig(luceneVersion, analyzer);
-    writer = new IndexWriter(dir, indexConfig);
-
-    // Services
-    builder.Services.AddSingleton<Analyzer>(analyzer);
-    builder.Services.AddSingleton<IndexWriter>(writer);
-    #endregion
+    builder.Services.AddLucene(builder.Configuration["LuceneIndexPath"] ?? "lucene_index", writer);
 }
 
 
@@ -50,66 +31,50 @@ builder.Services.AddDbContextFactory<AppDbContext>(options =>
 
 #region JWTAndRefreshToken
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
-builder.Services.AddScoped<RefreshTokenService, RefreshTokenService>();
+builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 #endregion
 
 #region Services
 builder.Services.AddScoped<IUserService, UserService>();
 #endregion
+#region ClientServices
+builder.Services.AddClientServer(builder.Configuration["GrpcUrl"] ?? "https://piedraazul.dev.localhost:7128");
+
+#endregion
+
 
 #region AuthenticationAndAuthorization
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuer = true,
-        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidateAudience = true,
-        ValidAudience = builder.Configuration["Jwt:Audience"],
-        ValidateLifetime = true,
-        ClockSkew = TimeSpan.FromMinutes(5),
-        ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)),
-
-        RoleClaimType = ClaimTypes.Role,
-        NameClaimType = ClaimTypes.Name
-    };
-    options.Events = new JwtBearerEvents
-    {
-        OnMessageReceived = ctx =>
-        {
-            ctx.Request.Cookies.TryGetValue("accessToken", out var accessToken);
-            if (!string.IsNullOrEmpty(accessToken))
-                ctx.Token = accessToken;
-
-            return Task.CompletedTask;
-        }
-    };
-});
-
-builder.Services.AddAuthorization();
+builder.Services.AddAuthenticationAndAuthorization(builder);
 
 builder.Services.AddIdentityApiEndpoints<ApplicationUser>(
     opts =>
     {
-        opts.User.RequireUniqueEmail = true;
+        opts.User.RequireUniqueEmail = false;
         opts.SignIn.RequireConfirmedAccount = false;
     })
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<AppDbContext>();
+
+
+builder.Services.Configure<IdentityOptions>(options =>
+{
+    options.Password.RequireDigit = false;
+    options.Password.RequireUppercase = false;
+    options.Password.RequireLowercase = false;
+    options.Password.RequireNonAlphanumeric = false;
+
+    options.Password.RequiredLength = 6;
+    options.Password.RequiredUniqueChars = 1;
+});
 #endregion
 
 #region RazorComponents
 // Add services to the container.
 builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents()
+    .AddInteractiveServerComponents(opt =>
+    {
+        opt.DetailedErrors = true;
+    })
     .AddInteractiveWebAssemblyComponents();
 #endregion
 
@@ -151,8 +116,8 @@ using (var scope = app.Services.CreateScope())
 }
 #endregion
 
-
 #region UI
+app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
     .AddInteractiveWebAssemblyRenderMode()
@@ -167,7 +132,6 @@ app.UseAuthorization();
 #region Middleware
 app.UseHttpsRedirection();
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
-app.MapStaticAssets();
 app.UseAntiforgery();
 #endregion
 
