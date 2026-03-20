@@ -34,13 +34,13 @@ namespace PiedraAzul.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Appointment>()
-                .HasOne(a => a.DoctorAvailabilityBlock)
+                .HasOne(a => a.DoctorAvailabilitySlot)
                 .WithMany()
-                .HasForeignKey(a => a.DoctorAvailabilityBlockId)
+                .HasForeignKey(a => a.DoctorAvailabilitySlotId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Appointment>()
-                .HasIndex(a => new { a.DoctorAvailabilityBlockId, a.DayOfYear })
+                .HasIndex(a => new { a.DoctorAvailabilitySlotId, a.Date })
                 .IsUnique();
 
 
