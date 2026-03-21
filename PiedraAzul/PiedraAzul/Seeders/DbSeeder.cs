@@ -113,10 +113,9 @@ namespace PiedraAzul.Seeders
                     Id = Guid.NewGuid(),
                     PatientId = patient.PatientId,
                     DoctorId = doctor.DoctorId,
-                    DoctorAvailabilityBlockId = slot.Id,
+                    DoctorAvailabilitySlotId = slot.Id,
 
-                    // 🔥 fecha concreta
-                    DayOfYear = todayUtc,
+                    Date = todayUtc,
 
                     CreatedAt = DateTime.UtcNow
                 })
