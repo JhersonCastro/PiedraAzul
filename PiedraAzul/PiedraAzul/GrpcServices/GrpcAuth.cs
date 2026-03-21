@@ -5,6 +5,7 @@ using PiedraAzul.Data;
 using PiedraAzul.GrpcServices;
 using PiedraAzul.Shared.Grpc;
 using Shared.Grpc;
+using System.Security.Claims;
 
 namespace PiedraAzul.GrpcServices
 {
@@ -31,6 +32,7 @@ namespace PiedraAzul.GrpcServices
             var userResponse = new UserResponse
             {
                 Id = user.Id,
+                Name = user.Name,
                 Email = user.Email,
                 BirthDate = user.BirthDate?.ToShortDateString() ?? string.Empty,
                 Gender = (int)user.Gender,
@@ -63,12 +65,12 @@ namespace PiedraAzul.GrpcServices
             var newRefreshToken = await refresh.RotateRefreshTokenAsync(storedToken);
             var accessToken = await jwtTokenService.CreateTokenAsync(user);
 
-            // 🔥 Rotar cookie
             await GrpcCookieHelper.SetRefreshTokenCookie(context, newRefreshToken);
 
             var userResponse = new UserResponse
             {
                 Id = user.Id,
+                Name = user.Name,
                 Email = user.Email,
                 BirthDate = user.BirthDate?.ToShortDateString() ?? string.Empty,
                 Gender = (int)user.Gender,
@@ -101,15 +103,15 @@ namespace PiedraAzul.GrpcServices
 
         public override async Task<UserResponse> GetCurrentUser(Empty request, ServerCallContext context)
         {
-            var auth = context.RequestHeaders.FirstOrDefault(h => h.Key == "authorization")?.Value;
-            var jwt = auth?.StartsWith("Bearer ") == true ? auth.Substring("Bearer ".Length) : null;
+            var httpContext = context.GetHttpContext();
+            var userClaims = httpContext.User;
 
-            if (string.IsNullOrEmpty(jwt))
-                throw new RpcException(new Status(StatusCode.Unauthenticated, "No se proporcionó token"));
+            if (userClaims?.Identity?.IsAuthenticated != true)
+                throw new RpcException(new Status(StatusCode.Unauthenticated, "No autenticado"));
 
-            var userId = await jwtTokenService.GetUserIdByToken(jwt);
+            var userId = userClaims.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            if (userId == null)
+            if (string.IsNullOrEmpty(userId))
                 throw new RpcException(new Status(StatusCode.Unauthenticated, "Token inválido"));
 
             var user = await userService.GetById(userId);
@@ -122,11 +124,13 @@ namespace PiedraAzul.GrpcServices
             var userResponse = new UserResponse
             {
                 Id = user.Id,
+                Name = user.Name,
                 Email = user.Email,
                 BirthDate = user.BirthDate?.ToShortDateString() ?? string.Empty,
                 Gender = (int)user.Gender,
                 IdentificationNumber = user.IdentificationNumber,
             };
+
             userResponse.Roles.AddRange(roles);
 
             return userResponse;
@@ -159,6 +163,7 @@ namespace PiedraAzul.GrpcServices
             var userResponse = new UserResponse
             {
                 Id = user.Id,
+                Name = user.Name,
                 Email = user.Email,
                 BirthDate = user.BirthDate?.ToShortDateString() ?? string.Empty,
                 Gender = (int)user.Gender,

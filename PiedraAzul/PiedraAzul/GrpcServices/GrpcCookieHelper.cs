@@ -9,7 +9,7 @@ namespace PiedraAzul.GrpcServices
             var cookie = $"refreshToken={refreshToken}; " +
                          $"HttpOnly; " +
                          $"Path=/; " +
-                         $"SameSite=Strict; " +
+                         $"SameSite=None; " +
                          $"{(isProduction ? "Secure;" : "")} " +
                          $"Max-Age={7 * 24 * 60 * 60}";
 
@@ -27,13 +27,16 @@ namespace PiedraAzul.GrpcServices
             if (string.IsNullOrEmpty(cookieHeader))
                 return null;
 
-            return cookieHeader
+            var cookie = cookieHeader
                 .Split(';')
                 .Select(c => c.Trim())
-                .FirstOrDefault(c => c.StartsWith("refreshToken="))
-                ?.Split('=')[1];
-        }
+                .FirstOrDefault(c => c.StartsWith("refreshToken="));
 
+            if (cookie == null)
+                return null;
+
+            return cookie.Substring("refreshToken=".Length);
+        }
         public static async Task DeleteRefreshTokenCookie(ServerCallContext context)
         {
             var cookie = "refreshToken=; HttpOnly; Path=/; Max-Age=0; SameSite=Strict";
