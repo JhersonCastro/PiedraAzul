@@ -1,17 +1,21 @@
 ﻿@page "/account"
+@using PiedraAzul.Client.Services
 @using PiedraAzul.Client.States
-@inherits LayoutComponentBase
 @inject NavigationManager Navigation
 @inject UserState UserState
-
+@inject AuthenticationService AuthService
 
 
 @code {
-    override protected void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        if (UserState.UserResponse==null)
-        {
-            Navigation.NavigateTo("/account/auth", forceLoad:false, replace:true);
-        }
+        await base.OnInitializedAsync();
+        if (UserState.UserResponse != null) return;
+
+        var response = await AuthService.GetCurrentUserAsync();
+        if (!response.IsSuccess)
+            Navigation.NavigateTo("/account/auth", forceLoad: false, replace: true);
+
+        UserState.UserResponse = response.Value;
     }
 }
