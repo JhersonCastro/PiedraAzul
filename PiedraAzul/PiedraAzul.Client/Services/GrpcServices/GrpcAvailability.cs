@@ -1,8 +1,8 @@
 ﻿using PiedraAzul.Client.Models;
-using PiedraAzul.Client.Wrappers;
+using PiedraAzul.Client.Services.Wrappers;
 using Shared.Grpc;
 
-namespace PiedraAzul.Client.Services
+namespace PiedraAzul.Client.Services.GrpcServices
 {
     public class GrpcAvailability : AvailabilityService.AvailabilityServiceClient
     {

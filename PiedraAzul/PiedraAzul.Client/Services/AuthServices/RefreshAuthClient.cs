@@ -3,7 +3,7 @@ using Grpc.Net.Client.Web;
 using Microsoft.AspNetCore.Components;
 using Shared.Grpc;
 
-namespace PiedraAzul.Client.Services;
+namespace PiedraAzul.Client.Services.AuthServices;
 
 public class RefreshAuthClient
 {

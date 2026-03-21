@@ -1,11 +1,11 @@
 ﻿using Grpc.Core;
 using Microsoft.JSInterop;
 using PiedraAzul.Client.Models;
-using PiedraAzul.Client.Wrappers;
+using PiedraAzul.Client.Services.Wrappers;
 using Shared.Grpc;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
-namespace PiedraAzul.Client.Services;
+namespace PiedraAzul.Client.Services.AuthServices;
 
 public class AuthenticationService
 {

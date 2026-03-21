@@ -1,7 +1,7 @@
 ﻿using Grpc.Core;
 using PiedraAzul.Client.Models;
 
-namespace PiedraAzul.Client.Wrappers
+namespace PiedraAzul.Client.Services.Wrappers
 {
     public static class GrpcExecutor
     {

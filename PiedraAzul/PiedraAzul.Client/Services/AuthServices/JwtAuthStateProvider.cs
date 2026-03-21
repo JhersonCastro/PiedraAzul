@@ -1,10 +1,9 @@
 ﻿using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.JSInterop;
-using PiedraAzul.Client.Services;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
-namespace PiedraAzul.Client.States
+namespace PiedraAzul.Client.Services.AuthServices
 {
     public class JwtAuthStateProvider(IJSRuntime JS, ITokenService tokenService) : AuthenticationStateProvider
     {

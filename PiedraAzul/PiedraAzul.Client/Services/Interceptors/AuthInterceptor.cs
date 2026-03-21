@@ -1,7 +1,7 @@
 ﻿using Grpc.Core;
 using Grpc.Core.Interceptors;
-using PiedraAzul.Client.Services;
-namespace PiedraAzul.Client.Interceptors;
+using PiedraAzul.Client.Services.AuthServices;
+namespace PiedraAzul.Client.Services.Interceptors;
     public class AuthInterceptor : Interceptor
 {
     private readonly ITokenService tokenService;

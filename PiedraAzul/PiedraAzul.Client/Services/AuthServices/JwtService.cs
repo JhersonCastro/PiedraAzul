@@ -2,7 +2,7 @@
 using PiedraAzul.Shared;
 using System.IdentityModel.Tokens.Jwt;
 
-namespace PiedraAzul.Client.Services
+namespace PiedraAzul.Client.Services.AuthServices
 {
     public class JwtService
     {

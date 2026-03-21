@@ -1,7 +1,7 @@
 ﻿using Microsoft.JSInterop;
 using Shared.Grpc;
 
-namespace PiedraAzul.Client.Services
+namespace PiedraAzul.Client.Services.AuthServices
 {
     public interface ITokenService
     {

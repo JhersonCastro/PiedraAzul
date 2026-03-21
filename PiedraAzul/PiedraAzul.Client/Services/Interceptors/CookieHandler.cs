@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components.WebAssembly.Http;
 
-namespace PiedraAzul.Client.Interceptors
+namespace PiedraAzul.Client.Services.Interceptors
 {
     public class CookieHandler : DelegatingHandler
     {

@@ -3,8 +3,9 @@ using Grpc.Core.Interceptors;
 using Grpc.Net.Client;
 using Grpc.Net.Client.Web;
 using Microsoft.AspNetCore.Components.Authorization;
-using PiedraAzul.Client.Interceptors;
-using PiedraAzul.Client.Services;
+using PiedraAzul.Client.Services.AuthServices;
+using PiedraAzul.Client.Services.GrpcServices;
+using PiedraAzul.Client.Services.Interceptors;
 using PiedraAzul.Client.States;
 using Shared.Grpc;
 
