@@ -8,10 +8,6 @@
 
 <EditForm Model="@loginModel" OnValidSubmit="HandleLogin" class="mx-auto w-full max-w-lg">
     <DataAnnotationsValidator />
-    @if (!string.IsNullOrEmpty(_errorMessage))
-    {
-        <p>@_errorMessage</p>
-    }
     <div class="rounded-2xl border border-gray-100 bg-white p-6 shadow-xl md:p-8">
 
         <!-- Header -->
@@ -52,7 +48,11 @@
             focus:ring-teal-400"
                        placeholder="Tu contraseña" />
         </div>
-
+        <!-- Error Message -->
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <p class="text-sm text-red-500">@_errorMessage</p>
+        }
         <!-- Acciones -->
         <div class="mt-6 space-y-3">
 
@@ -80,9 +80,9 @@
     [Parameter]
     public EventCallback OnRegisterClick { get; set; }
     [Parameter]
-    public string ReturnUrl { get; set; } = "/";
+    public string? ReturnUrl { get; set; } = string.Empty;
 
-    private string _errorMessage;
+    private string? _errorMessage;
     private async Task HandleLogin()
     {
         Console.WriteLine($"Login: {loginModel.Login}");
@@ -91,13 +91,25 @@
 
         if(!result.IsSuccess)
         {
-            _errorMessage = result.Error!.Message;
+            switch(result.Error!.Code)
+            {
+                case StatusCode.Unauthenticated:
+                    _errorMessage = "Credenciales inválidas. Por favor, verifica tu información.";
+                    break;
+                default:
+                    _errorMessage = "Ocurrió un error al intentar iniciar sesión. Por favor, intenta nuevamente.";
+                    break;
+            }
             return;
         }
         
         var user = result.Value;
 
         UserState.UserResponse = user;
+        if(string.IsNullOrEmpty(ReturnUrl))
+            return;
+        
+
         NavigationManager.NavigateTo(ReturnUrl);
     }
 }
