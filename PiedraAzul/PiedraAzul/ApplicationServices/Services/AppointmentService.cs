@@ -32,8 +32,8 @@ namespace PiedraAzul.ApplicationServices.Services
                 .ToListAsync();
 
             var occupied = await context.Appointments
-                .Where(a => a.DoctorId == doctorId && a.DayOfYear.Date == day)
-                .Select(a => a.DoctorAvailabilityBlockId)
+                .Where(a => a.DoctorId == doctorId && a.Date == day)
+                .Select(a => a.DoctorAvailabilitySlotId)
                 .ToHashSetAsync();
 
             var result = slots
