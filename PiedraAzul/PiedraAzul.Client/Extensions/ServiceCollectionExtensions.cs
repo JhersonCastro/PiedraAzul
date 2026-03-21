@@ -1,7 +1,9 @@
-﻿using Grpc.Net.Client;
+﻿using Grpc.Core;
+using Grpc.Core.Interceptors;
+using Grpc.Net.Client;
 using Grpc.Net.Client.Web;
 using Microsoft.AspNetCore.Components.Authorization;
-using PiedraAzul.Client.DelegatingHandlers;
+using PiedraAzul.Client.Interceptors;
 using PiedraAzul.Client.Services;
 using PiedraAzul.Client.States;
 using Shared.Grpc;
@@ -30,6 +32,8 @@ namespace PiedraAzul.Client.Extensions
             services.AddAuthorizationCore();
             #endregion
 
+            services.AddScoped<AuthInterceptor>();
+
             return services;
         }
     }
@@ -42,17 +46,13 @@ namespace PiedraAzul.Client.Extensions
 
             #region Handlers
             services.AddScoped<CookieHandler>();
-            services.AddScoped<HttpDelegatingHandler>();
             #endregion
 
             #region GRPC CHANNEL
             services.AddScoped(sp =>
             {
                 var cookieHandler = sp.GetRequiredService<CookieHandler>();
-                var authHandler = sp.GetRequiredService<HttpDelegatingHandler>();
-
-                cookieHandler.InnerHandler = authHandler;
-                authHandler.InnerHandler = new HttpClientHandler();
+                cookieHandler.InnerHandler = new HttpClientHandler();
 
                 var grpcHandler = new GrpcWebHandler(
                     GrpcWebMode.GrpcWeb,
@@ -67,17 +67,28 @@ namespace PiedraAzul.Client.Extensions
             });
             #endregion
 
-            #region GRPC CLIENT
+            #region CALL INVOKER 
+            services.AddScoped<CallInvoker>(sp =>
+            {
+                var channel = sp.GetRequiredService<GrpcChannel>();
+                var interceptor = sp.GetRequiredService<AuthInterceptor>();
+
+                return channel.Intercept(interceptor);
+            });
+            #endregion
+
+            #region GRPC CLIENTS
             services.AddScoped(sp =>
                 new AuthService.AuthServiceClient(
-                    sp.GetRequiredService<GrpcChannel>()));
+                    sp.GetRequiredService<CallInvoker>()));
 
             services.AddScoped(sp =>
                 new AvailabilityService.AvailabilityServiceClient(
-                    sp.GetRequiredService<GrpcChannel>()));
+                    sp.GetRequiredService<CallInvoker>()));
+
             services.AddScoped(sp =>
                 new DoctorService.DoctorServiceClient(
-                    sp.GetRequiredService<GrpcChannel>()));
+                    sp.GetRequiredService<CallInvoker>()));
             #endregion
 
             return services;
@@ -90,33 +101,40 @@ namespace PiedraAzul.Client.Extensions
         {
             services.AddSharedClientServices();
 
+            #region GRPC CHANNEL
             services.AddScoped(sp =>
             {
-                var channel = GrpcChannel.ForAddress(grpcUrl, new GrpcChannelOptions
+                return GrpcChannel.ForAddress(grpcUrl, new GrpcChannelOptions
                 {
                     HttpHandler = new HttpClientHandler()
                 });
-
-                return new AuthService.AuthServiceClient(channel);
             });
-            services.AddScoped(sp =>
+            #endregion
+
+            #region CALL INVOKER 
+            services.AddScoped<CallInvoker>(sp =>
             {
-                var channel = GrpcChannel.ForAddress(grpcUrl, new GrpcChannelOptions
-                {
-                    HttpHandler = new HttpClientHandler()
-                });
+                var channel = sp.GetRequiredService<GrpcChannel>();
+                var interceptor = sp.GetRequiredService<AuthInterceptor>();
 
-                return new AvailabilityService.AvailabilityServiceClient(channel);
+                return channel.Intercept(interceptor);
             });
+            #endregion
+
+            #region GRPC CLIENTS
             services.AddScoped(sp =>
-            {
-                var channel = GrpcChannel.ForAddress(grpcUrl, new GrpcChannelOptions
-                {
-                    HttpHandler = new HttpClientHandler()
-                });
+                new AuthService.AuthServiceClient(
+                    sp.GetRequiredService<CallInvoker>()));
 
-                return new DoctorService.DoctorServiceClient(channel);
-            });
+            services.AddScoped(sp =>
+                new AvailabilityService.AvailabilityServiceClient(
+                    sp.GetRequiredService<CallInvoker>()));
+
+            services.AddScoped(sp =>
+                new DoctorService.DoctorServiceClient(
+                    sp.GetRequiredService<CallInvoker>()));
+            #endregion
+
             return services;
         }
     }
