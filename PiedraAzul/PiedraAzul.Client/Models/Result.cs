@@ -1,9 +1,11 @@
 ﻿
+using Grpc.Core;
+
 namespace PiedraAzul.Client.Models
 {
     public record ErrorResult(
         string Message,
-        string Code,
+        StatusCode Code,
         string Type,
         bool RequiresLogout = false,
         object? Metadata = null

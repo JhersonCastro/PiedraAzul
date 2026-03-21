@@ -27,7 +27,7 @@ namespace PiedraAzul.Client.Wrappers
 
                 return Result<T>.Failure(new ErrorResult(
                     Message: message,
-                    Code: ex.StatusCode.ToString(),
+                    Code: ex.StatusCode,
                     Type: type
                 ));
             }
@@ -35,7 +35,7 @@ namespace PiedraAzul.Client.Wrappers
             {
                 return Result<T>.Failure(new ErrorResult(
                     Message: "Error inesperado",
-                    Code: "UNKNOWN",
+                    Code: StatusCode.Unknown,
                     Type: "System"
                 ));
             }
