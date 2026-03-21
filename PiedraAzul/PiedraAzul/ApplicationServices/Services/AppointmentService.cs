@@ -7,17 +7,19 @@ namespace PiedraAzul.ApplicationServices.Services
 {
     public interface IAppointmentService
     {
-        Task CreateAppointmentAsync(int patientId, int appointmentSlotId);
+        Task<Appointment> CreateAppointmentAsync(Appointment appointment);
         Task<List<(DoctorAvailabilitySlot Slot, bool IsAvailable)>> GetDoctorDaySlotsAsync(Guid doctorId, DateTime date);
     }
     public class AppointmentService(IDbContextFactory<AppDbContext> dbContextFactory) : IAppointmentService
     {
-        public async Task CreateAppointmentAsync(int patientId, int appointmentSlotId)
+        public async Task<Appointment> CreateAppointmentAsync(Appointment appointment)
         {
             using var context = await dbContextFactory.CreateDbContextAsync();
 
+            context.Add(appointment);
+            await context.SaveChangesAsync();
 
-            throw new NotImplementedException();
+            return appointment;
         }
 
         public async Task<List<(DoctorAvailabilitySlot Slot, bool IsAvailable)>> GetDoctorDaySlotsAsync(Guid doctorId, DateTime date)

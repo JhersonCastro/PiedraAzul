@@ -27,18 +27,19 @@ message PatientAppointmentsRequest {
 
 
 message CreateAppointmentRequest {
-  string appointmentSlotId = 1;
-  
-  google.protobuf.Timestamp date = 2;
-
   // opcional (usuario registrado)
-  string patientId = 3;
+  string patientId = 1;
 
   // para invitados
-  string patientIdentification = 4;
-  string patientName = 5; 
-  string patientPhone = 6;
-  string patientExtraInfo = 7;
+  string patientIdentification = 2;
+  string patientName = 3; 
+  string patientPhone = 4;
+  string patientExtraInfo = 5;
+
+  //Doctor 
+  string doctorId = 6;
+  string doctorAvailabilitySlotId = 7;
+  google.protobuf.Timestamp date = 8;
 }
 
 
