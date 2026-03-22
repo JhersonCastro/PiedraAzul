@@ -1,0 +1,89 @@
+﻿@using PiedraAzul.Client.Models.Booking
+@using System.Globalization
+
+<div class="mx-auto mt-10 flex items-center justify-center px-4">
+    <div class="w-full max-w-xl rounded-xl bg-white p-6 shadow-md">
+    
+        <!-- Header -->
+        <div class="flex flex-col items-center gap-3 text-center">
+            <img src="https://picsum.photos/200" class="size-32 rounded-full object-cover">
+            <h1 class="text-3xl font-bold">Cita confirmada</h1>
+            <h2 class="text-sm text-gray-600">
+                Hemos enviado un mensaje/correo de confirmación a tu teléfono/correo
+            </h2>
+        </div>
+
+        <!-- Body -->
+        <div class="mt-6">
+            <div class="grid grid-cols-1 gap-5 rounded-lg border border-gray-200 p-5 shadow-sm sm:grid-cols-2">
+        
+                <!-- Doctor -->
+                <div class="flex items-center gap-3">
+                    <img src="https://picsum.photos/200" class="size-10 rounded-full object-cover">
+                    <div class="flex flex-col">
+                        <h3 class="text-xs text-gray-500">DOCTOR/A</h3>
+                        <h4 class="font-bold">@Model.Doctor.Name</h4>
+                        <h5 class="text-sm text-teal-700">@Model.Doctor.Specialty</h5>
+                    </div>
+                </div>
+
+                <!-- Fecha -->
+                <div class="flex items-center gap-3">
+                    <img src="https://picsum.photos/200" class="size-10 rounded-full object-cover">
+                    <div class="flex flex-col">
+                        <h3 class="text-xs text-gray-500">FECHA Y HORA</h3>
+                        <h4 class="font-bold">@stringDate</h4>
+                        <h5 class="text-sm text-teal-700">@stringTime</h5>
+                    </div>
+                </div>
+
+                <!-- Ubicación (ocupa toda la fila) -->
+                <div class="flex items-center gap-3 sm:col-span-2">
+                    <img src="https://picsum.photos/200" class="size-10 rounded-full object-cover">
+                    <div class="flex flex-col">
+                        <h3 class="text-xs text-gray-500">UBICACIÓN</h3>
+                        <h4 class="font-bold">Centro Médico Piedra Azul</h4>
+                        <h5 class="text-sm text-teal-700">Popayán, Cauca</h5>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Mapa -->
+            <div class="mt-5 overflow-hidden rounded-xl shadow">
+                <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15944.870291005935!2d-76.59580594099732!3d2.4343895607133836!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8e30030054096d7f%3A0xb11a12b7d48d45cd!2sRed%20de%20Servicio%20%22Piedra%20Azul%22%20-%20Consulta%20de%20medicina%20alternativa!5e0!3m2!1ses!2sco!4v1774146673120!5m2!1ses!2sco"
+                        class="h-40 w-full border-0"
+                        loading="lazy">
+                </iframe>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="mt-6 flex flex-col gap-3">
+            <button class="cursor-pointer rounded-lg bg-teal-700 py-3 font-bold text-white transition-colors hover:bg-teal-900">
+                Agregar a mi calendario
+            </button>
+
+            <button class="cursor-pointer rounded-lg border-2 border-teal-700 py-3 font-bold text-teal-800 transition-colors hover:bg-teal-50">
+                Volver
+            </button>
+        </div>
+
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public BookingModel Model { get; set; }
+
+    private string stringDate { get; set; }
+    private string stringTime { get; set; }
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        var culture = new CultureInfo("es-CO"); 
+        stringDate = Model.AppointmentSchedulerModel.Date.ToString("dddd, d 'de' MMMM", culture);
+        stringTime = Model.AppointmentSchedulerModel.Time;
+    }
+}
