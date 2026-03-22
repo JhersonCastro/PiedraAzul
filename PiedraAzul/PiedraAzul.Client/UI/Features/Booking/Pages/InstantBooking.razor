@@ -31,7 +31,7 @@ else
                 <!-- STEP 1 -->
                 <Step TModel="BookingModel"
                 Title="Identificación"
-                Fields="@(new[] { nameof(Model.Nombre), nameof(Model.Telefono), nameof(Model.Id) })">
+                Fields="@(new[] { nameof(Model.PatientName), nameof(Model.PatientPhone), nameof(Model.PatientIdentification) })">
 
                     <div class="mb-6 flex flex-col items-center text-center">
 
@@ -69,10 +69,10 @@ else
                             </div>
 
                             <InputText class="mt-2 rounded-md border-2 border-gray-300 px-4 py-3 focus:ring-primary focus:outline-none focus:ring-2"
-                            @bind-Value="Model.Id"
+                            @bind-Value="Model.PatientIdentification"
                             placeholder="Ej: 1150064123" />
 
-                            <ValidationMessage For="@(() => Model.Id)"
+                            <ValidationMessage For="@(() => Model.PatientIdentification)"
                             class="text-red-500 text-sm mt-1" />
 
                         </div>
@@ -97,10 +97,10 @@ else
                             </div>
 
                             <InputText class="mt-2 rounded-md border-2 border-gray-300 px-4 py-3 focus:ring-primary focus:outline-none focus:ring-2"
-                            @bind-Value="Model.Nombre"
+                            @bind-Value="Model.PatientName"
                             placeholder="Ej: Juan López" />
 
-                            <ValidationMessage For="@(() => Model.Nombre)"
+                            <ValidationMessage For="@(() => Model.PatientName)"
                             class="text-red-500 text-sm mt-1" />
 
                         </div>
@@ -126,10 +126,10 @@ else
                             </div>
 
                             <InputText class="mt-2 rounded-md border-2 border-gray-300 px-4 py-3 focus:ring-primary focus:outline-none focus:ring-2"
-                            @bind-Value="Model.Telefono"
+                            @bind-Value="Model.PatientPhone"
                             placeholder="Ej: 301 123 4567" />
 
-                            <ValidationMessage For="@(() => Model.Telefono)"
+                            <ValidationMessage For="@(() => Model.PatientPhone)"
                             class="text-red-500 text-sm mt-1" />
 
                         </div>
@@ -171,10 +171,10 @@ else
 
                     <div class="flex flex-col gap-2 text-lg">
 
-                        <p><b>Nombre:</b> @Model.Nombre</p>
-                        <p><b>Teléfono:</b> @Model.Telefono</p>
-                        <p><b>Doctor id:</b> @Model.DoctorId</p>
-                        <p><b>Slot id:</b> @Model.SlotId</p>
+                        <p><b>Nombre:</b> @Model.PatientName</p>
+                        <p><b>Teléfono:</b> @Model.PatientPhone</p>
+                        <p><b>Nombre de doctor:</b> @Model.Doctor.Name</p>
+                        <p><b>A la fecha:</b> @Model.AppointmentSchedulerModel.Date.ToShortDateString() + @Model.AppointmentSchedulerModel.Time</p>
 
                     </div>
 
@@ -220,9 +220,9 @@ else
         var result = await AppointmentService.CreateAppointment(new()
         {
             PatientId = string.Empty,
-            PatientIdentification = Model.Id,
-            PatientName = Model.Nombre,
-            PatientPhone = Model.Telefono,
+            PatientIdentification = Model.PatientIdentification,
+            PatientName = Model.PatientName,
+            PatientPhone = Model.PatientPhone,
 
             DoctorId = Model.DoctorId,
             DoctorAvailabilitySlotId = Model.SlotId,
