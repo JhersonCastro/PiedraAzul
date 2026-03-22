@@ -53,7 +53,12 @@
         Steps.Add(step);
         return Steps.Count - 1;
     }
-
+    public void GoToStep(int stepIndex)
+    {
+        if (stepIndex < 0 || stepIndex >= Steps.Count)
+            throw new ArgumentOutOfRangeException(nameof(stepIndex));
+        CurrentStep = stepIndex;
+    }
     public async Task Next()
     {
         var step = Steps[CurrentStep];
