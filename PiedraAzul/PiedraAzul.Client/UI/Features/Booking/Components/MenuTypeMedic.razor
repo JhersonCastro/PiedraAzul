@@ -1,4 +1,5 @@
-﻿@using PiedraAzul.Client.Services
+﻿@using PiedraAzul.Client.Models.UserProfiles
+@using PiedraAzul.Client.Services
 @using PiedraAzul.Client.Services.GrpcServices
 @using PiedraAzul.Shared
 @using PiedraAzul.Shared.Enums
@@ -153,7 +154,7 @@
                     Cargando médicos...
                 </li>
             }
-            else if (_currentMedicDTOs.Count == 0)
+            else if (_currentDoctors.Count == 0)
             {
                 <li class="p-3 text-sm italic text-gray-500">
                     No hay médicos disponibles para esta especialidad.
@@ -161,15 +162,15 @@
             }
             else
             {
-                @foreach (var medic in _currentMedicDTOs)
+                @foreach (var doctor in _currentDoctors)
                 {
-                    var selected = SelectedMedicId == medic.Id;
+                    var selected = SelectedMedicId == doctor.Id;
                     <li class="cursor-pointer rounded-lg border p-3 shadow-sm transition
                         @(selected
                                                     ? "border-primary bg-primary/10"
                                                     : "border-gray-200 hover:bg-gray-50")"
-                        @onclick="() => SelectMedic(medic.Id)">
-                        <MedicSelectCard MedicDTO="medic"
+                        @onclick="() => SelectDoctor(doctor)">
+                        <MedicSelectCard MedicDTO="doctor"
                                          Selected="selected" />
                     </li>
                 }
@@ -181,11 +182,11 @@
 
 @code {
     [Parameter, EditorRequired]
-    public EventCallback<string> OnSelected { get; set; }
+    public EventCallback<DoctorModel> OnSelected { get; set; }
 
     PiedraAzul.Shared.Enums.DoctorType SelectedType = DoctorType.NaturalMedicine;
-    Dictionary<DoctorType, List<MedicDTO>> MedicsByType = new();
-    List<MedicDTO> _currentMedicDTOs = new();
+    Dictionary<DoctorType, List<DoctorModel>> MedicsByType = new();
+    List<DoctorModel> _currentDoctors = new();
 
     string? SelectedMedicId;
     bool _isLoading;
@@ -196,10 +197,10 @@
         //await LoadMedicsByDoctorType(DoctorType.NaturalMedicine);
     }
 
-    async Task SelectMedic(string id)
+    async Task SelectDoctor(DoctorModel doctorModel)
     {
-        SelectedMedicId = id;
-        await OnSelected.InvokeAsync(id);
+        SelectedMedicId = doctorModel.Id;
+        await OnSelected.InvokeAsync(doctorModel);
     }
 
     private async Task LoadMedicsByDoctorType(DoctorType doctorType)
@@ -209,7 +210,7 @@
         {
             var response = await DoctorService.GetDoctorsByTypeAsync(doctorType);
 
-            medics = response.Select(ds => new MedicDTO()
+            medics = response.Select(ds => new DoctorModel()
             {
                 Id = ds.DoctorId,
                 Specialty = ds.Specialty.ToString(),
@@ -220,6 +221,6 @@
             MedicsByType[doctorType] = medics;
         }
         _isLoading = false;
-        _currentMedicDTOs = medics;
+        _currentDoctors = medics;
     }
 }
