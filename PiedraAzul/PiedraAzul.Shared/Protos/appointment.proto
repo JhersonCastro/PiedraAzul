@@ -47,10 +47,11 @@ message AppointmentResponse {
   string id = 1;
 
   string patientId = 2;
+  string patientGuestId = 3; // para pacientes invitados
+  string patientType = 4; // "registered" o "guest"
+  string appointmentSlotId = 5;
 
-  string appointmentSlotId = 3;
-
-  google.protobuf.Timestamp createdAt = 4;
+  google.protobuf.Timestamp createdAt = 6;
 }
 
 message AppointmentListResponse {

@@ -22,6 +22,7 @@
 		<Protobuf Include="Protos\availability.proto" GrpcServices="Both" />
 		<Protobuf Include="Protos\doctor.proto" GrpcServices="Both" />
 		<Protobuf Include="Protos\system.proto" GrpcServices="Both" />
+		<Protobuf Include="Protos\patient.proto" GrpcServices="Both" />
 
 	</ItemGroup>
 </Project>
