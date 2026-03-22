@@ -5,28 +5,29 @@ namespace PiedraAzul.Client.Models.Booking
 {
     public class BookingModel
     {
+        //Selected Patient
         [Required]
         [MinLength(5, ErrorMessage = "El ID debe tener al menos 5 caracteres")]
-        public string Id { get; set; }
+        public string? PatientIdentification { get; set; }
         [Required(ErrorMessage = "El nombre es obligatorio")]
         [MinLength(3, ErrorMessage = "El nombre es muy corto")]
-        public string Nombre { get; set; }
+        public string? PatientName { get; set; }
 
         [Required(ErrorMessage = "El teléfono es obligatorio")]
         [Phone(ErrorMessage = "Teléfono inválido")]
-        public string Telefono { get; set; }
+        public string? PatientPhone { get; set; }
 
-        [Required(ErrorMessage = "La dirección es obligatoria")]
-        public string Direccion { get; set; }
+
+        public string? PatientAddress { get; set; }
         [Required(ErrorMessage = "El doctor es obligatorio")]
-        public string DoctorId { get; set; }
+        public string? DoctorId { get; set; }
 
-        public DoctorModel Doctor { get; set; }
+        public DoctorModel? Doctor { get; set; }
 
         [Required(ErrorMessage = "Por favor selecciona una horario para la cita")]
-        public string SlotId { get; set; }
+        public string? SlotId { get; set; }
 
-        public AppointmentSchedulerModel AppointmentSchedulerModel { get; set; }
+        public AppointmentSchedulerModel? AppointmentSchedulerModel { get; set; }
 
         public DateTime DayOfYear { get; set; }
     }
