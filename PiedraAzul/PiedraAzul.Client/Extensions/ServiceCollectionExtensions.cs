@@ -26,6 +26,7 @@ namespace PiedraAzul.Client.Extensions
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<GrpcAvailability>();
             services.AddScoped<GrpcDoctorService>();
+            services.AddScoped<GrpcAppointmentService>();
             #endregion
 
             #region Auth
@@ -90,6 +91,10 @@ namespace PiedraAzul.Client.Extensions
             services.AddScoped(sp =>
                 new DoctorService.DoctorServiceClient(
                     sp.GetRequiredService<CallInvoker>()));
+
+            services.AddScoped(sp =>
+                new AppointmentService.AppointmentServiceClient(
+                    sp.GetRequiredService<CallInvoker>()));
             #endregion
 
             return services;
@@ -133,6 +138,10 @@ namespace PiedraAzul.Client.Extensions
 
             services.AddScoped(sp =>
                 new DoctorService.DoctorServiceClient(
+                    sp.GetRequiredService<CallInvoker>()));
+
+            services.AddScoped(sp =>
+                new AppointmentService.AppointmentServiceClient(
                     sp.GetRequiredService<CallInvoker>()));
             #endregion
 
