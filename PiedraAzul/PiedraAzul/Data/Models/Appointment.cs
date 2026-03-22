@@ -14,10 +14,9 @@ namespace PiedraAzul.Data.Models
         public PatientProfile? Patient { get; set; }
 
         //Patient Basic data if the patient is a guest, this is to avoid having to create a account for them, and also to have a record of their data at the time of the appointment
-        public string? PatientIdentificationNumber { get; set; }
-        public string? PatientName { get; set; }
-        public string? PatientPhone { get; set; }
-        public string? PatientExtraInfo { get; set; }
+
+        public string? PatientGuestId { get; set; }
+        public PatientGuest? PatientGuest { get; set; }
 
 
         public Guid DoctorId { get; set; }
