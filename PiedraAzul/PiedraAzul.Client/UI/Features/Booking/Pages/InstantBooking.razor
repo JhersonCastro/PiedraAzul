@@ -1,22 +1,37 @@
 ﻿@page "/instant-medical-booking"
 
+@using Google.Protobuf.WellKnownTypes
 @using Microsoft.AspNetCore.Components.Forms
 @using PiedraAzul.Client.Models
+@using PiedraAzul.Client.Models.Booking
+@using PiedraAzul.Client.Models.UserProfiles
+@using PiedraAzul.Client.Services.AuthServices
+@using PiedraAzul.Client.Services.GrpcServices
+@using PiedraAzul.Client.States
 @using PiedraAzul.Client.UI.Features.Booking.Components
 @using PiedraAzul.Client.UI.Shared.Components.StepTag
+@inject NavigationManager Navigation
+@inject GrpcAppointmentService AppointmentService
+@inject AuthenticationService AuthService
+@inject UserState UserState
 
+@if (isSuccess)
+{
+    <SummaryAppointment Model="Model"></SummaryAppointment>
+}
+else
+{
+    <EditForm  Model="@Model" class="flex justify-center">
 
-<EditForm  Model="@Model" class="flex justify-center">
+        <DataAnnotationsValidator />
 
-    <DataAnnotationsValidator />
-
-    <div class="mx-auto my-6 flex w-full max-w-6xl flex-col rounded-xl bg-white p-8 shadow-2xl">
-        <Stepper TModel="BookingModel" FinishText="Solicitar cita" OnFinish="HandlerSubmit">
+        <div class="mx-auto my-6 flex w-full max-w-6xl flex-col rounded-xl bg-white p-8 shadow-2xl">
+            <Stepper @ref="Stepper" TModel="BookingModel" FinishText="Solicitar cita" OnFinish="HandlerSubmit">
 
                 <!-- STEP 1 -->
                 <Step TModel="BookingModel"
-                      Title="Identificación"
-                      Fields="@(new[] { nameof(Model.Nombre), nameof(Model.Telefono) })">
+                Title="Identificación"
+                Fields="@(new[] { nameof(Model.Nombre), nameof(Model.Telefono), nameof(Model.Id) })">
 
                     <div class="mb-6 flex flex-col items-center text-center">
 
@@ -33,16 +48,44 @@
 
                     <div class="flex w-full flex-col gap-5 rounded border-2 border-gray-200 p-5">
 
+                        <!-- Numero de identificacion -->
+                        <div class="flex flex-col">
+
+                            <div class="flex items-center gap-2">
+
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                height="24"
+                                viewBox="0 -960 960 960"
+                                width="24"
+                                fill="#257D8D">
+
+                                    <path d="M367-527q-47-47-47-113t47-113q47-47 113-47t113 47q47 47 47 113t-47 113q-47 47-113 47t-113-47ZM160-160v-112q0-34 17.5-62.5T224-378q62-31 126-46.5T480-440q66 0 130 15.5T736-378q29 15 46.5 43.5T800-272v112H160Z" />
+                                </svg>
+
+                                <label class="text-lg font-semibold">
+                                    Número de identificación
+                                </label>
+
+                            </div>
+
+                            <InputText class="mt-2 rounded-md border-2 border-gray-300 px-4 py-3 focus:ring-primary focus:outline-none focus:ring-2"
+                            @bind-Value="Model.Id"
+                            placeholder="Ej: 1150064123" />
+
+                            <ValidationMessage For="@(() => Model.Id)"
+                            class="text-red-500 text-sm mt-1" />
+
+                        </div>
                         <!-- Nombre -->
                         <div class="flex flex-col">
 
                             <div class="flex items-center gap-2">
 
                                 <svg xmlns="http://www.w3.org/2000/svg"
-                                     height="24"
-                                     viewBox="0 -960 960 960"
-                                     width="24"
-                                     fill="#257D8D">
+                                height="24"
+                                viewBox="0 -960 960 960"
+                                width="24"
+                                fill="#257D8D">
 
                                     <path d="M367-527q-47-47-47-113t47-113q47-47 113-47t113 47q47 47 47 113t-47 113q-47 47-113 47t-113-47ZM160-160v-112q0-34 17.5-62.5T224-378q62-31 126-46.5T480-440q66 0 130 15.5T736-378q29 15 46.5 43.5T800-272v112H160Z" />
                                 </svg>
@@ -54,11 +97,11 @@
                             </div>
 
                             <InputText class="mt-2 rounded-md border-2 border-gray-300 px-4 py-3 focus:ring-primary focus:outline-none focus:ring-2"
-                                       @bind-Value="Model.Nombre"
-                                       placeholder="Ej: Juan López" />
+                            @bind-Value="Model.Nombre"
+                            placeholder="Ej: Juan López" />
 
                             <ValidationMessage For="@(() => Model.Nombre)"
-                                               class="text-red-500 text-sm mt-1" />
+                            class="text-red-500 text-sm mt-1" />
 
                         </div>
 
@@ -68,10 +111,10 @@
                             <div class="flex items-center gap-2">
 
                                 <svg xmlns="http://www.w3.org/2000/svg"
-                                     height="24"
-                                     viewBox="0 -960 960 960"
-                                     width="24"
-                                     fill="#257D8D">
+                                height="24"
+                                viewBox="0 -960 960 960"
+                                width="24"
+                                fill="#257D8D">
 
                                     <path d="M798-120q-125 0-247-54.5T329-329Q229-429 174.5-551T120-798q0-18 12-30t30-12h162q14 0 25 9.5t13 22.5l26 140q2 16-1 27t-11 19l-97 98q20 37 47.5 71.5T387-386q31 31 65 57.5t72 48.5l94-94q9-9 23.5-13.5T670-390l138 28q14 4 23 14.5t9 23.5v162q0 18-12 30t-30 12Z" />
                                 </svg>
@@ -83,11 +126,11 @@
                             </div>
 
                             <InputText class="mt-2 rounded-md border-2 border-gray-300 px-4 py-3 focus:ring-primary focus:outline-none focus:ring-2"
-                                       @bind-Value="Model.Telefono"
-                                       placeholder="Ej: 301 123 4567" />
+                            @bind-Value="Model.Telefono"
+                            placeholder="Ej: 301 123 4567" />
 
                             <ValidationMessage For="@(() => Model.Telefono)"
-                                               class="text-red-500 text-sm mt-1" />
+                            class="text-red-500 text-sm mt-1" />
 
                         </div>
 
@@ -102,21 +145,21 @@
 
                 <!-- STEP 2 -->
                 <Step TModel="BookingModel"
-                      Title="Selecciona un doctor"
-                      Fields="@(new[] { nameof(Model.DoctorId)})">
+                Title="Selecciona un doctor"
+                Fields="@(new[] { nameof(Model.DoctorId)})">
 
-                    <MenuTypeMedic OnSelected="SelectedMedic" />
+                    <MenuTypeMedic OnSelected="SelectedDoctor" />
                     <ValidationMessage For="() => Model.DoctorId" />
 
                 </Step>
 
                 <!-- STEP 3 -->
                 <Step TModel="BookingModel"
-                      Title="Selecciona un doctor"
-                      Fields="@(new[] { nameof(Model.SlotId)})">
+                Title="Selecciona un doctor"
+                Fields="@(new[] { nameof(Model.SlotId)})">
 
-                <AppointmentScheduler DoctorId="@Model.DoctorId" OnSelected="SelectSlot"/>
-                <ValidationMessage For="() => Model.SlotId" />
+                    <AppointmentScheduler DoctorId="@Model.DoctorId" OnSelected="SelectSlot"/>
+                    <ValidationMessage For="() => Model.SlotId" />
 
                 </Step>
                 <!-- STEP 4 -->
@@ -138,29 +181,66 @@
                 </Step>
 
 
-                    <p class="text-md text-primary mt-4 text-center">
-                        ¿Necesitas ayuda para hacer una cita? Llame al +57 301 123 4567
-                    </p>
-        </Stepper>
+                <p class="text-md text-primary mt-4 text-center">
+                    ¿Necesitas ayuda para hacer una cita? Llame al +57 301 123 4567
+                </p>
+            </Stepper>
 
-    </div>
-</EditForm>
-
+        </div>
+    </EditForm>
+}
 @code {
 
     BookingModel Model = new();
-    private void SelectedMedic(string args)
-    {
-        Model.DoctorId = args;
-    }
-    private void HandlerSubmit()
-    {
+    bool isLoading = false;
+    bool isSuccess = false;
 
+    Stepper<BookingModel> Stepper { get; set; }
+
+    string _errorMessage;
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        if (UserState.UserResponse != null) Navigation.NavigateTo("/medical-booking", forceLoad: false, replace: true); 
+
+        var response = await AuthService.GetCurrentUserAsync();
+        if (response.IsSuccess)
+            Navigation.NavigateTo("/medical-booking", forceLoad: false, replace: true);
+
+    }
+    private void SelectedDoctor(DoctorModel? args)
+    {
+        if (args == null) return;
+        Model.DoctorId = args.Id;
+        Model.Doctor = args;
+    }
+    private async Task HandlerSubmit()
+    {
+        var result = await AppointmentService.CreateAppointment(new()
+        {
+            PatientId = string.Empty,
+            PatientIdentification = Model.Id,
+            PatientName = Model.Nombre,
+            PatientPhone = Model.Telefono,
+
+            DoctorId = Model.DoctorId,
+            DoctorAvailabilitySlotId = Model.SlotId,
+            Date = Timestamp.FromDateTime(Model.DayOfYear.ToUniversalTime()),
+        });
+        if (!result.IsSuccess)
+            _errorMessage = "Ocurrió un error al crear la cita. Por favor, inténtelo de nuevo.";
+        
+        isLoading = false;
+        isSuccess = true;
+
+        Stepper?.GoToStep(0);
         Console.WriteLine("meow");
     }
-    private void SelectSlot((DateTime, string) args)
+    private void SelectSlot(AppointmentSchedulerModel args)
     {
-        Model.SlotId = args.Item2;
-        Model.DayOfYear = args.Item1;
+        Model.SlotId = args.SlotId;
+        Model.DayOfYear = args.Date;
+        Model.AppointmentSchedulerModel = args;
     }
 }

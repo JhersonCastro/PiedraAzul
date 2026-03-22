@@ -1,0 +1,143 @@
+﻿@page "/medical-booking"
+
+@using Google.Protobuf.WellKnownTypes
+@using Microsoft.AspNetCore.Components.Forms
+@using PiedraAzul.Client.Models
+@using PiedraAzul.Client.Models.Booking
+@using PiedraAzul.Client.Models.UserProfiles
+@using PiedraAzul.Client.Services.AuthServices
+@using PiedraAzul.Client.Services.GrpcServices
+@using PiedraAzul.Client.States
+@using PiedraAzul.Client.UI.Features.Booking.Components
+@using PiedraAzul.Client.UI.Shared.Components.StepTag
+@inject NavigationManager Navigation
+@inject GrpcAppointmentService AppointmentService
+@inject AuthenticationService AuthService
+@inject UserState UserState
+
+@if (isSuccess)
+{
+    <SummaryAppointment Model="Model"></SummaryAppointment>
+}
+else
+{
+    <EditForm  Model="@Model" class="flex justify-center">
+
+        <DataAnnotationsValidator />
+
+        <div class="mx-auto my-6 flex w-full max-w-6xl flex-col rounded-xl bg-white p-8 shadow-2xl">
+            <Stepper @ref="Stepper" TModel="BookingModel" FinishText="Solicitar cita" OnFinish="HandlerSubmit">
+
+                    <!-- STEP 1 -->
+                    <Step TModel="BookingModel"
+                          Title="Selecciona un doctor"
+                          Fields="@(new[] { nameof(Model.DoctorId)})">
+
+                        <MenuTypeMedic OnSelected="SelectedDoctor" />
+                        <ValidationMessage For="() => Model.DoctorId" />
+
+                    </Step>
+
+                    <!-- STEP 2 -->
+                    <Step TModel="BookingModel"
+                          Title="Selecciona un doctor"
+                          Fields="@(new[] { nameof(Model.SlotId)})">
+
+                    <AppointmentScheduler DoctorId="@Model.DoctorId" OnSelected="SelectSlot"/>
+                    <ValidationMessage For="() => Model.SlotId" />
+
+                    </Step>
+
+                    <!-- STEP 3 -->
+                    <Step TModel="BookingModel" Title="Confirmación">
+
+                        <h2 class="mb-4 text-2xl font-bold">
+                            Confirmar datos
+                        </h2>
+
+                        <div class="flex flex-col gap-2 text-lg">
+
+                            <p><b>Id:</b> @_patientId</p>
+                            <p><b>Date:</b> @Model.DayOfYear.ToUniversalTime()</p>
+                            <p><b>Doctor id:</b> @Model.DoctorId</p>
+                            <p><b>Slot id:</b> @Model.SlotId</p>
+
+                        </div>
+
+                    </Step>
+
+
+                        <p class="text-md text-primary mt-4 text-center">
+                            ¿Necesitas ayuda para hacer una cita? Llame al +57 301 123 4567
+                        </p>
+            </Stepper>
+
+        </div>
+    </EditForm>
+}
+
+@code {
+    private string _patientId;
+    BookingModel Model = new();
+    string _errorMessage;
+
+    public Stepper<BookingModel> Stepper { get; set; }
+
+    bool isLoading = false;
+    bool isSuccess = false;
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        if (UserState.UserResponse != null) {
+            _patientId = UserState.UserResponse.Id;
+            return; 
+        }
+
+        var response = await AuthService.GetCurrentUserAsync();
+
+        if (!response.IsSuccess){}
+        Navigation.NavigateTo("/instant-medical-booking", forceLoad: false, replace: true);
+
+        UserState.UserResponse = response.Value!;
+        _patientId = response.Value!.Id;
+
+    }
+    private void SelectedDoctor(DoctorModel args)
+    {
+        Model.DoctorId = args.Id;
+    }
+    private async Task HandlerSubmit()
+    {
+        var result = await AppointmentService.CreateAppointment(new()
+        {
+            PatientId = _patientId,
+            PatientIdentification = string.Empty,
+            PatientName = string.Empty,
+            PatientPhone = string.Empty,
+
+            DoctorId = Model.DoctorId,
+            DoctorAvailabilitySlotId = Model.SlotId,
+            Date = Timestamp.FromDateTime(Model.DayOfYear.ToUniversalTime()),
+        });
+        if (!result.IsSuccess)
+        {
+            _errorMessage = "Ocurrió un error al crear la cita. Por favor, inténtelo de nuevo.";
+            return;
+        }
+
+        isLoading = false;
+        isSuccess = true;
+        Stepper.GoToStep(0);
+
+        Console.WriteLine("meow");
+    }
+    private void SelectSlot(AppointmentSchedulerModel args)
+    {
+        Model.SlotId = args.SlotId;
+        Model.DayOfYear = args.Date;
+    }
+}
+
+
+
