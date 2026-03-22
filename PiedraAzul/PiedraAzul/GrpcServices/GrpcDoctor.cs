@@ -6,9 +6,29 @@ namespace PiedraAzul.GrpcServices
 {
     public class GrpcDoctor(PiedraAzul.ApplicationServices.Services.IDoctorService doctorService) : DoctorService.DoctorServiceBase
     {
-        public override Task<DoctorResponse> GetDoctor(DoctorRequest request, ServerCallContext context)
+        public override async Task<DoctorResponse> GetDoctor(DoctorRequest request, ServerCallContext context)
         {
-            return base.GetDoctor(request, context);
+            if (!Guid.TryParse(request.DoctorId, out Guid doctorId))
+            {
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "Invalid DoctorId format."));
+            }
+
+            var result = await doctorService.GetDoctorByIdAsync(doctorId);
+            if (result == null)
+            {
+                throw new RpcException(new Status(StatusCode.NotFound, "Doctor not found."));
+            }
+
+            return new DoctorResponse
+            {
+                DoctorId = result.DoctorId.ToString(),
+                UserId = result.UserId,
+                Name = result.User.Name,
+                Specialty = (DoctorType)result.Specialty,
+                LicenseNumber = result.LicenseNumber,
+                Notes = result.Notes,
+                AvatarUrl = result.User.AvatarUrl
+            };
         }
         public override Task<DoctorListResponse> GetDoctors(Empty request, ServerCallContext context)
         {
