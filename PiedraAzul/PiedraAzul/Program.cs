@@ -17,11 +17,11 @@ var isEf = args.Any(a => a.Contains("ef", StringComparison.OrdinalIgnoreCase));
 IndexWriter? writer = null;
 if (!isEf)
 {
-    //builder.Services.AddLucene(builder.Configuration["LuceneIndexPath"] ?? "lucene_index", writer);
+    builder.Services.AddLucene(builder.Configuration["LuceneIndexPath"] ?? "lucene_index", writer);
 }
 
-#region Mapperly
-
+#region Mappers
+builder.Services.AddMappers();
 #endregion
 
 #region DbContext
@@ -38,6 +38,7 @@ builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
 builder.Services.AddScoped<IDoctorService, DoctorService>();
+builder.Services.AddScoped<IPatientService, PatientService>();
 #endregion
 #region ClientServices
 builder.Services.AddClientServer(builder.Configuration["GrpcUrl"] ?? "https://localhost:7128");
@@ -144,6 +145,7 @@ app.MapGrpcService<PiedraAzul.GrpcServices.GrpcAuth>().EnableGrpcWeb();
 app.MapGrpcService<PiedraAzul.GrpcServices.GrpcAvailability>().EnableGrpcWeb();
 app.MapGrpcService<PiedraAzul.GrpcServices.GrpcAppointment>().EnableGrpcWeb();
 app.MapGrpcService<PiedraAzul.GrpcServices.GrpcDoctor>().EnableGrpcWeb();
+app.MapGrpcService<PiedraAzul.GrpcServices.GrpcPatient>().EnableGrpcWeb();
 #endregion
 
 #region Dispose
