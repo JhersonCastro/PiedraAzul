@@ -1,0 +1,271 @@
+﻿@page "/booking/manual"
+@using Google.Protobuf.WellKnownTypes
+@using PiedraAzul.Client.Models.Booking
+@using PiedraAzul.Client.Models.UserProfiles
+@using PiedraAzul.Client.Services.GrpcServices
+@using PiedraAzul.Client.UI.Features.Booking.Components
+@using Microsoft.AspNetCore.Components.Forms
+@inject GrpcPatientService PatientService
+@inject GrpcAppointmentService AppointmentService
+<EditForm Model="@Model" OnValidSubmit="HandlerSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <div class="mx-auto min-h-screen max-w-5xl space-y-10 bg-gray-100 p-8">
+
+        <!-- HEADER -->
+        <div class="space-y-1">
+            <h1 class="text-3xl font-bold text-gray-900">Agendamiento Manual</h1>
+            <p class="text-sm text-gray-500">
+                Registro de nueva cita médica y servicios terapéuticos
+            </p>
+        </div>
+
+        <!-- PACIENTE -->
+        <div class="space-y-6 rounded-2xl bg-white p-6 shadow-md">
+
+            <h2 class="text-lg font-semibold text-gray-800">
+                Datos del Paciente
+            </h2>
+
+            <!-- BUSCADOR -->
+            <div>
+                <label class="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    Buscar paciente
+                </label>
+
+                <div class="mt-2 flex gap-3">
+                    <InputText @oninput="HandlerInputSearch" @bind-Value="Search"
+                               class="w-full rounded-xl border border-gray-300 bg-gray-50 px-4 py-3 text-sm outline-none transition focus:border-teal-600 focus:bg-white focus:ring-2 focus:ring-teal-500"
+                               placeholder="Ej: 10203040 o Juan Perez" />
+
+                    <button type="button"
+                            @onclick="HandlerSearch"
+                            class="rounded-xl bg-teal-600 px-6 py-3 text-sm font-semibold text-white shadow transition hover:bg-teal-700">
+                        Buscar
+                    </button>
+                </div>
+            </div>
+
+            <!-- RESULTADO -->
+            <div class="grid gap-4 md:grid-cols-2">
+
+                @if (SearchResult.Any())
+                {
+                    @foreach (var patient in SearchResult)
+                    {
+                        var isSelected = SelectedPatient?.PatientIdentification == patient.PatientIdentification;
+
+                        <div class="@GetPatientClass(isSelected)"
+                             @onclick="() => SelectPatient(patient)">
+
+                            <p class="text-xs font-semibold uppercase @(isSelected ? "text-teal-700" : "text-gray-600")">
+                                Paciente encontrado
+                            </p>
+
+                            <p class="mt-1 text-base font-bold @(isSelected ? "text-teal-900" : "text-gray-900")">
+                                @patient.PatientName
+                            </p>
+
+                            <p class="text-xs @(isSelected ? "text-teal-700" : "text-gray-500")">
+                                CC: @patient.PatientIdentification • @patient.PatientPhone
+                            </p>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="flex items-center justify-center rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-400">
+                        No hay paciente seleccionado
+                    </div>
+                }
+
+                <div class="flex cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-gray-300 text-sm text-gray-500 transition hover:border-teal-500 hover:text-teal-600">
+                    + Registrar nuevo paciente
+                </div>
+
+            </div>
+        </div>
+
+        <!-- DETALLES -->
+        <div class="space-y-6 rounded-2xl bg-white p-6 shadow-md">
+
+            <h2 class="text-lg font-semibold text-gray-800">
+                Detalles de la Cita
+            </h2>
+
+            <div class="grid gap-6">
+
+                <div class="space-y-4">
+                    <MenuTypeMedic OnSelected="HandlerSelectDoctor" OnChange="HandlerChange" />
+                </div>
+
+                <div class="space-y-4">
+                    @if (Model.Doctor != null)
+                    {
+                        <AppointmentScheduler  DoctorId="@Model.DoctorId"
+                                              OnSelected="HandlerSelectAppointmentDate" />
+                    }
+                    else
+                    {
+                        <div class="flex h-32 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-400">
+                            Selecciona un médico para continuar
+                        </div>
+                    }
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- ACCIONES -->
+        <div class="flex gap-4">
+
+            <button type="submit"
+                    class="flex-1 rounded-xl bg-teal-600 py-3 text-sm font-bold tracking-wide text-white shadow-md transition hover:bg-teal-700">
+                Guardar agendamiento
+            </button>
+
+            <button type="button"
+                    @onclick="HandlerCancel"
+                    class="rounded-xl border border-gray-300 px-6 py-3 text-sm text-gray-600 transition hover:bg-gray-50">
+                Cancelar
+            </button>
+
+        </div>
+
+    </div>
+
+</EditForm>
+
+@code {
+    private BookingModel Model { get; set; } = new();
+    private List<PatientModel> SearchResult { get; set; } = new();
+    private string? Search { get; set; }
+
+    private PatientModel? SelectedPatient;
+    private async Task HandlerSearch()
+    {
+        var response = await PatientService.SearchPatientsAsync(Search, 10);
+        SearchResult = response.Select(p => new PatientModel
+        {
+            Id = p.Id,
+            PatientName = p.Name,
+            PatientIdentification = p.Identification,
+            PatientPhone = p.Phone,
+        }).ToList();
+
+        await InvokeAsync(StateHasChanged);
+    }
+    private string GetPatientClass(bool isSelected)
+    {
+        var baseClass = "cursor-pointer rounded-xl border p-4 transition";
+
+        if (isSelected)
+        {
+            return $"{baseClass} border-teal-600 bg-teal-50 ring-2 ring-teal-500";
+        }
+
+        return $"{baseClass} border-gray-200 bg-gray-50 hover:border-teal-400";
+    }
+    private void HandlerSelectDoctor(Models.UserProfiles.DoctorModel args)
+    {
+        if (args == null) return;
+
+        Model.DoctorId = args.Id;
+        Model.Doctor = args;
+    }
+
+    private void HandlerSelectAppointmentDate(AppointmentSchedulerModel args)
+    {
+        if (args == null) return;
+
+        Model.AppointmentSchedulerModel = args;
+        Model.DayOfYear = args.Date;
+        Model.SlotId = args.SlotId;
+    }
+
+    private async Task HandlerChange()
+    {
+        Model.AppointmentSchedulerModel = null;
+        Model.DayOfYear = default;
+        Model.SlotId = null;
+        Model.Doctor = null;
+        Model.DoctorId = null;
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task HandlerSubmit()
+    {
+        // Aquí llamas tu servicio real
+        Console.WriteLine("Submit enviado");
+
+        var result = await AppointmentService.CreateAppointment(new()
+        {
+            PatientId = Model.PatientIdentification,
+            PatientIdentification = Model.PatientIdentification,
+            PatientName = Model.PatientName,
+            PatientPhone = Model.PatientPhone,
+
+            DoctorId = Model.DoctorId,
+            DoctorAvailabilitySlotId = Model.SlotId,
+            Date = Timestamp.FromDateTime(Model.DayOfYear.ToUniversalTime()),
+        });
+        if (!result.IsSuccess)
+        {
+            Console.WriteLine("Error al ingresar " + result.Error.Message);
+            return;
+        }
+
+
+    }
+
+    private void HandlerCancel()
+    {
+        Model = new();
+    }
+    private void SelectPatient(PatientModel patient)
+    {
+        SelectedPatient = patient;
+
+        Model.PatientName = patient.PatientName;
+        Model.PatientIdentification = patient.PatientIdentification;
+        Model.PatientPhone = patient.PatientPhone;
+    }
+
+    private CancellationTokenSource? _cts;
+
+    private async Task HandlerInputSearch(ChangeEventArgs args)
+    {
+        if (args.Value == null) return;
+
+        var query = args.Value.ToString();
+
+        _cts?.Cancel();
+        _cts = new CancellationTokenSource();
+
+        try
+        {
+            await Task.Delay(300, _cts.Token);
+
+            if (string.IsNullOrWhiteSpace(query) || query.Length < 3)
+            {
+                SearchResult = new List<PatientModel>();
+                return;
+            }
+
+            var response = await PatientService.SearchAutoCompletePatientsAsync(query, 10);
+
+            SearchResult = response.Select(p => new PatientModel
+            {
+                Id = p.Id,
+                PatientName = p.Name,
+                PatientIdentification = p.Identification,
+                PatientPhone = p.Phone,
+            }).ToList();
+        }
+        catch (TaskCanceledException)
+        {
+        }
+    }
+}
