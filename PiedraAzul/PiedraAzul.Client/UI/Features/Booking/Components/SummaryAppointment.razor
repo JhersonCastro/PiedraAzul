@@ -1,6 +1,6 @@
 ﻿@using PiedraAzul.Client.Models.Booking
 @using System.Globalization
-
+@inject IJSRuntime JS
 <div class="mx-auto mt-10 flex items-center justify-center px-4">
     <div class="w-full max-w-xl rounded-xl bg-white p-6 shadow-md">
     
@@ -60,13 +60,13 @@
 
         <!-- Actions -->
         <div class="mt-6 flex flex-col gap-3">
-            <button class="cursor-pointer rounded-lg bg-teal-700 py-3 font-bold text-white transition-colors hover:bg-teal-900">
+            <button class="cursor-pointer rounded-lg bg-teal-700 py-3 font-bold text-white transition-colors hover:bg-teal-900" @onclick="Agendar">
                 Agregar a mi calendario
             </button>
 
-            <button class="cursor-pointer rounded-lg border-2 border-teal-700 py-3 font-bold text-teal-800 transition-colors hover:bg-teal-50">
+            <NavLink Match="NavLinkMatch.All" href="@ReturnUrl" class="cursor-pointer rounded-lg border-2 border-teal-700 py-3 font-bold text-teal-800 transition-colors hover:bg-teal-50">
                 Volver
-            </button>
+            </NavLink>
         </div>
 
     </div>
@@ -75,6 +75,8 @@
 @code {
     [Parameter, EditorRequired]
     public BookingModel Model { get; set; }
+    [Parameter]
+    public string ReturnUrl { get; set; } = "/";
 
     private string stringDate { get; set; }
     private string stringTime { get; set; }
@@ -85,5 +87,52 @@
         var culture = new CultureInfo("es-CO"); 
         stringDate = Model.AppointmentSchedulerModel.Date.ToString("dddd, d 'de' MMMM", culture);
         stringTime = Model.AppointmentSchedulerModel.Time;
+    }
+
+    private async Task Agendar()
+    {
+        var model = Model.AppointmentSchedulerModel;
+
+        var finalDate = BuildAppointmentDate(
+            model.Date,
+            model.Time
+        );
+
+        await OpenGoogleCalendar(finalDate, Model.Doctor.Name);
+    }
+    private async Task OpenGoogleCalendar(DateTime date, string doctorName)
+    {
+        var utc = date.ToUniversalTime();
+
+        var start = utc.ToString("yyyyMMddTHHmmssZ");
+        var end = utc.AddHours(1).ToString("yyyyMMddTHHmmssZ");
+
+        var url = $"https://calendar.google.com/calendar/render?action=TEMPLATE" +
+                  $"&text=Cita médica" +
+                  $"&dates={start}/{end}" +
+                  $"&details=Consulta con el doctor {doctorName}" +
+                  $"&location=Clínica piedra azul";
+
+        await JS.InvokeVoidAsync("open", url, "_blank");
+    }
+    private DateTime BuildAppointmentDate(DateTime date, string time)
+    {
+        // Parsear la hora
+        var parsedTime = DateTime.ParseExact(
+            time,
+            "hh:mm tt",
+            CultureInfo.InvariantCulture
+        );
+
+        // Combinar fecha + hora
+        return new DateTime(
+            date.Year,
+            date.Month,
+            date.Day,
+            parsedTime.Hour,
+            parsedTime.Minute,
+            0,
+            DateTimeKind.Local
+        );
     }
 }
