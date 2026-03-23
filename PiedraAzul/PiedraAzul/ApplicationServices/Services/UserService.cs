@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using PiedraAzul.Data;
+using PiedraAzul.Data.Models;
 
 namespace PiedraAzul.ApplicationServices.Services
 {
@@ -11,10 +12,65 @@ namespace PiedraAzul.ApplicationServices.Services
 
         Task<List<string>> GetRolesByUser(ApplicationUser user);
         Task<ApplicationUser?> GetById(string userId);
+        Task CreateProfileForRoleAsync(ApplicationUser user, string role);
     }
     public class UserService(IDbContextFactory<AppDbContext> dbContext, 
         UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager) : IUserService
     {
+        public async Task CreateProfileForRoleAsync(ApplicationUser user, string role)
+        {
+            if (user == null)
+                throw new ArgumentNullException(nameof(user));
+
+            if (string.IsNullOrWhiteSpace(role))
+                throw new ArgumentException("Role cannot be null or empty", nameof(role));
+
+            using var context = await dbContext.CreateDbContextAsync();
+
+            var normalizedRole = role.Trim().ToLower();
+
+            switch (normalizedRole)
+            {
+                case "patient":
+                    {
+                        var exists = await context.PatientProfiles
+                            .AnyAsync(p => p.UserId == user.Id);
+
+                        if (exists) return;
+
+                        var patientProfile = new PatientProfile
+                        {
+                            UserId = user.Id,
+                        };
+
+                        await context.PatientProfiles.AddAsync(patientProfile);
+                        break;
+                    }
+
+                case "doctor":
+                    {
+                        var exists = await context.DoctorProfiles
+                            .AnyAsync(d => d.UserId == user.Id);
+
+                        if (exists) return;
+
+                        var doctorProfile = new DoctorProfile
+                        {
+                            UserId = user.Id,
+                        };
+
+                        await context.DoctorProfiles.AddAsync(doctorProfile);
+                        break;
+                    }
+
+                default:
+                    throw new InvalidOperationException(
+                        $"Role '{role}' does not have a corresponding profile.");
+            }
+
+            await context.SaveChangesAsync();
+        }
+
         public async Task<ApplicationUser?> GetById(string userId)
         {
             return await userManager.FindByIdAsync(userId);
