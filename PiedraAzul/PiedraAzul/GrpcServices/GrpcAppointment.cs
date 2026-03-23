@@ -68,7 +68,8 @@ namespace PiedraAzul.GrpcServices
                                 "Failed to create patient guest"
                             ));
                         }
-                        patientAutocompleteService.IndexPatient(result);
+
+                        await patientAutocompleteService.IndexGuestAsync(result);
                     }
                 }
                 catch (RpcException)
