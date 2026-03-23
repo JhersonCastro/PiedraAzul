@@ -36,8 +36,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Folder Include="ApplicationServices\AutoCompleteServices\" />
-		<Folder Include="ApplicationServices\Mapping\" />
+		<Folder Include="ApplicationServices\Common\Mapping\" />
 	</ItemGroup>
 
 </Project>
