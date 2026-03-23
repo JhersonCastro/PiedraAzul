@@ -30,9 +30,9 @@ public class AuthenticationService
                 Name = registerModel.FullName,
                 Password = registerModel.Password,
                 Phone = registerModel.Phone,
-                Role = role
+                
             };
-
+            registerRequest.Roles.Add(role);
             var response = await authClient.RegisterAsync(registerRequest);
 
             await js.InvokeVoidAsync("sessionStorage.setItem", "accessToken", response.AccessToken);
