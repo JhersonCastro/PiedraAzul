@@ -1,5 +1,6 @@
 ﻿using Google.Protobuf.Collections;
 using Grpc.Core;
+using PiedraAzul.ApplicationServices.AutoCompleteServices;
 using PiedraAzul.ApplicationServices.Services;
 using PiedraAzul.Data;
 using PiedraAzul.GrpcServices;
@@ -12,7 +13,9 @@ namespace PiedraAzul.GrpcServices
     public class GrpcAuth(
         IUserService userService,
         IJwtTokenService jwtTokenService,
-        IRefreshTokenService refresh
+        IRefreshTokenService refresh,
+        IPatientAutocompleteService patientAutocompleteService
+        //IDoctorAutocompleteService doctorAutoCompleteService
     ) : AuthService.AuthServiceBase
     {
         public override async Task<AuthResponse> Login(LoginRequest request, ServerCallContext context)
@@ -148,13 +151,17 @@ namespace PiedraAzul.GrpcServices
                 Name = request.Name,
             };
 
-            var roles = new List<string> { request.Role };
-
+            var roles = request.Roles.ToList();
             var user = await userService.Register(userRequest, request.Password, roles);
 
             if (user == null)
                 throw new RpcException(new Status(StatusCode.Internal, "No se pudo registrar"));
 
+
+            foreach (var role in roles)
+            {
+                await userService.CreateProfileForRoleAsync(user, role);
+            }
             var accessToken = await jwtTokenService.CreateTokenAsync(user);
             var refreshToken = await refresh.GenerateRefreshTokenAsync(user.Id);
 
