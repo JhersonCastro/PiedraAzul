@@ -10,6 +10,11 @@ namespace PiedraAzul.ApplicationServices.Services
         Task<List<PatientGuest?>> GetPatientGuestByQuery(string query);
         Task<PatientGuest?> GetPatientGuestById(string id);
         Task<PatientGuest> CreatePatientGuestAsync(PatientGuest patientGuest);  
+
+
+        Task<PatientProfile?> GetPatientProfileByIdAsync(string id);
+
+        Task<PatientProfile> CreatePatientProfileAsync(PatientProfile patientProfile);
     }
     public class PatientService(IDbContextFactory<AppDbContext> dbContextFactory) : IPatientService
     {
@@ -19,6 +24,14 @@ namespace PiedraAzul.ApplicationServices.Services
             context.PatientGuests.Add(patientGuest);
             await context.SaveChangesAsync();
             return patientGuest;
+        }
+
+        public async Task<PatientProfile> CreatePatientProfileAsync(PatientProfile patientProfile)
+        {
+            using var context = dbContextFactory.CreateDbContext();
+            context.Add(patientProfile);
+            await context.SaveChangesAsync();
+            return patientProfile;
         }
 
         public async Task<PatientGuest?> GetPatientGuestById(string id)
@@ -36,6 +49,11 @@ namespace PiedraAzul.ApplicationServices.Services
                                     pg.PatientName == query || pg.PatientPhone == query)
                                     .ToListAsync();
             return result;
+        }
+
+        public Task<PatientProfile?> GetPatientProfileByIdAsync(string id)
+        {
+            throw new NotImplementedException();
         }
 
         public async Task<List<PatientProfile>?> GetPatientProfileByQueryAsync(string query)
