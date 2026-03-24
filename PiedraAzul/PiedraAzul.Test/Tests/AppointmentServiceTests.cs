@@ -27,7 +27,7 @@ namespace PiedraAzul.Test.Tests
             return new DateTime(now.Year, now.Month, now.Day, 0, 0, 0, DateTimeKind.Utc);
         }
 
-        private async Task<(DoctorProfile doctor, PatientProfile patient, ApplicationUser patientUser)> SeedUserPatientAsync()
+        private async Task<(DoctorProfile doctor, ApplicationUser doctorUser, ApplicationUser patientUser)> SeedUserPatientAsync()
         {
             await using var ctx = _fixture.DbContextFactory.CreateDbContext();
 
@@ -47,14 +47,12 @@ namespace PiedraAzul.Test.Tests
 
             var doctor = new DoctorProfile
             {
-                DoctorId = Guid.NewGuid(),
                 UserId = doctorUser.Id,
                 Specialty = DoctorType.NaturalMedicine
             };
 
             var patient = new PatientProfile
             {
-                PatientId = Guid.NewGuid(),
                 UserId = patientUser.Id
             };
 
@@ -64,10 +62,10 @@ namespace PiedraAzul.Test.Tests
 
             await ctx.SaveChangesAsync();
 
-            return (doctor, patient, patientUser);
+            return (doctor, doctorUser, patientUser);
         }
 
-        private async Task<(DoctorProfile doctor, PatientGuest guest)> SeedGuestAsync()
+        private async Task<(DoctorProfile doctor, ApplicationUser doctorUser, PatientGuest guest)> SeedGuestAsync()
         {
             await using var ctx = _fixture.DbContextFactory.CreateDbContext();
 
@@ -80,7 +78,6 @@ namespace PiedraAzul.Test.Tests
 
             var doctor = new DoctorProfile
             {
-                DoctorId = Guid.NewGuid(),
                 UserId = doctorUser.Id,
                 Specialty = DoctorType.NaturalMedicine
             };
@@ -91,7 +88,6 @@ namespace PiedraAzul.Test.Tests
                 PatientName = "Guest Test",
                 PatientPhone = "555-1234",
                 PatientExtraInfo = "No extra info"
-                
             };
 
             ctx.Users.Add(doctorUser);
@@ -100,17 +96,17 @@ namespace PiedraAzul.Test.Tests
 
             await ctx.SaveChangesAsync();
 
-            return (doctor, guest);
+            return (doctor, doctorUser, guest);
         }
 
-        private async Task<DoctorAvailabilitySlot> SeedSlotAsync(Guid doctorId, DayOfWeek day)
+        private async Task<DoctorAvailabilitySlot> SeedSlotAsync(string doctorUserId, DayOfWeek day)
         {
             await using var ctx = _fixture.DbContextFactory.CreateDbContext();
 
             var slot = new DoctorAvailabilitySlot
             {
                 Id = Guid.NewGuid(),
-                DoctorId = doctorId,
+                DoctorUserId = doctorUserId,
                 DayOfWeek = day,
                 StartTime = TimeOnly.Parse("09:00").ToTimeSpan(),
                 EndTime = TimeOnly.Parse("09:30").ToTimeSpan()
@@ -129,14 +125,14 @@ namespace PiedraAzul.Test.Tests
         [Fact]
         public async Task CreateAppointment_WithPatientUser_Success()
         {
-            var (doctor, patient, patientUser) = await SeedUserPatientAsync();
+            var (doctor, doctorUser, patientUser) = await SeedUserPatientAsync();
             var today = UtcDate();
 
-            var slot = await SeedSlotAsync(doctor.DoctorId, today.DayOfWeek);
+            var slot = await SeedSlotAsync(doctorUser.Id, today.DayOfWeek);
 
             var appointment = new Appointment
             {
-                DoctorId = doctor.DoctorId,
+                DoctorUserId = doctorUser.Id,
                 DoctorAvailabilitySlotId = slot.Id,
                 Date = today
             };
@@ -144,25 +140,25 @@ namespace PiedraAzul.Test.Tests
             var result = await _sut.CreateAppointmentAsync(appointment, patientUserId: patientUser.Id);
 
             Assert.NotNull(result);
-            Assert.Equal(patient.PatientId, result.PatientId);
+            Assert.Equal(patientUser.Id, result.PatientUserId);
         }
 
         [Fact]
         public async Task CreateAppointment_WithPatientGuest_Success()
         {
-            var (doctor, guest) = await SeedGuestAsync();
+            var (_, doctorUser, guest) = await SeedGuestAsync();
             var today = UtcDate();
 
-            var slot = await SeedSlotAsync(doctor.DoctorId, today.DayOfWeek);
+            var slot = await SeedSlotAsync(doctorUser.Id, today.DayOfWeek);
 
             var appointment = new Appointment
             {
-                DoctorId = doctor.DoctorId,
+                DoctorUserId = doctorUser.Id,
                 DoctorAvailabilitySlotId = slot.Id,
                 Date = today
             };
 
-            var result = await _sut.CreateAppointmentAsync(appointment,string.Empty, patientGuestId: guest.PatientIdentification);
+            var result = await _sut.CreateAppointmentAsync(appointment, null, guest.PatientIdentification);
 
             Assert.NotNull(result);
             Assert.Equal(guest.PatientIdentification, result.PatientGuestId);
@@ -180,56 +176,56 @@ namespace PiedraAzul.Test.Tests
         [Fact]
         public async Task CreateAppointment_InvalidUser_Throws()
         {
-            var (doctor, _, _) = await SeedUserPatientAsync();
+            var (_, doctorUser, _) = await SeedUserPatientAsync();
             var today = UtcDate();
 
-            var slot = await SeedSlotAsync(doctor.DoctorId, today.DayOfWeek);
+            var slot = await SeedSlotAsync(doctorUser.Id, today.DayOfWeek);
 
             var appointment = new Appointment
             {
-                DoctorId = doctor.DoctorId,
+                DoctorUserId = doctorUser.Id,
                 DoctorAvailabilitySlotId = slot.Id,
                 Date = today
             };
 
             await Assert.ThrowsAsync<ArgumentNullException>(() =>
-                _sut.CreateAppointmentAsync(appointment, patientUserId: Guid.NewGuid().ToString()));
+                _sut.CreateAppointmentAsync(appointment, Guid.NewGuid().ToString()));
         }
 
         [Fact]
         public async Task CreateAppointment_InvalidGuest_Throws()
         {
-            var (doctor, _) = await SeedGuestAsync();
+            var (_, doctorUser, _) = await SeedGuestAsync();
             var today = UtcDate();
 
-            var slot = await SeedSlotAsync(doctor.DoctorId, today.DayOfWeek);
+            var slot = await SeedSlotAsync(doctorUser.Id, today.DayOfWeek);
 
             var appointment = new Appointment
             {
-                DoctorId = doctor.DoctorId,
+                DoctorUserId = doctorUser.Id,
                 DoctorAvailabilitySlotId = slot.Id,
                 Date = today
             };
 
             await Assert.ThrowsAsync<ArgumentNullException>(() =>
-                _sut.CreateAppointmentAsync(appointment,string.Empty, patientGuestId: Guid.NewGuid().ToString()));
+                _sut.CreateAppointmentAsync(appointment, null, Guid.NewGuid().ToString()));
         }
 
         [Fact]
         public async Task GetDoctorDaySlots_ReturnsOccupiedAndAvailable()
         {
-            var (doctor, patient, _) = await SeedUserPatientAsync();
+            var (_, doctorUser, patientUser) = await SeedUserPatientAsync();
             var today = UtcDate();
 
-            var slot = await SeedSlotAsync(doctor.DoctorId, today.DayOfWeek);
+            var slot = await SeedSlotAsync(doctorUser.Id, today.DayOfWeek);
 
             await using (var ctx = _fixture.DbContextFactory.CreateDbContext())
             {
                 ctx.Appointments.Add(new Appointment
                 {
                     Id = Guid.NewGuid(),
-                    DoctorId = doctor.DoctorId,
-                    PatientId = patient.PatientId,
+                    DoctorUserId = doctorUser.Id,
+                    PatientUserId = patientUser.Id,
                     DoctorAvailabilitySlotId = slot.Id,
                     Date = today,
                     CreatedAt = DateTime.UtcNow
@@ -238,7 +234,7 @@ namespace PiedraAzul.Test.Tests
                 await ctx.SaveChangesAsync();
             }
 
-            var result = await _sut.GetDoctorDaySlotsAsync(doctor.DoctorId, today);
+            var result = await _sut.GetDoctorDaySlotsAsync(doctorUser.Id, today);
 
             Assert.Single(result);
             Assert.False(result[0].IsAvailable);
@@ -247,18 +243,18 @@ namespace PiedraAzul.Test.Tests
         [Fact]
         public async Task GetDoctorAppointments_ReturnsAppointments()
         {
-            var (doctor, patient, patientUser) = await SeedUserPatientAsync();
+            var (_, doctorUser, patientUser) = await SeedUserPatientAsync();
             var today = UtcDate();
 
-            var slot = await SeedSlotAsync(doctor.DoctorId, today.DayOfWeek);
+            var slot = await SeedSlotAsync(doctorUser.Id, today.DayOfWeek);
 
             await using (var ctx = _fixture.DbContextFactory.CreateDbContext())
             {
                 ctx.Appointments.Add(new Appointment
                 {
                     Id = Guid.NewGuid(),
-                    DoctorId = doctor.DoctorId,
-                    PatientId = patient.PatientId,
+                    DoctorUserId = doctorUser.Id,
+                    PatientUserId = patientUser.Id,
                     DoctorAvailabilitySlotId = slot.Id,
                     Date = today,
                     CreatedAt = DateTime.UtcNow
@@ -267,7 +263,7 @@ namespace PiedraAzul.Test.Tests
                 await ctx.SaveChangesAsync();
             }
 
-            var result = await _sut.GetDoctorAppointmentsAsync(doctor.UserId);
+            var result = await _sut.GetDoctorAppointmentsAsync(doctorUser.Id);
 
             Assert.Single(result);
         }
@@ -282,18 +278,18 @@ namespace PiedraAzul.Test.Tests
         [Fact]
         public async Task GetPatientAppointments_WithUser_Returns()
         {
-            var (doctor, patient, patientUser) = await SeedUserPatientAsync();
+            var (_, doctorUser, patientUser) = await SeedUserPatientAsync();
             var today = UtcDate();
 
-            var slot = await SeedSlotAsync(doctor.DoctorId, today.DayOfWeek);
+            var slot = await SeedSlotAsync(doctorUser.Id, today.DayOfWeek);
 
             await using (var ctx = _fixture.DbContextFactory.CreateDbContext())
             {
                 ctx.Appointments.Add(new Appointment
                 {
                     Id = Guid.NewGuid(),
-                    DoctorId = doctor.DoctorId,
-                    PatientId = patient.PatientId,
+                    DoctorUserId = doctorUser.Id,
+                    PatientUserId = patientUser.Id,
                     DoctorAvailabilitySlotId = slot.Id,
                     Date = today,
                     CreatedAt = DateTime.UtcNow
@@ -310,17 +306,17 @@ namespace PiedraAzul.Test.Tests
         [Fact]
         public async Task GetPatientAppointments_WithGuest_Returns()
         {
-            var (doctor, guest) = await SeedGuestAsync();
+            var (_, doctorUser, guest) = await SeedGuestAsync();
             var today = UtcDate();
 
-            var slot = await SeedSlotAsync(doctor.DoctorId, today.DayOfWeek);
+            var slot = await SeedSlotAsync(doctorUser.Id, today.DayOfWeek);
 
             await using (var ctx = _fixture.DbContextFactory.CreateDbContext())
             {
                 ctx.Appointments.Add(new Appointment
                 {
                     Id = Guid.NewGuid(),
-                    DoctorId = doctor.DoctorId,
+                    DoctorUserId = doctorUser.Id,
                     PatientGuestId = guest.PatientIdentification,
                     DoctorAvailabilitySlotId = slot.Id,
                     Date = today,
