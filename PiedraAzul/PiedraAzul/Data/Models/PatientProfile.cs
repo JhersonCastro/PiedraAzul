@@ -6,9 +6,7 @@ namespace PiedraAzul.Data.Models
     public class PatientProfile
     {
         [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public Guid PatientId { get; set; }
-
+        [Required]
         public string UserId { get; set; }
         public ApplicationUser User { get; set; }
 

@@ -24,7 +24,8 @@ namespace PiedraAzul.ApplicationServices.AutoCompleteServices
         public string Name { get; set; } = default!;
         public string? Identification { get; set; }
         public string? Phone { get; set; }
-        public string EntityType { get; set; } = default!; // Guest | Profile
+
+        public string EntityType { get; set; } = default!; // Guest | Registered
     }
 
     public class PatientAutocompleteService : BaseLuceneService, IPatientAutocompleteService
@@ -35,38 +36,49 @@ namespace PiedraAzul.ApplicationServices.AutoCompleteServices
         }
 
         // =========================
-        // 👤 PROFILE
+        // 👤 REGISTERED PATIENT
         // =========================
         public async Task IndexPatientAsync(PatientProfile patient)
         {
-            var doc = new Document
-        {
-            new StringField("Id", patient.PatientId.ToString(), Field.Store.YES),
-            new TextField("Name", patient.User?.Name ?? "", Field.Store.YES),
-            new TextField("Identification", patient.User?.IdentificationNumber ?? "", Field.Store.YES),
-            new TextField("Phone", patient.User?.PhoneNumber ?? "", Field.Store.YES),
-            new StringField("EntityType", "Profile", Field.Store.YES)
-        };
+            if (patient == null || string.IsNullOrWhiteSpace(patient.UserId))
+                return;
 
-            Writer.UpdateDocument(new Term("Id", doc.Get("Id")), doc);
+            var doc = new Document
+            {
+                // 🔥 CAMBIO CLAVE: ahora usamos UserId
+                new StringField("Id", patient.UserId, Field.Store.YES),
+
+                new TextField("Name", patient.User?.Name ?? "", Field.Store.YES),
+                new TextField("Identification", patient.User?.IdentificationNumber ?? "", Field.Store.YES),
+                new TextField("Phone", patient.User?.PhoneNumber ?? "", Field.Store.YES),
+
+                new StringField("EntityType", "Registered", Field.Store.YES)
+            };
+
+            Writer.UpdateDocument(new Term("Id", patient.UserId), doc);
             Writer.Commit();
         }
 
         // =========================
-        // 🧍 GUEST
+        // 🧍 GUEST PATIENT
         // =========================
         public async Task IndexGuestAsync(PatientGuest guest)
         {
-            var doc = new Document
-        {
-            new StringField("Id", guest.PatientIdentification, Field.Store.YES),
-            new TextField("Name", guest.PatientName ?? "", Field.Store.YES),
-            new TextField("Identification", guest.PatientIdentification ?? "", Field.Store.YES),
-            new TextField("Phone", guest.PatientPhone ?? "", Field.Store.YES),
-            new StringField("EntityType", "Guest", Field.Store.YES)
-        };
+            if (guest == null || string.IsNullOrWhiteSpace(guest.PatientIdentification))
+                return;
 
-            Writer.UpdateDocument(new Term("Id", doc.Get("Id")), doc);
+            var doc = new Document
+            {
+                new StringField("Id", guest.PatientIdentification, Field.Store.YES),
+
+                new TextField("Name", guest.PatientName ?? "", Field.Store.YES),
+                new TextField("Identification", guest.PatientIdentification ?? "", Field.Store.YES),
+                new TextField("Phone", guest.PatientPhone ?? "", Field.Store.YES),
+
+                new StringField("EntityType", "Guest", Field.Store.YES)
+            };
+
+            Writer.UpdateDocument(new Term("Id", guest.PatientIdentification), doc);
             Writer.Commit();
         }
 

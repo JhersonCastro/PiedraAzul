@@ -4,7 +4,8 @@ using Shared.Grpc;
 
 namespace PiedraAzul.GrpcServices;
 
-public class GrpcAvailability(IAppointmentService appointmentService) : AvailabilityService.AvailabilityServiceBase
+public class GrpcAvailability(IAppointmentService appointmentService)
+    : AvailabilityService.AvailabilityServiceBase
 {
     public override async Task<AvailableSlotsResponse> GetAvailableSlots(
         AvailableSlotsRequest request,
@@ -12,10 +13,15 @@ public class GrpcAvailability(IAppointmentService appointmentService) : Availabi
     {
         var response = new AvailableSlotsResponse();
 
+        if (string.IsNullOrWhiteSpace(request.DoctorId))
+        {
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "DoctorUserId is required"));
+        }
+
         var date = request.Date.ToDateTime();
 
         var slots = await appointmentService
-            .GetDoctorDaySlotsAsync(Guid.Parse(request.DoctorId), date);
+            .GetDoctorDaySlotsAsync(request.DoctorId, date);
 
         foreach (var slot in slots)
         {
@@ -37,5 +43,4 @@ public class GrpcAvailability(IAppointmentService appointmentService) : Availabi
 
         return response;
     }
-
 }

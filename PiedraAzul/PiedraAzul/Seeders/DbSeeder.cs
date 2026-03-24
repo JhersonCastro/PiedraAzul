@@ -14,7 +14,7 @@ namespace PiedraAzul.Seeders
         {
             using var context = await dbContextFactory.CreateDbContextAsync();
 
-            // Evitar duplicar profiles
+            // Evitar duplicar
             if (await context.DoctorProfiles.AnyAsync())
                 return;
 
@@ -57,26 +57,24 @@ namespace PiedraAzul.Seeders
             }
 
             // =========================
-            // 2. PROFILES
+            // 2. PROFILES (PK = FK)
             // =========================
-            var doctor = new DoctorProfile
+            var doctorProfile = new DoctorProfile
             {
-                DoctorId = Guid.NewGuid(),
                 UserId = doctorUser.Id,
                 Specialty = DoctorType.NaturalMedicine
             };
 
-            var patient = new PatientProfile
+            var patientProfile = new PatientProfile
             {
-                PatientId = Guid.NewGuid(),
                 UserId = patientUser.Id
             };
 
-            context.DoctorProfiles.Add(doctor);
-            context.PatientProfiles.Add(patient);
+            context.DoctorProfiles.Add(doctorProfile);
+            context.PatientProfiles.Add(patientProfile);
 
             // =========================
-            // 3. AVAILABILITY SLOTS (plantilla semanal)
+            // 3. AVAILABILITY SLOTS
             // =========================
             var todayUtc = DateTime.UtcNow.Date;
             var dayOfWeek = todayUtc.DayOfWeek;
@@ -92,7 +90,7 @@ namespace PiedraAzul.Seeders
                 availabilitySlots.Add(new DoctorAvailabilitySlot
                 {
                     Id = Guid.NewGuid(),
-                    DoctorId = doctor.DoctorId,
+                    DoctorUserId = doctorUser.Id,
                     DayOfWeek = dayOfWeek,
                     StartTime = current,
                     EndTime = current.Add(TimeSpan.FromMinutes(30))
@@ -104,17 +102,18 @@ namespace PiedraAzul.Seeders
             context.DoctorAvailabilitySlots.AddRange(availabilitySlots);
 
             // =========================
-            // 4. APPOINTMENTS (ocupamos 2 slots)
+            // 4. APPOINTMENTS
             // =========================
             var appointments = availabilitySlots
                 .Take(2)
                 .Select(slot => new Appointment
                 {
                     Id = Guid.NewGuid(),
-                    PatientId = patient.PatientId,
-                    DoctorId = doctor.DoctorId,
-                    DoctorAvailabilitySlotId = slot.Id,
 
+                    DoctorUserId = doctorUser.Id,
+                    PatientUserId = patientUser.Id,
+
+                    DoctorAvailabilitySlotId = slot.Id,
                     Date = todayUtc,
 
                     CreatedAt = DateTime.UtcNow

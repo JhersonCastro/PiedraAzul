@@ -1,0 +1,48 @@
+﻿@using PiedraAzul.Client.Services.AuthServices
+@using PiedraAzul.Client.States
+@inject UserState UserState
+@inject AuthenticationService AuthService
+@inject NavigationManager NavigationManager
+
+@if (isChecking)
+{
+    <p>Cargando...</p>
+}
+else
+{
+    @ChildContent
+}
+
+@code {
+    [Parameter, EditorRequired] public string? RequiredRole { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public string ReturnUrl { get; set; } = "/";
+    private bool isChecking = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (UserState.UserResponse == null)
+        {
+            var userResult = await AuthService.GetCurrentUserAsync();
+
+            if (!userResult.IsSuccess || userResult.Value == null)
+            {
+                NavigationManager.NavigateTo("/login");
+                return;
+            }
+
+            UserState.UserResponse = userResult.Value;
+        }
+
+        if (!string.IsNullOrEmpty(RequiredRole))
+        {
+            if (!UserState.UserResponse.Roles.Contains(RequiredRole))
+            {
+                NavigationManager.NavigateTo(ReturnUrl);
+                return;
+            }
+        }
+
+        isChecking = false;
+    }
+}
