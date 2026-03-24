@@ -4,13 +4,16 @@ using Shared.Grpc;
 
 namespace PiedraAzul.GrpcServices
 {
-    public class GrpcPatient(PiedraAzul.ApplicationServices.Services.IPatientService patientService, IPatientAutocompleteService patientAutocompleteService) 
+    public class GrpcPatient(
+        PiedraAzul.ApplicationServices.Services.IPatientService patientService,
+        IPatientAutocompleteService patientAutocompleteService)
         : PatientService.PatientServiceBase
     {
 
         public override async Task<SearchPatientsResponse> SearchAutoCompletePatients(SearchPatientsRequest request, ServerCallContext context)
         {
-            var patient =  await patientAutocompleteService.SearchAsync(request.Query, request.Limit);
+            var patient = await patientAutocompleteService.SearchAsync(request.Query, request.Limit);
+
             var response = new SearchPatientsResponse();
 
             response.Patients.AddRange(patient.Select(p => new PatientSearchResult
@@ -19,14 +22,17 @@ namespace PiedraAzul.GrpcServices
                 Identification = p.Identification,
                 Name = p.Name,
                 Phone = p.Phone,
-                Type = p.EntityType == "Guest" ? PatientType.Guest : PatientType.Registered
+                Type = p.EntityType == "Guest"
+                    ? PatientType.Guest
+                    : PatientType.Registered
             }));
 
             return response;
         }
+
         public override async Task<SearchPatientsResponse> SearchPatients(
-    SearchPatientsRequest request,
-    ServerCallContext context)
+            SearchPatientsRequest request,
+            ServerCallContext context)
         {
             if (string.IsNullOrWhiteSpace(request.Query))
             {
@@ -38,7 +44,9 @@ namespace PiedraAzul.GrpcServices
 
             var combined = patientProfiles.Select(p => new PatientSearchResult
             {
-                Id = p.PatientId.ToString(),
+                // 🔥 CAMBIO CLAVE AQUÍ
+                Id = p.UserId, // antes: p.PatientId ❌
+
                 Identification = p.User?.IdentificationNumber ?? string.Empty,
                 Name = p.User?.Name ?? string.Empty,
                 Phone = p.User?.PhoneNumber ?? string.Empty,
