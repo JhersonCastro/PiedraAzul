@@ -190,10 +190,30 @@ namespace PiedraAzul.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "DoctorAvailabilitySlots",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    DoctorUserId = table.Column<string>(type: "text", nullable: false),
+                    DayOfWeek = table.Column<int>(type: "integer", nullable: false),
+                    StartTime = table.Column<TimeSpan>(type: "interval", nullable: false),
+                    EndTime = table.Column<TimeSpan>(type: "interval", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DoctorAvailabilitySlots", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_DoctorAvailabilitySlots_AspNetUsers_DoctorUserId",
+                        column: x => x.DoctorUserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "DoctorProfiles",
                 columns: table => new
                 {
-                    DoctorId = table.Column<Guid>(type: "uuid", nullable: false),
                     UserId = table.Column<string>(type: "text", nullable: false),
                     Specialty = table.Column<int>(type: "integer", nullable: false),
                     LicenseNumber = table.Column<string>(type: "text", nullable: false),
@@ -201,7 +221,7 @@ namespace PiedraAzul.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_DoctorProfiles", x => x.DoctorId);
+                    table.PrimaryKey("PK_DoctorProfiles", x => x.UserId);
                     table.ForeignKey(
                         name: "FK_DoctorProfiles_AspNetUsers_UserId",
                         column: x => x.UserId,
@@ -214,13 +234,12 @@ namespace PiedraAzul.Data.Migrations
                 name: "PatientProfiles",
                 columns: table => new
                 {
-                    PatientId = table.Column<Guid>(type: "uuid", nullable: false),
                     UserId = table.Column<string>(type: "text", nullable: false),
                     ExtraContactInfo = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_PatientProfiles", x => x.PatientId);
+                    table.PrimaryKey("PK_PatientProfiles", x => x.UserId);
                     table.ForeignKey(
                         name: "FK_PatientProfiles_AspNetUsers_UserId",
                         column: x => x.UserId,
@@ -251,34 +270,13 @@ namespace PiedraAzul.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "DoctorAvailabilitySlots",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    DoctorId = table.Column<Guid>(type: "uuid", nullable: false),
-                    DayOfWeek = table.Column<int>(type: "integer", nullable: false),
-                    StartTime = table.Column<TimeSpan>(type: "interval", nullable: false),
-                    EndTime = table.Column<TimeSpan>(type: "interval", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_DoctorAvailabilitySlots", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_DoctorAvailabilitySlots_DoctorProfiles_DoctorId",
-                        column: x => x.DoctorId,
-                        principalTable: "DoctorProfiles",
-                        principalColumn: "DoctorId",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Appointments",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    PatientId = table.Column<Guid>(type: "uuid", nullable: true),
-                    PatientGuestId = table.Column<string>(type: "text", nullable: false),
-                    DoctorId = table.Column<Guid>(type: "uuid", nullable: false),
+                    PatientUserId = table.Column<string>(type: "text", nullable: true),
+                    PatientGuestId = table.Column<string>(type: "text", nullable: true),
+                    DoctorUserId = table.Column<string>(type: "text", nullable: false),
                     DoctorAvailabilitySlotId = table.Column<Guid>(type: "uuid", nullable: false),
                     Date = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
@@ -287,29 +285,28 @@ namespace PiedraAzul.Data.Migrations
                 {
                     table.PrimaryKey("PK_Appointments", x => x.Id);
                     table.ForeignKey(
+                        name: "FK_Appointments_AspNetUsers_DoctorUserId",
+                        column: x => x.DoctorUserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Appointments_AspNetUsers_PatientUserId",
+                        column: x => x.PatientUserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
                         name: "FK_Appointments_DoctorAvailabilitySlots_DoctorAvailabilitySlot~",
                         column: x => x.DoctorAvailabilitySlotId,
                         principalTable: "DoctorAvailabilitySlots",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_Appointments_DoctorProfiles_DoctorId",
-                        column: x => x.DoctorId,
-                        principalTable: "DoctorProfiles",
-                        principalColumn: "DoctorId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
                         name: "FK_Appointments_PatientGuests_PatientGuestId",
                         column: x => x.PatientGuestId,
                         principalTable: "PatientGuests",
-                        principalColumn: "PatientIdentification",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_Appointments_PatientProfiles_PatientId",
-                        column: x => x.PatientId,
-                        principalTable: "PatientProfiles",
-                        principalColumn: "PatientId",
-                        onDelete: ReferentialAction.Restrict);
+                        principalColumn: "PatientIdentification");
                 });
 
             migrationBuilder.CreateIndex(
@@ -319,9 +316,9 @@ namespace PiedraAzul.Data.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_Appointments_DoctorId",
+                name: "IX_Appointments_DoctorUserId",
                 table: "Appointments",
-                column: "DoctorId");
+                column: "DoctorUserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Appointments_PatientGuestId",
@@ -329,9 +326,9 @@ namespace PiedraAzul.Data.Migrations
                 column: "PatientGuestId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Appointments_PatientId",
+                name: "IX_Appointments_PatientUserId",
                 table: "Appointments",
-                column: "PatientId");
+                column: "PatientUserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetRoleClaims_RoleId",
@@ -371,19 +368,9 @@ namespace PiedraAzul.Data.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_DoctorAvailabilitySlots_DoctorId",
+                name: "IX_DoctorAvailabilitySlots_DoctorUserId",
                 table: "DoctorAvailabilitySlots",
-                column: "DoctorId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_DoctorProfiles_UserId",
-                table: "DoctorProfiles",
-                column: "UserId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_PatientProfiles_UserId",
-                table: "PatientProfiles",
-                column: "UserId");
+                column: "DoctorUserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_RefreshTokens_UserId",
@@ -413,6 +400,12 @@ namespace PiedraAzul.Data.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
+                name: "DoctorProfiles");
+
+            migrationBuilder.DropTable(
+                name: "PatientProfiles");
+
+            migrationBuilder.DropTable(
                 name: "RefreshTokens");
 
             migrationBuilder.DropTable(
@@ -425,13 +418,7 @@ namespace PiedraAzul.Data.Migrations
                 name: "PatientGuests");
 
             migrationBuilder.DropTable(
-                name: "PatientProfiles");
-
-            migrationBuilder.DropTable(
                 name: "AspNetRoles");
-
-            migrationBuilder.DropTable(
-                name: "DoctorProfiles");
 
             migrationBuilder.DropTable(
                 name: "AspNetUsers");
