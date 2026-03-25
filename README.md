@@ -1,3 +1,44 @@
+# PiedraAzul
+
+Sistema de gestión y reserva de citas médicas diseñado para optimizar el agendamiento de turnos con médicos y terapeutas. La aplicación permite según el rol dentro del sistema:
+
+**Médico:** Visualizar la lista de pacientes pendientes
+
+**Agendador:** 
+* Listar las citas médicas de un médico/terapista en una fecha determinada, visualiza el listado y cantidad de citas.
+* Crear citas de pacientes que se contacten por whatsApp con sus respectivos datos
+
+**Paciente:** 
+* Agendar citas mediante la web de manera fácil sin necesidad de usar whastsApp
+
+**Administrador:** 
+* Configurara parámetros del sistema para que el sistema de citas autónomo funcione de acuerdo a la disponibilidad de los médicos y terapistas
+
+## Tecnologías
+
+| Tecnología | Versión | Uso |
+|------------|---------|-----|
+| .NET | 8.0 | Backend API y lógica de negocio |
+| Blazor | 8.0 | Frontend SPA (WebAssembly o Server) |
+| Entity Framework Core | 8.0 | ORM para acceso a datos |
+| PostgreSQL | 16 | Base de datos relacional |
+| Docker | - | Contenedor para base de datos |
+| Tailwind CSS | 3.x | Estilos del frontend |
+| xUnit | - | Pruebas unitarias |
+| Git | - | Control de versiones |
+
+## Requisitos previos
+
+- [Visual Studio 2026](https://visualstudio.microsoft.com/) con las cargas de trabajo:
+  - Desarrollo de ASP.NET y web
+  - Almacenamiento y procesamiento de datos
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) En caso de estar en windows es recomendable usar la terminal de WSL instalando WSL e internamente instalar Ubuntu
+- [Git](https://git-scm.com/)
+
+## Diseño
+
+Los prototipos de interfaz fueron diseñados en [Figma](link-de-figma). y luego se hizo la transición directa a tailwindCSS con -[Tailwind Play]()
+
 # PostgreSQL con Docker (PiedraAzul)
 
 Este proyecto utiliza **PostgreSQL ejecutándose en Docker** para el entorno de desarrollo.
