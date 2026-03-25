@@ -32,7 +32,7 @@ namespace PiedraAzul.GrpcServices
         }
         public override Task<DoctorListResponse> GetDoctors(Empty request, ServerCallContext context)
         {
-            return base.GetDoctors(request, context);
+            return GetAllDoctorsAsync();
         }
         public override async Task<DoctorListResponse> GetDoctorsByType(DoctorTypeRequest request, ServerCallContext context)
         {
@@ -51,6 +51,23 @@ namespace PiedraAzul.GrpcServices
             }));
 
             return doctorListResponse;
+        }
+
+        private async Task<DoctorListResponse> GetAllDoctorsAsync()
+        {
+            var doctors = await doctorService.GetAllDoctorsAsync();
+            var response = new DoctorListResponse();
+            response.Doctors.AddRange(doctors.Select(d => new DoctorResponse
+            {
+                UserId = d.UserId,
+                DoctorId = d.DoctorId.ToString(),
+                LicenseNumber = d.LicenseNumber,
+                Specialty = (DoctorType)d.Specialty,
+                Name = d.User.Name,
+                AvatarUrl = d.User.AvatarUrl,
+                Notes = d.Notes
+            }));
+            return response;
         }
     }
 }
