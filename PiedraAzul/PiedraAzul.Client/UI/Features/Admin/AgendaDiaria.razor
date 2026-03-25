@@ -42,6 +42,78 @@
             </div>
         </div>
 
+        <!-- Tabla de Citas -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50/50 border-b border-slate-100">
+                            <th>Hora</th>
+                            <th>Paciente</th>
+                            <th>Motivo/Servicio</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Item de Ejemplo 1 -->
+                        <tr>
+                            <td>
+                                <div>08:00 AM</div>
+                                <div>30 min</div>
+                            </td>
+                            <td>
+                                <div class="f">Carlos Arturo López</div>
+                                <div >ID: 1061234567 • 311 234 5678</div>
+                            </td>
+                            <td>
+                                <div >Quiropraxia</div>
+                            </td>
+                            <td>
+                                Confirmada
+                            </td>
+                            <td>
+                                <button class="text-teal-600">Ver Detalle</button>
+                                <button class="text-rose-500 ">Cancelar</button>
+                            </td>
+                        </tr>
+
+                        <!-- Item de Ejemplo 2 -->
+                        <tr>
+                            <td>
+                                <div>09:00 AM</div>
+                                <div>45 min</div>
+                            </td>
+                            <td class="py-4 px-6">
+                                <div>María Elena Torres</div>
+                                <div>ID: 1067654321 • 310 987 6543</div>
+                            </td>
+                            <td>
+                                <div>Terapia Neural</div>
+                            </td>
+                            <td>
+                                Pendiente
+                            </td>
+                            <td>
+                                <button class="text-teal-600">Ver Detalle</button>
+                                <button class="text-rose-500 ">Cancelar</button>
+                            </td>
+                        </tr>
+                        
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Paginación Mock -->
+            <div class="p-4 border-t border-slate-100 flex items-center justify-between text-sm text-slate-500">
+                <div>Mostrando 1 a 2 de 12 citas</div>
+                <div class="flex gap-2">
+                    <button class="px-3 py-1 rounded bg-slate-100 hover:bg-slate-200 transition-colors disabled:opacity-50" disabled>Anterior</button>
+                    <button class="px-3 py-1 rounded bg-slate-100 hover:bg-slate-200 transition-colors">Siguiente</button>
+                </div>
+            </div>
+        </div>
+
         
 </div>
 
