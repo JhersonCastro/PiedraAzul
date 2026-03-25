@@ -23,6 +23,49 @@
             </button>
         </div>
 
+    <!-- Panel de Filtros -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-6 flex flex-wrap gap-6 items-end">
+            <div class="flex-grow min-w-[250px]">
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Buscar Usuario</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                    <input type="text" class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-lg pl-10 pr-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500/50" placeholder="Filtrar por nombre, identificación, cel..." />
+                </div>
+            </div>
+            
+            <div class="w-48">
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Rol</label>
+                <select class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-4 py-2.5 outline-none focus:ring-2 focus:ring-teal-500/50 appearance-none">
+                    <option>Todos los Roles</option>
+                    <option>Doctor/Terapista</option>
+                    <option>Agendador</option>
+                    <option>Administrador</option>
+                </select>
+            </div>
+            
+            <div class="w-48">
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Fecha</label>
+                <div class="relative">
+                    <input type="text" class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-lg pl-4 pr-10 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500/50" placeholder="dd/mm/aaaa" />
+                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <svg class="h-5 w-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <button class="text-teal-600 hover:text-teal-800 font-semibold text-sm transition-colors py-2.5 px-2">Limpiar<br/>Filtros</button>
+            </div>
+        </div>
+
+
+
     <!-- Panel de Creación Rápida -->
         <div class="bg-teal-50/50 rounded-2xl p-8 border border-teal-100 relative overflow-hidden">
             <!-- Icon Background Decoration -->
