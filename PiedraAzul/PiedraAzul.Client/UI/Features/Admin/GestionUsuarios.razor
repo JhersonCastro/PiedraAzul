@@ -64,7 +64,63 @@
             </div>
         </div>
 
+    <!-- Tabla Principal -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-8">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50/50 border-b border-slate-100">
+                            <th class="py-4 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Nombre</th>
+                            <th class="py-4 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Login / User</th>
+                            <th class="py-4 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Rol</th>
+                            <th class="py-4 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Estado</th>
+                            <th class="py-4 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        
+                        <!-- Usuario Doctor -->
+                        <tr class="hover:bg-slate-50/50 transition-colors">
+                            <td class="py-5 px-6">
+                                <div class="font-bold text-slate-900 text-base">Dr. Roberto Gómez</div>
+                                <div class="text-sm text-teal-600 font-medium mt-0.5 flex items-center gap-1 cursor-pointer">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                    Mirar registro medico
+                                </div>
+                            </td>
+                            <td class="py-5 px-6 text-slate-500 font-mono text-sm">rgomez_pa</td>
+                            <td class="py-5 px-6">
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-bold border border-blue-100">
+                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+                                    Doctor/Terapista
+                                </span>
+                            </td>
+                            <td class="py-5 px-6">
+                                <span class="inline-flex px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">
+                                    ACTIVO
+                                </span>
+                            </td>
+                            <td class="py-5 px-6">
+                                <div class="flex items-center justify-center gap-3">
+                                    <button class="text-slate-400 hover:text-teal-600 transition-colors">
+                                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                    </button>
+                                    <button class="text-rose-400 hover:text-rose-600 transition-colors">
+                                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6" /></svg>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
 
+                        <!-- Usuario Agendador -->
+                        
+
+                        <!-- Usuario Admin -->
+                        
+                        
+                    </tbody>
+                </table>
+            </div>
 
     <!-- Panel de Creación Rápida -->
         <div class="bg-teal-50/50 rounded-2xl p-8 border border-teal-100 relative overflow-hidden">
