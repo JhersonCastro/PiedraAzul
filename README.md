@@ -39,21 +39,6 @@ Sistema de gestión y reserva de citas médicas diseñado para optimizar el agen
 
 Los prototipos de interfaz fueron diseñados en [Figma](https://www.figma.com/es-la/downloads/). y luego se hizo la transición directa a tailwindCSS con -[Tailwind Play](https://play.tailwindcss.com/)
 
-
-
-# PostgreSQL con Docker (PiedraAzul)
-
-Este proyecto utiliza **PostgreSQL ejecutándose en Docker** para el entorno de desarrollo.
-
-## Requisitos
-
-Antes de comenzar debes tener instalado:
-
-* [Docker](https://www.docker.com/)
-* Docker Desktop ejecutándose
-
----
-
 ## Base de datos
 
 El proyecto utiliza PostgreSQL en dos modalidades:
@@ -63,6 +48,11 @@ La base de datos está alojada en AWS. Solicita la cadena de conexión al equipo
 
 ### Opción 2: Base de datos local con Docker
 Para desarrollo sin conexión a internet o pruebas locales:
+
+Antes de comenzar debes tener instalado:
+
+* [Docker](https://www.docker.com/)
+* Docker Desktop ejecutándose
 
 Ejecuta el siguiente comando en **CMD, PowerShell o terminal**:
 
@@ -90,12 +80,16 @@ También se crea un **volumen persistente** para no perder los datos.
 # Connection String
 
 Usa la siguiente cadena de conexión en el proyecto:
+ 
+ - Para la opcion de AWS:
+```json
+"DefaultConnection": "Host=ep-purple-tree-acshudb6-pooler.sa-east-1.aws.neon.tech; Database=piedraazuldb; Username=neondb_owner; Password=npg_jZeBbRzS5G3i; SSL Mode=VerifyFull; Channel Binding=Require;"
+```
 
+- Para la opción con docker en local:
 ```json
 "DefaultConnection": "Host=localhost;Port=5432;Database=PiedraAzulDB;Username=postgres;Password=postgres"
 ```
-
----
 
 # Verificar que el contenedor está corriendo
 
@@ -138,7 +132,7 @@ docker start piedraazul-postgres
 
 # Eliminar el contenedor
 
-⚠ Esto eliminará el contenedor pero **no el volumen de datos**.
+Esto eliminará el contenedor pero **no el volumen de datos**.
 
 ```bash
 docker rm piedraazul-postgres
