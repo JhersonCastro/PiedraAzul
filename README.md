@@ -37,7 +37,9 @@ Sistema de gestión y reserva de citas médicas diseñado para optimizar el agen
 
 ## Diseño
 
-Los prototipos de interfaz fueron diseñados en [Figma](link-de-figma). y luego se hizo la transición directa a tailwindCSS con -[Tailwind Play]()
+Los prototipos de interfaz fueron diseñados en [Figma](https://www.figma.com/es-la/downloads/). y luego se hizo la transición directa a tailwindCSS con -[Tailwind Play](https://play.tailwindcss.com/)
+
+
 
 # PostgreSQL con Docker (PiedraAzul)
 
@@ -52,7 +54,15 @@ Antes de comenzar debes tener instalado:
 
 ---
 
-# Levantar la base de datos
+## Base de datos
+
+El proyecto utiliza PostgreSQL en dos modalidades:
+
+### Opción 1: Base de datos en AWS (recomendada para desarrollo en equipo)
+La base de datos está alojada en AWS. Solicita la cadena de conexión al equipo de desarrollo.
+
+### Opción 2: Base de datos local con Docker
+Para desarrollo sin conexión a internet o pruebas locales:
 
 Ejecuta el siguiente comando en **CMD, PowerShell o terminal**:
 
