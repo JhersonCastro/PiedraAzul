@@ -1,122 +1,148 @@
 ﻿@using PiedraAzul.Client.Models.Booking
 @using PiedraAzul.Client.Services
 @using PiedraAzul.Client.Services.GrpcServices
-
-<!-- 1 Seleccionar día -->
+@using PiedraAzul.Client.Services.RealTimeServices
+@using PiedraAzul.Shared.DTOs
+@using Google.Protobuf.WellKnownTypes
 @inject GrpcAvailability AvailabilityClient
+@inject IAppointmentHubService HubService
+@inject ILogger<AppointmentScheduler> Logger
+
 <h2 class="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-700">
     1. Seleccione el día
 </h2>
 
 <div class="mb-6 grid grid-cols-2 gap-3 pb-2 md:grid-cols-5">
-
     @foreach (var day in Days)
     {
         <button type="button" @onclick="() => SelectDay(day)"
                 class="@GetDayClass(day)">
-
             <span class="text-xs uppercase">@day.DayName</span>
             <span class="text-xl font-bold">@day.DayNumber</span>
             <span class="text-xs">@day.Month</span>
-
         </button>
     }
-
 </div>
 
 <hr class="my-6">
 
-<!-- seleccionar hora -->
 <h2 class="mb-4 flex items-center gap-2 text-lg font-semibold text-gray-700">
     2. Seleccione la hora
 </h2>
 
-<!-- mañana -->
-<div class="mb-3">
-    <span class="rounded-full bg-teal-100 px-3 py-1 text-xs font-semibold text-teal-700">
-        JORNADA MAÑANA
-    </span>
-</div>
-
-<div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-
-    @foreach (var slot in MorningSlots)
+@if (_isLoading)
+{
+    <div class="py-8 text-center">
+        <div class="inline-block h-8 w-8 animate-spin rounded-full border-b-2 border-teal-600"></div>
+        <p class="mt-2 text-gray-600">Cargando horarios...</p>
+    </div>
+}
+else if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <div class="rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+        @_errorMessage
+    </div>
+}
+else
+{
+    if (MorningSlots.Any())
     {
-        <button type="button" disabled="@(!slot.Available)"
-                @onclick="() => SelectSlot(slot)"
-                class="@GetSlotClass(slot)">
+        <div class="mb-3">
+            <span class="rounded-full bg-teal-100 px-3 py-1 text-xs font-semibold text-teal-700">
+                JORNADA MAÑANA
+            </span>
+        </div>
 
-            <span class="font-semibold">@slot.Time</span>
-
-            @if (!slot.Available)
+        <div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            @foreach (var slot in MorningSlots)
             {
-                <span class="text-xs">NO DISPONIBLE</span>
+                <button type="button" disabled="@(!slot.Available)"
+                        @onclick="() => SelectSlot(slot)"
+                        class="@GetSlotClass(slot)">
+                    <span class="font-semibold">@slot.Time</span>
+                    @if (!slot.Available)
+                    {
+                        <span class="text-xs">
+                            @if (_myLockedSlotId == slot.Id)
+                            {
+                                @:TÚ
+                            }
+                            else
+                            {
+                                @slot.UnavailableReason
+                            }
+                        </span>
+                    }
+                    @if (_selectedSlot == slot)
+                    {
+                        <span>✓</span>
+                    }
+                </button>
             }
-
-            @if (SelectedSlot == slot)
-            {
-                <span>✓</span>
-            }
-
-        </button>
+        </div>
     }
 
-</div>
-
-<!-- tarde -->
-<div class="mb-3">
-    <span class="rounded-full bg-teal-100 px-3 py-1 text-xs font-semibold text-teal-700">
-        JORNADA TARDE
-    </span>
-</div>
-
-<div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-
-    @foreach (var slot in AfternoonSlots)
+    if (AfternoonSlots.Any())
     {
-        <button type="button" disabled="@(!slot.Available)"
-                @onclick="() => SelectSlot(slot)"
-                class="@GetSlotClass(slot)">
+        <div class="mb-3">
+            <span class="rounded-full bg-teal-100 px-3 py-1 text-xs font-semibold text-teal-700">
+                JORNADA TARDE
+            </span>
+        </div>
 
-            <span class="font-semibold">@slot.Time</span>
-
-            @if (!slot.Available)
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            @foreach (var slot in AfternoonSlots)
             {
-                <span class="text-xs">NO DISPONIBLE</span>
+                <button type="button" disabled="@(!slot.Available)"
+                        @onclick="() => SelectSlot(slot)"
+                        class="@GetSlotClass(slot)">
+                    <span class="font-semibold">@slot.Time</span>
+                    @if (!slot.Available)
+                    {
+                        <span class="text-xs">
+                            @if (_myLockedSlotId == slot.Id)
+                            {
+                                @:TÚ
+                            }
+                            else
+                            {
+                                @slot.UnavailableReason
+                            }
+                        </span>
+                    }
+                    @if (_selectedSlot == slot)
+                    {
+                        <span>✓</span>
+                    }
+                </button>
             }
-
-            @if (SelectedSlot == slot)
-            {
-                <span>✓</span>
-            }
-
-        </button>
+        </div>
     }
-
-</div>
+}
 
 @code {
-
     [Parameter, EditorRequired]
-    public string DoctorId { get; set; }
+    public string DoctorId { get; set; } = default!;
     [Parameter, EditorRequired]
     public EventCallback<AppointmentSchedulerModel> OnSelected { get; set; }
 
-
     private string? _errorMessage;
-
-    private Dictionary<DateTime, List<TimeSlot>> cache = new();
-    private DayItem? SelectedDay;
-    private TimeSlot? SelectedSlot;
+    private bool _isLoading;
+    private Dictionary<DateTime, List<TimeSlot>> _cache = new();
+    private DayItem? _selectedDay;
+    private TimeSlot? _selectedSlot;
+    private string? _myLockedSlotId; 
     private CancellationTokenSource? _cts;
     private List<DayItem> Days = new();
     private List<TimeSlot> MorningSlots = new();
     private List<TimeSlot> AfternoonSlots = new();
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        Logger.LogInformation("=== AppointmentScheduler OnInitializedAsync INICIO ===");
+        Logger.LogInformation("DoctorId recibido: {DoctorId}", DoctorId);
+        
         var startDate = DateTime.Today.AddDays(0);
-
         Days = Enumerable.Range(0, 14)
             .Select(i =>
             {
@@ -130,136 +156,373 @@
                 };
             }).ToList();
 
-        SelectedDay = Days.First();
+        _selectedDay = Days.First();
+        Logger.LogInformation("Día seleccionado inicial: {Date}", _selectedDay.Date);
+
+        try
+        {
+            Logger.LogInformation("Iniciando conexión SignalR...");
+            await HubService.StartAsync();
+            Logger.LogInformation("Conexión SignalR establecida. ConnectionId: {ConnectionId}", HubService.GetConnectionId());
+            
+            HubService.SlotLocked += OnSlotLocked;
+            HubService.SlotReleased += OnSlotReleased;
+            Logger.LogInformation("Eventos de SignalR suscritos");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error al iniciar SignalR");
+        }
+
+        await LoadSlots(_selectedDay.Date);
+        Logger.LogInformation("=== AppointmentScheduler OnInitializedAsync FIN ===");
     }
 
-    protected override async Task OnParametersSetAsync()
+    private async Task OnSlotLocked(string slotId, DateTime date, string lockedBy)
     {
-        if (SelectedDay != null)
+        Logger.LogInformation(">>> Evento SlotLocked RECIBIDO - SlotId: {SlotId}, Date: {Date}, LockedBy: {LockedBy}, CurrentConnection: {CurrentConnection}",
+            slotId, date, lockedBy, HubService.GetConnectionId());
+            
+        // Si es el mismo usuario que hizo el lock, ignorar (ya se actualizó localmente)
+        if (lockedBy == HubService.GetConnectionId())
         {
-            await LoadSlots(SelectedDay.Date);
+            Logger.LogInformation("Ignorando evento propio");
+            return;
+        }
+            
+        if (_selectedDay?.Date.Date != date.Date)
+        {
+            Logger.LogInformation("Fecha no coincide. Fecha evento: {EventDate}, Fecha actual: {CurrentDate}", date.Date, _selectedDay?.Date.Date);
+            return;
+        }
+
+        // Si otro bloquea el slot que yo tenía seleccionado, limpiar selección
+        if (_selectedSlot?.Id == slotId)
+        {
+            _selectedSlot = null;
+        }
+        // Si otro bloquea el slot que yo había bloqueado (caso extremo), limpiar mi referencia
+        if (_myLockedSlotId == slotId)
+        {
+            _myLockedSlotId = null;
+        }
+
+        if (_cache.TryGetValue(date.Date, out var slots))
+        {
+            var slot = slots.FirstOrDefault(s => s.Id == slotId);
+            if (slot != null && slot.Available)
+            {
+                Logger.LogInformation("Actualizando slot {SlotId} a no disponible (bloqueado por otro)", slotId);
+                slot.Available = false;
+                slot.UnavailableReason = "BLOQUEADO";
+                await SetSlots(slots);
+                StateHasChanged();
+            }
+            else
+            {
+                Logger.LogWarning("Slot {SlotId} no encontrado o ya no disponible. Available: {Available}", slotId, slot?.Available);
+            }
         }
     }
 
-    async Task LoadSlots(DateTime date)
+    private async Task OnSlotReleased(string slotId, DateTime date)
+    {
+        Logger.LogInformation(">>> Evento SlotReleased RECIBIDO - SlotId: {SlotId}, Date: {Date}", slotId, date);
+        
+        if (_selectedDay?.Date.Date != date.Date) return;
+        
+        // Si se liberó el slot que yo tenía bloqueado, limpiar referencia
+        if (_myLockedSlotId == slotId)
+        {
+            _myLockedSlotId = null;
+            // También limpiar selección visual si correspondía
+            if (_selectedSlot?.Id == slotId)
+                _selectedSlot = null;
+        }
+        
+        await RefreshSlotState(slotId, date);
+    }
+
+    private async Task RefreshSlotState(string slotId, DateTime date)
+    {
+        Logger.LogInformation("Refreshing slot state - SlotId: {SlotId}, Date: {Date}", slotId, date);
+    
+        try
+        {
+            var availability = await AvailabilityClient.GetDoctorSlotsByDate(DoctorId, date, CancellationToken.None);
+            if (availability.IsSuccess)
+            {
+                var slots = availability.Value!.Slots;
+                var refreshedSlot = slots.FirstOrDefault(s => s.Id == slotId);
+            
+                if (_cache.TryGetValue(date.Date, out var cachedSlots))
+                {
+                    var cached = cachedSlots.FirstOrDefault(s => s.Id == slotId);
+                    if (cached != null && refreshedSlot != null)
+                    {
+                        // Actualizar disponibilidad desde BD
+                        cached.Available = refreshedSlot.IsAvailable;
+                        cached.UnavailableReason = !refreshedSlot.IsAvailable ? "RESERVADO" : null;
+                    
+                        // Verificar si sigue bloqueado por SignalR
+                        var lockedSlots = await HubService.GetLockedSlots(DoctorId, date);
+                        var isStillLocked = lockedSlots.Any(l => l.SlotId == slotId);
+                    
+                        if (isStillLocked && cached.Available)
+                        {
+                            cached.Available = false;
+                            cached.UnavailableReason = "BLOQUEADO";
+                        }
+                    
+                        await SetSlots(cachedSlots);
+                        StateHasChanged();
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error refreshing slot");
+        }
+    }
+
+    private async Task LoadSlots(DateTime date)
     {
         _cts?.Cancel();
         _cts = new CancellationTokenSource();
         var token = _cts.Token;
 
-
-        if (cache.TryGetValue(date.Date, out var cachedSlots))
-        {
-            await SetSlots(cachedSlots);
-            return;
-        }
+        _isLoading = true;
+        _errorMessage = null;
+        await InvokeAsync(StateHasChanged);
 
         try
         {
-            var availability = await AvailabilityClient
-                .GetDoctorSlotsByDate(DoctorId, date, token); 
-
-            if (token.IsCancellationRequested)
-                return;
+            var availability = await AvailabilityClient.GetDoctorSlotsByDate(DoctorId, date, token);
+            if (token.IsCancellationRequested) return;
 
             if (!availability.IsSuccess)
             {
                 MorningSlots.Clear();
                 AfternoonSlots.Clear();
-                _errorMessage = "No se pudieron cargar los horarios disponibles. Por favor, inténtelo de nuevo.";
+                _errorMessage = "No se pudieron cargar los horarios disponibles.";
                 return;
             }
 
             var slots = availability.Value!.Slots;
-            MorningSlots.Clear();
-            AfternoonSlots.Clear();
-            await InvokeAsync(StateHasChanged);
-            var mapped = slots
-                            .OrderBy(sl => sl.Start)
-                            .Select(s => new TimeSlot
-                            {
-                                Id = s.Id,
-                                Time = s.Start.ToDateTime().ToLocalTime().ToString("hh:mm tt"),
-                                Available = s.IsAvailable
-                            })
-                            .ToList();
+        
+            var slotStates = slots
+                .OrderBy(sl => sl.Start.ToDateTime())
+                .Select(s => new SlotStateDto
+                {
+                    SlotId = s.Id,
+                    Start = s.Start.ToDateTime(),
+                    IsReserved = !s.IsAvailable,
+                    LockedBy = null,
+                    LockExpiresAt = null
+                })
+                .ToList();
 
-            cache[date.Date] = mapped;
+            await HubService.InitializeSlots(DoctorId, date, slotStates);
+        
+            var mapped = slotStates.Select(s => new TimeSlot
+            {
+                Id = s.SlotId,
+                Time = s.Start.ToLocalTime().ToString("hh:mm tt"),
+                Available = !s.IsReserved,
+                UnavailableReason = s.IsReserved ? "RESERVADO" : null
+            }).ToList();
 
+            var lockedSlots = await HubService.GetLockedSlots(DoctorId, date);
+        
+            foreach (var lockedSlot in lockedSlots)
+            {
+                var slot = mapped.FirstOrDefault(s => s.Id == lockedSlot.SlotId);
+                if (slot != null && slot.Available)
+                {
+                    slot.Available = false;
+                    slot.UnavailableReason = "BLOQUEADO";
+                }
+            }
+
+            _cache[date.Date] = mapped;
             await SetSlots(mapped);
+        
+            await HubService.JoinGroup(DoctorId, date);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
         {
-
+            _errorMessage = $"Error al cargar horarios: {ex.Message}";
+            Logger.LogError(ex, "Error en LoadSlots");
+        }
+        finally
+        {
+            _isLoading = false;
+            await InvokeAsync(StateHasChanged);
         }
     }
-    async Task SetSlots(List<TimeSlot> slots)
-    {
-        MorningSlots = slots
-            .Where(s => DateTime.Parse(s.Time).Hour < 12)
-            .ToList();
 
-        AfternoonSlots = slots
-            .Where(s => DateTime.Parse(s.Time).Hour >= 12)
-            .ToList();
+    private async Task SetSlots(List<TimeSlot> slots)
+    {
+        MorningSlots = slots.Where(s => DateTime.Parse(s.Time).Hour < 12).ToList();
+        AfternoonSlots = slots.Where(s => DateTime.Parse(s.Time).Hour >= 12).ToList();
+        
+        Logger.LogInformation("SetSlots - Mañana: {MorningCount}, Tarde: {AfternoonCount}", MorningSlots.Count, AfternoonSlots.Count);
+        
         await InvokeAsync(StateHasChanged);
-
     }
-    async void SelectDay(DayItem day)
-    {
-        SelectedDay = day;
-        SelectedSlot = null;
 
+    private async void SelectDay(DayItem day)
+    {
+        Logger.LogInformation("=== SelectDay - Day: {Date} ===", day.Date);
+        
+        // Liberar el slot que este usuario tenga bloqueado en el día actual antes de cambiar
+        if (_myLockedSlotId != null && _selectedDay != null)
+        {
+            Logger.LogInformation("Liberando slot anterior {SlotId} antes de cambiar de día", _myLockedSlotId);
+            await HubService.SetReleased(DoctorId, _myLockedSlotId, _selectedDay.Date);
+            _myLockedSlotId = null;
+        }
+        
+        _selectedDay = day;
+        _selectedSlot = null;
         await LoadSlots(day.Date);
     }
 
-    void SelectSlot(TimeSlot slot)
+    private async void SelectSlot(TimeSlot slot)
     {
+        Logger.LogInformation("=== SelectSlot INICIO - SlotId: {SlotId}, Time: {Time}, Available: {Available} ===",
+            slot.Id, slot.Time, slot.Available);
+        
         if (!slot.Available)
-            return;
-        SelectedSlot = slot;
-        OnSelected.InvokeAsync(new AppointmentSchedulerModel
         {
-            SlotId = slot.Id,
-            Date = SelectedDay!.Date,
-            Time = slot.Time
-        });
+            Logger.LogWarning("Slot no disponible, cancelando selección");
+            return;
+        }
+
+        if (_selectedDay == null)
+        {
+            Logger.LogError("_selectedDay es null");
+            return;
+        }
+
+        Logger.LogInformation("Intentando bloquear slot via SignalR - DoctorId: {DoctorId}, SlotId: {SlotId}, Date: {Date}",
+            DoctorId, slot.Id, _selectedDay.Date);
+        
+        try
+        {
+            var success = await HubService.SetLocked(DoctorId, slot.Id, _selectedDay.Date);
+            Logger.LogInformation("Resultado SetLocked: {Success}", success);
+            
+            if (success)
+            {
+                Logger.LogInformation("Lock exitoso, actualizando UI local");
+                
+                _myLockedSlotId = slot.Id;
+                
+                if (_cache.TryGetValue(_selectedDay.Date, out var slots))
+                {
+                    var localSlot = slots.FirstOrDefault(s => s.Id == slot.Id);
+                    if (localSlot != null)
+                    {
+                        localSlot.Available = false;
+                        localSlot.UnavailableReason = "BLOQUEADO";
+                        Logger.LogInformation("Slot actualizado localmente");
+                        await SetSlots(slots);
+                    }
+                    else
+                    {
+                        Logger.LogWarning("No se encontró el slot en caché local");
+                    }
+                }
+                else
+                {
+                    Logger.LogWarning("No se encontró caché para la fecha {Date}", _selectedDay.Date);
+                }
+                
+                _selectedSlot = slot;
+                Logger.LogInformation("Disparando evento OnSelected");
+                await OnSelected.InvokeAsync(new AppointmentSchedulerModel
+                {
+                    SlotId = slot.Id,
+                    Date = _selectedDay.Date,
+                    Time = slot.Time
+                });
+            }
+            else
+            {
+                Logger.LogWarning("Lock falló, recargando slots");
+                await LoadSlots(_selectedDay.Date);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error en SelectSlot");
+            _errorMessage = $"Error al seleccionar slot: {ex.Message}";
+            await InvokeAsync(StateHasChanged);
+        }
+        
+        Logger.LogInformation("=== SelectSlot FIN ===");
     }
 
-    string BaseButton =>
+    private string BaseButton =>
         "h-20 min-w-[100px] flex flex-col items-center justify-center gap-1 rounded-lg border text-center transition-all duration-150 flex-shrink-0";
 
-    string GetDayClass(DayItem day)
+    private string GetDayClass(DayItem day)
     {
-        if (SelectedDay == day)
+        if (_selectedDay == day)
             return $"{BaseButton} border-teal-600 bg-teal-600 text-white shadow-md";
-
         return $"{BaseButton} border-gray-200 hover:border-teal-500";
     }
 
-    string GetSlotClass(TimeSlot slot)
+    private string GetSlotClass(TimeSlot slot)
     {
         if (!slot.Available)
+        {
+            if (slot.UnavailableReason == "RESERVADO")
+                return $"{BaseButton} border-gray-200 bg-gray-300 text-gray-500 cursor-not-allowed";
+            // Si no está disponible y es bloqueado por el usuario actual, mostrar estilo especial
+            if (_myLockedSlotId == slot.Id)
+                return $"{BaseButton} border-teal-600 bg-teal-100 text-teal-700 font-semibold cursor-not-allowed";
             return $"{BaseButton} border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed";
+        }
 
-        if (SelectedSlot == slot)
+        if (_selectedSlot == slot)
             return $"{BaseButton} border-teal-600 bg-teal-50 text-teal-700 font-semibold";
 
-        return $"{BaseButton} border-gray-200 hover:border-teal-500";
+        return $"{BaseButton} border-gray-200 hover:border-teal-500 hover:bg-teal-50";
     }
 
-    class DayItem
+    public async ValueTask DisposeAsync()
+    {
+        Logger.LogInformation("DisposeAsync llamado");
+        if (HubService != null)
+        {
+            // Liberar el slot que este usuario tiene bloqueado antes de destruir el componente
+            if (_myLockedSlotId != null && _selectedDay != null)
+            {
+                await HubService.SetReleased(DoctorId, _myLockedSlotId, _selectedDay.Date);
+            }
+            HubService.SlotLocked -= OnSlotLocked;
+            HubService.SlotReleased -= OnSlotReleased;
+            await HubService.DisposeAsync();
+        }
+    }
+
+    private class DayItem
     {
         public DateTime Date { get; set; }
-        public string DayName { get; set; }
-        public string DayNumber { get; set; }
-        public string Month { get; set; }
+        public string? DayName { get; set; }
+        public string? DayNumber { get; set; }
+        public string? Month { get; set; }
     }
 
-    class TimeSlot
+    private class TimeSlot
     {
-        public string Id { get; set; }
-        public string Time { get; set; }
+        public string Id { get; set; } = "";
+        public string Time { get; set; } = "";
         public bool Available { get; set; }
+        public string? UnavailableReason { get; set; }
     }
 }
