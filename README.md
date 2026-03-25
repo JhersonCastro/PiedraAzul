@@ -43,8 +43,8 @@ Los prototipos de interfaz fueron diseñados en [Figma](https://www.figma.com/es
 
 El proyecto utiliza PostgreSQL en dos modalidades:
 
-### Opción 1: Base de datos en AWS (recomendada para desarrollo en equipo)
-La base de datos está alojada en AWS. Solicita la cadena de conexión al equipo de desarrollo.
+### Opción 1: Base de datos en AWS
+La base de datos está alojada en AWS. Para desarrollo en equipo.
 
 ### Opción 2: Base de datos local con Docker
 Para desarrollo sin conexión a internet o pruebas locales:
@@ -77,16 +77,17 @@ También se crea un **volumen persistente** para no perder los datos.
 
 ---
 
-# Connection String
+## Connection String
 
-Usa la siguiente cadena de conexión en el proyecto:
- 
- - Para la opcion de AWS:
+Usa la siguiente cadena de conexión según la opción elegida:
+
+**Opción AWS:**
 ```json
 "DefaultConnection": "Host=ep-purple-tree-acshudb6-pooler.sa-east-1.aws.neon.tech; Database=piedraazuldb; Username=neondb_owner; Password=npg_jZeBbRzS5G3i; SSL Mode=VerifyFull; Channel Binding=Require;"
 ```
 
-- Para la opción con docker en local:
+**Opción local con docker:**
+
 ```json
 "DefaultConnection": "Host=localhost;Port=5432;Database=PiedraAzulDB;Username=postgres;Password=postgres"
 ```
@@ -155,3 +156,14 @@ docker volume rm postgres_data
 * El volumen `postgres_data` mantiene los datos aunque se borre el contenedor.
 
 ---
+# Estructura Global del proyecto
+
+El proyecto está organizado en una solución .NET con los siguientes proyectos:
+
+| Proyecto | Descripción |
+|----------|-------------|
+| `PiedraAzul/` | API principal. Contiene controladores, lógica de negocio, servicios y configuración del backend |
+| `PiedraAzul.Client/` | Frontend desarrollado con Blazor. Contiene páginas, componentes y la interfaz de usuario |
+| `PiedraAzul.Shared/` | Modelos compartidos, DTOs y clases que se utilizan tanto en backend como frontend |
+| `PiedraAzul.Test/` | Pruebas unitarias con xUnit. Cubre la lógica de negocio y servicios del dominio |
+
