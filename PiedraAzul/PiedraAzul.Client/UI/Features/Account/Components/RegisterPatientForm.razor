@@ -1,5 +1,91 @@
 ﻿<h3>RegisterPatientForm</h3>
 
 @code {
+    <div class="mx-auto my-6 w-full max-w-5xl rounded-xl bg-white p-10 shadow-2xl space-y-10">
+
+  <!-- HEADER -->
+  <div>
+    <h1 class="text-3xl font-bold text-gray-900">Crear cuenta</h1>
+    <p class="text-gray-500 text-sm mt-1">
+      Complete la siguiente información para registrarse
+    </p>
+  </div>
+
+  
+<!-- ===================== -->
+<!-- DATOS PERSONALES -->
+<!-- ===================== -->
+<div class="space-y-6">
+<div>
+<h2 class="text-xl font-bold text-gray-800">Datos personales</h2>
+<p class="text-sm text-gray-500">
+Por favor ingrese su información básica para continuar.
+</p>
+</div>
+
+<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+
+<!-- Documento -->
+<div>
+<label class="block text-lg font-semibold text-gray-800">
+Número de documento
+</label>
+<p class="mb-2 text-sm text-gray-500">
+Ejemplo: cédula de ciudadanía
+</p>
+
+<input type="text"
+       placeholder="Ingrese su documento"
+       class="w-full rounded-lg border border-gray-300 px-4 py-3 text-lg focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-400">
+</div>
+
+<!-- Nombre -->
+<div>
+<label class="block text-lg font-semibold text-gray-800">
+Nombre completo
+</label>
+<p class="mb-2 text-sm text-gray-500">
+Tal como aparece en su documento
+</p>
+
+<input type="text"
+       placeholder="Ej: Juan Pérez"
+       class="w-full rounded-lg border border-gray-300 px-4 py-3 text-lg focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-400">
+</div>
+
+<!-- Teléfono -->
+<div>
+<label class="block text-lg font-semibold text-gray-800">
+Número de teléfono
+</label>
+<p class="mb-2 text-sm text-gray-500">
+Para contactarlo sobre su cita
+</p>
+
+<input type="text"
+       placeholder="Ej: 301 123 4567"
+       class="w-full rounded-lg border border-gray-300 px-4 py-3 text-lg focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-400">
+</div>
+
+<!-- Género -->
+<div>
+<label class="block text-lg font-semibold text-gray-800">
+Género
+</label>
+<p class="mb-2 text-sm text-gray-500">
+Seleccione una opción
+</p>
+
+<select class="w-full rounded-lg border border-gray-300 px-4 py-3 text-lg focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-400">
+<option>Seleccione género</option>
+<option>Hombre</option>
+<option>Mujer</option>
+<option>Otro</option>
+</select>
+</div>
+
+</div>
+</div>
+s
 
 }
