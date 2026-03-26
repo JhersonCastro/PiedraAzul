@@ -71,7 +71,7 @@ namespace PiedraAzul.GrpcServices
             response.Doctors.AddRange(doctors.Select(d => new DoctorResponse
             {
                 UserId = d.UserId,
-                DoctorId = d.UserId.ToString(),
+                DoctorId = d.UserId,
                 LicenseNumber = d.LicenseNumber,
                 Specialty = (DoctorType)d.Specialty,
                 Name = d.User.Name,

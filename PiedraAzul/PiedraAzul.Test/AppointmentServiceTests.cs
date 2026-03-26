@@ -94,7 +94,8 @@ public class AppointmentServiceTests
         {
             PatientIdentification = "CC123",
             PatientName = "Invitado Uno",
-            PatientPhone = "3000000000"
+            PatientPhone = "3000000000",
+            PatientExtraInfo = "Sin información adicional"
         };
 
         // 🔹 Slots (AHORA usan DoctorUserId)

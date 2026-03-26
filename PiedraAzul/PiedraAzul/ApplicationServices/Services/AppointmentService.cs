@@ -52,6 +52,9 @@ namespace PiedraAzul.ApplicationServices.Services
 
     public class AppointmentService(IDbContextFactory<AppDbContext> dbContextFactory) : IAppointmentService
     {
+        private const int DefaultPageSize = 50;
+        private const int MaxPageSize = 200;
+
         public async Task<Appointment> CreateAppointmentAsync(
             Appointment appointment,
             string? patientUserId = null,
@@ -82,12 +85,28 @@ namespace PiedraAzul.ApplicationServices.Services
 
             if (!string.IsNullOrWhiteSpace(patientUserId))
             {
-                appointment.PatientUserId = patientUserId;
+                var patient = await context.Users
+                    .Include(u => u.PatientProfile)
+                    .FirstOrDefaultAsync(u => u.Id == patientUserId);
+
+                if (patient == null)
+                    throw new ArgumentNullException(nameof(patientUserId));
+
+                if (patient.PatientProfile == null)
+                    throw new InvalidOperationException("The selected user is not a patient.");
+
+                appointment.PatientUserId = patient.Id;
                 appointment.PatientGuestId = null;
             }
             else if (!string.IsNullOrWhiteSpace(patientGuestId))
             {
-                appointment.PatientGuestId = patientGuestId;
+                var patientGuest = await context.PatientGuests
+                    .FirstOrDefaultAsync(p => p.PatientIdentification == patientGuestId);
+
+                if (patientGuest == null)
+                    throw new ArgumentNullException(nameof(patientGuestId));
+
+                appointment.PatientGuestId = patientGuest.PatientIdentification;
                 appointment.PatientUserId = null;
             }
             else
@@ -114,6 +133,12 @@ namespace PiedraAzul.ApplicationServices.Services
         {
             await using var context = await dbContextFactory.CreateDbContextAsync();
 
+            var doctorExists = await context.Users
+                .AnyAsync(u => u.Id == doctorUserId && u.DoctorProfile != null);
+
+            if (!doctorExists)
+                throw new ArgumentNullException(nameof(doctorUserId));
+
             var query = context.Appointments
                 .Where(a => a.DoctorUserId == doctorUserId);
 
@@ -138,9 +163,23 @@ namespace PiedraAzul.ApplicationServices.Services
         {
             await using var context = await dbContextFactory.CreateDbContextAsync();
 
-            var colombiaTimeZone = TimeZoneInfo.FindSystemTimeZoneById("America/Bogota");
+            if (string.IsNullOrWhiteSpace(doctorUserId))
+                throw new ArgumentException("DoctorUserId is required.", nameof(doctorUserId));
 
-            var localDate = TimeZoneInfo.ConvertTime(date, colombiaTimeZone).Date;
+            var doctorExists = await context.Users
+                .AnyAsync(u => u.Id == doctorUserId && u.DoctorProfile != null);
+
+            if (!doctorExists)
+                throw new ArgumentNullException(nameof(doctorUserId));
+
+            var safePageNumber = pageNumber < 1 ? 1 : pageNumber;
+            var safePageSize = pageSize < 1
+                ? DefaultPageSize
+                : Math.Min(pageSize, MaxPageSize);
+
+            var colombiaTimeZone = ResolveColombiaTimeZone();
+            var utcDate = date.Kind == DateTimeKind.Utc ? date : date.ToUniversalTime();
+            var localDate = TimeZoneInfo.ConvertTimeFromUtc(utcDate, colombiaTimeZone).Date;
             var utcStart = TimeZoneInfo.ConvertTimeToUtc(localDate, colombiaTimeZone);
             var utcEnd = TimeZoneInfo.ConvertTimeToUtc(localDate.AddDays(1), colombiaTimeZone);
 
@@ -159,8 +198,8 @@ namespace PiedraAzul.ApplicationServices.Services
 
             var items = await query
                 .OrderBy(a => a.DoctorAvailabilitySlot.StartTime)
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
+                .Skip((safePageNumber - 1) * safePageSize)
+                .Take(safePageSize)
                 .Select(a => new DoctorAppointmentSearchItem
                 {
                     AppointmentId = a.Id,
@@ -181,9 +220,25 @@ namespace PiedraAzul.ApplicationServices.Services
             {
                 Items = items,
                 TotalCount = totalCount,
-                PageNumber = pageNumber,
-                PageSize = pageSize
+                PageNumber = safePageNumber,
+                PageSize = safePageSize
             };
+        }
+
+        private static TimeZoneInfo ResolveColombiaTimeZone()
+        {
+            try
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById("America/Bogota");
+            }
+            catch (TimeZoneNotFoundException)
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById("SA Pacific Standard Time");
+            }
+            catch (InvalidTimeZoneException)
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById("SA Pacific Standard Time");
+            }
         }
 
         public async Task<List<(DoctorAvailabilitySlot Slot, bool IsAvailable)>> GetDoctorDaySlotsAsync(
@@ -223,10 +278,22 @@ namespace PiedraAzul.ApplicationServices.Services
 
             if (!string.IsNullOrWhiteSpace(patientUserId))
             {
+                var patientExists = await context.Users
+                    .AnyAsync(u => u.Id == patientUserId && u.PatientProfile != null);
+
+                if (!patientExists)
+                    throw new ArgumentNullException(nameof(patientUserId));
+
                 query = query.Where(a => a.PatientUserId == patientUserId);
             }
             else if (!string.IsNullOrWhiteSpace(patientGuestId))
             {
+                var guestExists = await context.PatientGuests
+                    .AnyAsync(g => g.PatientIdentification == patientGuestId);
+
+                if (!guestExists)
+                    throw new ArgumentNullException(nameof(patientGuestId));
+
                 query = query.Where(a => a.PatientGuestId == patientGuestId);
             }
             else

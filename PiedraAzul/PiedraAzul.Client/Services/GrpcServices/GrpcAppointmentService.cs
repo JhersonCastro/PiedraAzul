@@ -27,11 +27,13 @@ namespace PiedraAzul.Client.Services.GrpcServices
             int pageNumber = 1,
             int pageSize = 50)
         {
+            var utcDate = ConvertColombiaDateToUtc(date);
+
             var request = new DoctorAppointmentsRequest
             {
                 DoctorId = doctorId,
                 Date = Google.Protobuf.WellKnownTypes.Timestamp
-                    .FromDateTime(DateTime.SpecifyKind(date, DateTimeKind.Utc)),
+                    .FromDateTime(utcDate),
                 PageNumber = pageNumber,
                 PageSize = pageSize
             };
@@ -40,6 +42,29 @@ namespace PiedraAzul.Client.Services.GrpcServices
             {
                 return await appointmentClient.GetDoctorAppointmentsAsync(request);
             });
+        }
+
+        private static DateTime ConvertColombiaDateToUtc(DateTime date)
+        {
+            var colombiaTimeZone = ResolveColombiaTimeZone();
+            var localDate = DateTime.SpecifyKind(date.Date, DateTimeKind.Unspecified);
+            return TimeZoneInfo.ConvertTimeToUtc(localDate, colombiaTimeZone);
+        }
+
+        private static TimeZoneInfo ResolveColombiaTimeZone()
+        {
+            try
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById("America/Bogota");
+            }
+            catch (TimeZoneNotFoundException)
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById("SA Pacific Standard Time");
+            }
+            catch (InvalidTimeZoneException)
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById("SA Pacific Standard Time");
+            }
         }
     }
 }

@@ -21,15 +21,7 @@ namespace PiedraAzul.GrpcServices
             if (request.Date == null)
                 throw new RpcException(new Status(StatusCode.InvalidArgument, "Date must be provided"));
 
-            var dateUtc = request.Date.ToDateTime().ToUniversalTime();
-
-            var normalizedDate = new DateTime(
-                dateUtc.Year,
-                dateUtc.Month,
-                dateUtc.Day,
-                0, 0, 0,
-                DateTimeKind.Utc
-            );
+            var normalizedDate = NormalizeToColombiaDayStartUtc(request.Date.ToDateTime());
 
             if (string.IsNullOrWhiteSpace(request.DoctorId))
                 throw new RpcException(new Status(StatusCode.InvalidArgument, "DoctorUserId is required"));
@@ -49,11 +41,21 @@ namespace PiedraAzul.GrpcServices
 
                 if (guest == null)
                 {
+                    if (string.IsNullOrWhiteSpace(request.PatientName) ||
+                        string.IsNullOrWhiteSpace(request.PatientPhone))
+                    {
+                        throw new RpcException(new Status(
+                            StatusCode.InvalidArgument,
+                            "Patient name and phone required for guest"
+                        ));
+                    }
+
                     var newGuest = new PatientGuest
                     {
                         PatientName = request.PatientName,
                         PatientPhone = request.PatientPhone,
-                        PatientIdentification = request.PatientIdentification
+                        PatientIdentification = request.PatientIdentification,
+                        PatientExtraInfo = string.Empty
                     };
                     var result = await patientService.CreatePatientGuestAsync(newGuest);
 
@@ -68,11 +70,28 @@ namespace PiedraAzul.GrpcServices
                 Date = normalizedDate
             };
 
-            var created = await appointmentService.CreateAppointmentAsync(
-                appointment,
-                patientUserId,
-                request.PatientIdentification
-            );
+            Appointment created;
+            try
+            {
+                created = await appointmentService.CreateAppointmentAsync(
+                    appointment,
+                    patientUserId,
+                    request.PatientIdentification
+                );
+            }
+            catch (ArgumentException ex)
+            {
+                throw new RpcException(new Status(StatusCode.InvalidArgument, ex.Message));
+            }
+            catch (InvalidOperationException ex)
+            {
+                throw new RpcException(new Status(StatusCode.FailedPrecondition, ex.Message));
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg &&
+                                               pg.SqlState == PostgresErrorCodes.UniqueViolation)
+            {
+                throw new RpcException(new Status(StatusCode.AlreadyExists, "Appointment already exists for that slot/date."));
+            }
 
             return new AppointmentResponse
             {
@@ -92,13 +111,21 @@ namespace PiedraAzul.GrpcServices
             if (request == null)
                 throw new RpcException(new Status(StatusCode.InvalidArgument, "Request cannot be null"));
 
+            if (string.IsNullOrWhiteSpace(request.DoctorId))
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "DoctorUserId is required"));
+
+            if (request.Date == null)
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "Date must be provided"));
+
             var date = request.Date.ToDateTime().ToUniversalTime();
+            var pageNumber = request.PageNumber < 1 ? 1 : request.PageNumber;
+            var pageSize = request.PageSize < 1 ? 50 : Math.Min(request.PageSize, 200);
 
             var search = await appointmentService.SearchDoctorAppointmentsAsync(
                 request.DoctorId,
                 date,
-                request.PageNumber,
-                request.PageSize
+                pageNumber,
+                pageSize
             );
 
             var response = new DoctorAppointmentsSearchResponse
@@ -121,6 +148,31 @@ namespace PiedraAzul.GrpcServices
             }));
 
             return response;
+        }
+
+        private static DateTime NormalizeToColombiaDayStartUtc(DateTime date)
+        {
+            var colombiaTimeZone = ResolveColombiaTimeZone();
+            var utcDate = date.Kind == DateTimeKind.Utc ? date : date.ToUniversalTime();
+            var colombiaDate = TimeZoneInfo.ConvertTimeFromUtc(utcDate, colombiaTimeZone).Date;
+
+            return TimeZoneInfo.ConvertTimeToUtc(colombiaDate, colombiaTimeZone);
+        }
+
+        private static TimeZoneInfo ResolveColombiaTimeZone()
+        {
+            try
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById("America/Bogota");
+            }
+            catch (TimeZoneNotFoundException)
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById("SA Pacific Standard Time");
+            }
+            catch (InvalidTimeZoneException)
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById("SA Pacific Standard Time");
+            }
         }
     }
 }
