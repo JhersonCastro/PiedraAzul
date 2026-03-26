@@ -49,6 +49,7 @@ message AppointmentResponse {
   string patientId = 2;
   string patientGuestId = 3; // para pacientes invitados
   string patientType = 4; // "registered" o "guest"
+  string patientName = 7; // nombre del paciente (usuario registrado o invitado)
   string appointmentSlotId = 5;
 
   google.protobuf.Timestamp createdAt = 6;

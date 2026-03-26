@@ -1,4 +1,4 @@
-﻿using Grpc.Core;
+using Grpc.Core;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -151,6 +151,9 @@ namespace PiedraAzul.GrpcServices
                 PatientId = a.PatientUserId ?? string.Empty,
                 PatientGuestId = a.PatientGuestId ?? string.Empty,
                 PatientType = a.PatientUserId != null ? "Registered" : "Guest",
+                PatientName = a.PatientUserId != null
+                    ? (a.Patient?.Name ?? a.Patient?.UserName ?? "Paciente registrado")
+                    : (a.PatientGuest?.PatientName ?? "Paciente invitado"),
                 AppointmentSlotId = a.DoctorAvailabilitySlotId.ToString(),
                 CreatedAt = Google.Protobuf.WellKnownTypes.Timestamp
                     .FromDateTime(a.CreatedAt.ToUniversalTime())

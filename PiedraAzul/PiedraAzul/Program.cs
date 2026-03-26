@@ -6,8 +6,10 @@ using PiedraAzul.ApplicationServices.Services;
 using PiedraAzul.Client.Extensions;
 using PiedraAzul.Components;
 using PiedraAzul.Data;
+using PiedraAzul.Data.Cache;
 using PiedraAzul.Extensions;
 using PiedraAzul.GrpcServices;
+using PiedraAzul.RealTime.Hubs;
 using PiedraAzul.Seeders;
 #endregion
 
@@ -39,9 +41,13 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
 builder.Services.AddScoped<IDoctorService, DoctorService>();
 builder.Services.AddScoped<IPatientService, PatientService>();
+
+builder.Services.AddMemoryCache();                          
+builder.Services.AddSingleton<ISlotCache, SlotCache>();    
+builder.Services.AddSignalR();
 #endregion
 #region ClientServices
-builder.Services.AddClientServer(builder.Configuration["GrpcUrl"] ?? "https://localhost:7128");
+builder.Services.AddClientServer(builder.Configuration["GrpcUrl"] ?? "https://localhost:7128", "https://localhost:7128");
 #endregion
 
 
@@ -155,6 +161,9 @@ if (writer != null)
 }
 #endregion
 
+#region Hubs
+app.MapHub<AppointmentHub>("/hubs/appointments");
+#endregion
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
