@@ -12,9 +12,33 @@ namespace PiedraAzul.ApplicationServices.Services
         Task<List<(DoctorAvailabilitySlot Slot, bool IsAvailable)>> GetDoctorDaySlotsAsync(Guid doctorId, DateTime date);
 
         Task<List<Appointment>> GetDoctorAppointmentsAsync(string doctorId, DateTime date = default);
+        Task<DoctorAppointmentsSearchResult> SearchDoctorAppointmentsAsync(
+            string doctorId,
+            DateTime date,
+            int pageNumber = 1,
+            int pageSize = 50);
         Task<List<Appointment>> GetPatientAppointmentsAsync(string? patientId, string? patientGuestId, DateTime date = default);
 
     }
+    public class DoctorAppointmentSearchItem
+    {
+        public Guid AppointmentId { get; set; }
+        public string TimeRange { get; set; } = string.Empty;
+        public string Patient { get; set; } = string.Empty;
+        public string PatientType { get; set; } = string.Empty;
+        public string Specialty { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+    }
+
+    public class DoctorAppointmentsSearchResult
+    {
+        public List<DoctorAppointmentSearchItem> Items { get; set; } = [];
+        public int TotalCount { get; set; }
+        public int PageNumber { get; set; }
+        public int PageSize { get; set; }
+    }
+
     public class AppointmentService(IDbContextFactory<AppDbContext> dbContextFactory) : IAppointmentService
     {
         public async Task<Appointment> CreateAppointmentAsync(Appointment appointment, string? patientUserId, string? patientGuestId = null)
@@ -63,6 +87,76 @@ namespace PiedraAzul.ApplicationServices.Services
             }
 
             return await query.ToListAsync();
+        }
+
+        public async Task<DoctorAppointmentsSearchResult> SearchDoctorAppointmentsAsync(
+            string doctorId,
+            DateTime date,
+            int pageNumber = 1,
+            int pageSize = 50)
+        {
+            if (date == default)
+                throw new ArgumentException("Date is required", nameof(date));
+
+            if (pageNumber <= 0) pageNumber = 1;
+            if (pageSize <= 0) pageSize = 50;
+
+            using var context = await dbContextFactory.CreateDbContextAsync();
+
+            var doctor = await context.DoctorProfiles
+                .Include(d => d.User)
+                .FirstOrDefaultAsync(doc => doc.UserId == doctorId);
+
+            if (doctor == null)
+                throw new ArgumentNullException(nameof(doctorId));
+
+            var colombiaTimeZone = TimeZoneInfo.FindSystemTimeZoneById("America/Bogota");
+            var localDate = TimeZoneInfo.ConvertTime(date, colombiaTimeZone).Date;
+            var localStart = localDate;
+            var localEnd = localDate.AddDays(1);
+            var utcStart = TimeZoneInfo.ConvertTimeToUtc(localStart, colombiaTimeZone);
+            var utcEnd = TimeZoneInfo.ConvertTimeToUtc(localEnd, colombiaTimeZone);
+
+            var query = context.Appointments
+                .AsNoTracking()
+                .Include(a => a.DoctorAvailabilitySlot)
+                .Include(a => a.Patient)
+                    .ThenInclude(p => p.User)
+                .Include(a => a.PatientGuest)
+                .Where(a => a.DoctorId == doctor.DoctorId &&
+                            a.Date >= utcStart &&
+                            a.Date < utcEnd);
+
+            var totalCount = await query.CountAsync();
+            var nowLocal = TimeZoneInfo.ConvertTime(DateTime.UtcNow, colombiaTimeZone);
+
+            var appointments = await query
+                .OrderBy(a => a.DoctorAvailabilitySlot.StartTime)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(a => new DoctorAppointmentSearchItem
+                {
+                    AppointmentId = a.Id,
+                    TimeRange = $"{a.DoctorAvailabilitySlot.StartTime:hh\\:mm} - {a.DoctorAvailabilitySlot.EndTime:hh\\:mm}",
+                    Patient = a.Patient != null
+                        ? a.Patient.User.Name
+                        : a.PatientGuest != null
+                            ? $"{a.PatientGuest.PatientName} ({a.PatientGuest.PatientIdentification})"
+                            : "Sin paciente",
+                    PatientType = a.PatientId != null ? "Registrado" : "Invitado",
+                    Specialty = doctor.Specialty.ToString(),
+                    Status = a.Date.Date < nowLocal.Date ? "Finalizada" : "Programada",
+                    CreatedAt = a.CreatedAt
+                })
+                .ToListAsync();
+
+            return new DoctorAppointmentsSearchResult
+            {
+                Items = appointments,
+                TotalCount = totalCount,
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            };
         }
 
         public async Task<List<(DoctorAvailabilitySlot Slot, bool IsAvailable)>> GetDoctorDaySlotsAsync(Guid doctorId, DateTime date)

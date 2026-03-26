@@ -122,33 +122,35 @@ namespace PiedraAzul.GrpcServices
             }
 
         }
-        public override async Task<AppointmentListResponse> GetDoctorAppointments(DoctorAppointmentsRequest request, ServerCallContext context)
+        public override async Task<DoctorAppointmentsSearchResponse> GetDoctorAppointments(DoctorAppointmentsRequest request, ServerCallContext context)
         {
             if (request == null) throw new RpcException(new Status(StatusCode.InvalidArgument, "Request cannot be null"));
+            if (string.IsNullOrWhiteSpace(request.DoctorId))
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "Doctor ID is required"));
+            if (request.Date == null)
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "Date is required"));
 
-            DateTime normalizedDate = default;
-            if (request.Date != null)
-            {
-                var date = request.Date.ToDateTime().ToUniversalTime();
-                // Truncar a medianoche (00:00:00)
-                normalizedDate = new DateTime(
-                    date.Year,
-                    date.Month,
-                    date.Day,
-                    0, 0, 0,
-                    DateTimeKind.Utc
-                );
-            }
+            var date = request.Date.ToDateTime().ToUniversalTime();
+            var pageNumber = request.PageNumber <= 0 ? 1 : request.PageNumber;
+            var pageSize = request.PageSize <= 0 ? 50 : request.PageSize;
 
-            var appointments = await appointmentService.GetDoctorAppointmentsAsync(request.DoctorId, normalizedDate);
-            AppointmentListResponse response = new AppointmentListResponse();
-            response.Appointments.AddRange(appointments.Select(a => new AppointmentResponse
+            var search = await appointmentService.SearchDoctorAppointmentsAsync(request.DoctorId, date, pageNumber, pageSize);
+
+            DoctorAppointmentsSearchResponse response = new DoctorAppointmentsSearchResponse
             {
-                Id = a.Id.ToString(),
-                PatientId = a.PatientId?.ToString() ?? string.Empty,
-                PatientGuestId = a.PatientGuestId?.ToString() ?? string.Empty,
-                PatientType = a.PatientId != null ? "Registered" : "Guest",
-                AppointmentSlotId = a.DoctorAvailabilitySlotId.ToString(),
+                TotalCount = search.TotalCount,
+                PageNumber = search.PageNumber,
+                PageSize = search.PageSize
+            };
+
+            response.Items.AddRange(search.Items.Select(a => new DoctorAppointmentItem
+            {
+                AppointmentId = a.AppointmentId.ToString(),
+                TimeRange = a.TimeRange,
+                Patient = a.Patient,
+                PatientType = a.PatientType,
+                Specialty = a.Specialty,
+                Status = a.Status,
                 CreatedAt = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(a.CreatedAt.ToUniversalTime())
             }));
 
