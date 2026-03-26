@@ -187,7 +187,7 @@ La documentación completa del proyecto se encuentra disponible en la carpeta co
 
 | Integrante | tareas |
 |------------|-----|
-| [Jherson Andres Castro] | [Desarrollo, integración, diseño] |
-| [Edier Fabian Dorado] | [Desarrollo, modelado] |
-| [Juan Fernando Portilla] | [Desarrollo, modelado, diseño] |
-| [Yezid Esteban Hernandez] | [Desarrollo, documentación] |
+| Jherson Andres Castro | Desarrollo, integración, diseño |
+| Edier Fabian Dorado | Desarrollo, modelado |
+| Juan Fernando Portilla | Desarrollo, modelado, diseño |
+| Yezid Esteban Hernandez | Desarrollo, documentación |
