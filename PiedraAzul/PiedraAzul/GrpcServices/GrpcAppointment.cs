@@ -1,3 +1,4 @@
+using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -57,8 +58,8 @@ namespace PiedraAzul.GrpcServices
                         PatientIdentification = request.PatientIdentification,
                         PatientExtraInfo = string.Empty
                     };
-                    var result = await patientService.CreatePatientGuestAsync(newGuest);
 
+                    var result = await patientService.CreatePatientGuestAsync(newGuest);
                     await patientAutocompleteService.IndexGuestAsync(result);
                 }
             }
@@ -99,8 +100,7 @@ namespace PiedraAzul.GrpcServices
                 PatientId = created.PatientUserId ?? "",
                 PatientGuestId = created.PatientGuestId ?? "",
                 AppointmentSlotId = created.DoctorAvailabilitySlotId.ToString(),
-                CreatedAt = Google.Protobuf.WellKnownTypes.Timestamp
-                    .FromDateTime(created.CreatedAt.ToUniversalTime())
+                CreatedAt = Timestamp.FromDateTime(created.CreatedAt.ToUniversalTime())
             };
         }
 
@@ -140,11 +140,12 @@ namespace PiedraAzul.GrpcServices
                 AppointmentId = a.AppointmentId.ToString(),
                 TimeRange = a.TimeRange,
                 Patient = a.Patient,
+                PatientName = a.PatientName,
                 PatientType = a.PatientType,
                 Specialty = a.Specialty,
                 Status = a.Status,
-                CreatedAt = Google.Protobuf.WellKnownTypes.Timestamp
-                    .FromDateTime(a.CreatedAt.ToUniversalTime())
+                Start = Timestamp.FromDateTime(DateTime.SpecifyKind(a.Start, DateTimeKind.Utc)),
+                CreatedAt = Timestamp.FromDateTime(a.CreatedAt.ToUniversalTime())
             }));
 
             return response;

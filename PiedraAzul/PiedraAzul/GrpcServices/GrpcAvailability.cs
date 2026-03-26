@@ -1,4 +1,5 @@
-﻿using Grpc.Core;
+﻿using Google.Protobuf.WellKnownTypes;
+using Grpc.Core;
 using PiedraAzul.ApplicationServices.Services;
 using Shared.Grpc;
 
@@ -8,15 +9,13 @@ public class GrpcAvailability(IAppointmentService appointmentService)
     : AvailabilityService.AvailabilityServiceBase
 {
     public override async Task<AvailableSlotsResponse> GetAvailableSlots(
-        AvailableSlotsRequest request,
-        ServerCallContext context)
+    AvailableSlotsRequest request,
+    ServerCallContext context)
     {
         var response = new AvailableSlotsResponse();
 
         if (string.IsNullOrWhiteSpace(request.DoctorId))
-        {
             throw new RpcException(new Status(StatusCode.InvalidArgument, "DoctorUserId is required"));
-        }
 
         var date = request.Date.ToDateTime();
 
@@ -25,16 +24,19 @@ public class GrpcAvailability(IAppointmentService appointmentService)
 
         foreach (var slot in slots)
         {
+            var start = date.Add(slot.Slot.StartTime);
+            var end = date.Add(slot.Slot.EndTime);
+
             response.Slots.Add(new Slot
             {
                 Id = slot.Slot.Id.ToString(),
 
-                Start = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(
-                    date.Add(slot.Slot.StartTime).ToUniversalTime()
+                Start = Timestamp.FromDateTime(
+                    DateTime.SpecifyKind(start, DateTimeKind.Utc)
                 ),
 
-                End = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(
-                    date.Add(slot.Slot.EndTime).ToUniversalTime()
+                End = Timestamp.FromDateTime(
+                    DateTime.SpecifyKind(end, DateTimeKind.Utc)
                 ),
 
                 IsAvailable = slot.IsAvailable

@@ -36,9 +36,11 @@ namespace PiedraAzul.ApplicationServices.Services
         public Guid AppointmentId { get; set; }
         public string TimeRange { get; set; } = string.Empty;
         public string Patient { get; set; } = string.Empty;
+        public string PatientName { get; set; } = string.Empty; // nuevo
         public string PatientType { get; set; } = string.Empty;
         public string Specialty { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
+        public DateTime Start { get; set; } // nuevo
         public DateTime CreatedAt { get; set; }
     }
 
@@ -209,9 +211,15 @@ namespace PiedraAzul.ApplicationServices.Services
                         : a.PatientGuest != null
                             ? a.PatientGuest.PatientName
                             : "Sin paciente",
+                    PatientName = a.Patient != null
+                        ? a.Patient.Name
+                        : a.PatientGuest != null
+                            ? a.PatientGuest.PatientName
+                            : "Sin paciente",
                     PatientType = a.PatientUserId != null ? "Registrado" : "Invitado",
                     Specialty = a.Doctor.DoctorProfile.Specialty.ToString(),
                     Status = "Programada",
+                    Start = a.Date.Add(a.DoctorAvailabilitySlot.StartTime),
                     CreatedAt = a.CreatedAt
                 })
                 .ToListAsync();

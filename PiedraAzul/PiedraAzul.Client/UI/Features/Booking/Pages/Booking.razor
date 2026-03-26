@@ -134,9 +134,17 @@ else
 
         Console.WriteLine("meow");
     }
+
     private void SelectSlot(AppointmentSchedulerModel args)
     {
         if (args == null) return;
+
+        args.Time = args.Time.Replace("a. m.", "AM")
+                             .Replace("p. m.", "PM")
+                             .Replace("a.m.", "AM")
+                             .Replace("p.m.", "PM")
+                             .Trim();
+
         Model.SlotId = args.SlotId;
         Model.DayOfYear = args.Date;
         Model.AppointmentSchedulerModel = args;

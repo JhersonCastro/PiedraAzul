@@ -53,6 +53,7 @@ message AppointmentResponse {
   string patientType = 4; // "registered" o "guest"
   string patientName = 7; // nombre del paciente (usuario registrado o invitado)
   string appointmentSlotId = 5;
+  google.protobuf.Timestamp start = 8;
 
   google.protobuf.Timestamp createdAt = 6;
 }
@@ -69,6 +70,8 @@ message DoctorAppointmentItem {
   string specialty = 5;
   string status = 6;
   google.protobuf.Timestamp createdAt = 7;
+  string patientName = 8;
+  google.protobuf.Timestamp start = 9;
 }
 
 message DoctorAppointmentsSearchResponse {

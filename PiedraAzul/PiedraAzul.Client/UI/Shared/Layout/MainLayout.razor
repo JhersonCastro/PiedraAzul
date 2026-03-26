@@ -1,4 +1,4 @@
-@using System.IdentityModel.Tokens.Jwt
+﻿@using System.IdentityModel.Tokens.Jwt
 @using PiedraAzul.Client.Services.AuthServices
 @using PiedraAzul.Client.States
 @inject PiedraAzul.Client.Services.AuthServices.ITokenService TokenService
@@ -27,8 +27,11 @@
             </a>
 
             <nav class="flex items-center gap-6 text-gray-600">
-                <a href="/" class="hover:text-gray-900 transition-colors">Inicio</a>
-                <a href="/admin" class="hover:text-gray-900 transition-colors">Admin</a>
+                <a href="/" class="transition-colors hover:text-gray-900">Inicio</a>
+                @if (UserState?.UserResponse?.Roles.Contains("Admin") == true)
+                {
+                    <a href="/admin" class="transition-colors hover:text-gray-900">Admin</a>
+                }
                 <a class="hover:text-gray-900">Ayuda</a>
 
                 @if (!_isLoaded)
