@@ -19,44 +19,14 @@ namespace PiedraAzul.ApplicationServices.Services
             string doctorUserId,
             DateTime date = default);
 
-        Task<DoctorAppointmentsSearchResult> SearchDoctorAppointmentsAsync(
-            string doctorUserId,
-            DateTime date,
-            int pageNumber = 1,
-            int pageSize = 50);
-
         Task<List<Appointment>> GetPatientAppointmentsAsync(
             string? patientUserId,
             string? patientGuestId,
             DateTime date = default);
     }
 
-    public class DoctorAppointmentSearchItem
-    {
-        public Guid AppointmentId { get; set; }
-        public string TimeRange { get; set; } = string.Empty;
-        public string Patient { get; set; } = string.Empty;
-        public string PatientName { get; set; } = string.Empty; // nuevo
-        public string PatientType { get; set; } = string.Empty;
-        public string Specialty { get; set; } = string.Empty;
-        public string Status { get; set; } = string.Empty;
-        public DateTime Start { get; set; } // nuevo
-        public DateTime CreatedAt { get; set; }
-    }
-
-    public class DoctorAppointmentsSearchResult
-    {
-        public List<DoctorAppointmentSearchItem> Items { get; set; } = new();
-        public int TotalCount { get; set; }
-        public int PageNumber { get; set; }
-        public int PageSize { get; set; }
-    }
-
     public class AppointmentService(IDbContextFactory<AppDbContext> dbContextFactory) : IAppointmentService
     {
-        private const int DefaultPageSize = 50;
-        private const int MaxPageSize = 200;
-
         public async Task<Appointment> CreateAppointmentAsync(
             Appointment appointment,
             string? patientUserId = null,
@@ -65,14 +35,17 @@ namespace PiedraAzul.ApplicationServices.Services
             await using var context = await dbContextFactory.CreateDbContextAsync();
 
             if (string.IsNullOrWhiteSpace(appointment.DoctorUserId))
-                throw new ArgumentException("DoctorUserId is required.");
+                throw new ArgumentException("DoctorUserId is required.", nameof(appointment));
 
             var doctor = await context.Users
                 .Include(u => u.DoctorProfile)
                 .FirstOrDefaultAsync(u => u.Id == appointment.DoctorUserId);
 
-            if (doctor == null || doctor.DoctorProfile == null)
-                throw new InvalidOperationException("Invalid doctor.");
+            if (doctor == null)
+                throw new ArgumentNullException(nameof(appointment.DoctorUserId));
+
+            if (doctor.DoctorProfile == null)
+                throw new InvalidOperationException("The selected user is not a doctor.");
 
             var slot = await context.DoctorAvailabilitySlots
                 .FirstOrDefaultAsync(s =>
@@ -80,10 +53,10 @@ namespace PiedraAzul.ApplicationServices.Services
                     s.DoctorUserId == appointment.DoctorUserId);
 
             if (slot == null)
-                throw new InvalidOperationException("Invalid slot.");
+                throw new InvalidOperationException("The selected slot does not belong to the doctor.");
 
             if (slot.DayOfWeek != appointment.Date.DayOfWeek)
-                throw new InvalidOperationException("Date does not match slot.");
+                throw new InvalidOperationException("The appointment date does not match the slot day of week.");
 
             if (!string.IsNullOrWhiteSpace(patientUserId))
             {
@@ -113,7 +86,7 @@ namespace PiedraAzul.ApplicationServices.Services
             }
             else
             {
-                throw new ArgumentException("Patient required.");
+                throw new ArgumentException("Either patientUserId or patientGuestId must be provided.");
             }
 
             var exists = await context.Appointments.AnyAsync(a =>
@@ -121,7 +94,7 @@ namespace PiedraAzul.ApplicationServices.Services
                 a.Date == appointment.Date);
 
             if (exists)
-                throw new InvalidOperationException("Slot already taken.");
+                throw new InvalidOperationException("This slot is already occupied for that date.");
 
             context.Add(appointment);
             await context.SaveChangesAsync();
@@ -157,103 +130,17 @@ namespace PiedraAzul.ApplicationServices.Services
                 .ToListAsync();
         }
 
-        public async Task<DoctorAppointmentsSearchResult> SearchDoctorAppointmentsAsync(
+        public async Task<List<(DoctorAvailabilitySlot Slot, bool IsAvailable)>> GetDoctorDaySlotsAsync(
             string doctorUserId,
-            DateTime date,
-            int pageNumber = 1,
-            int pageSize = 50)
+            DateTime date)
         {
             await using var context = await dbContextFactory.CreateDbContextAsync();
-
-            if (string.IsNullOrWhiteSpace(doctorUserId))
-                throw new ArgumentException("DoctorUserId is required.", nameof(doctorUserId));
 
             var doctorExists = await context.Users
                 .AnyAsync(u => u.Id == doctorUserId && u.DoctorProfile != null);
 
             if (!doctorExists)
                 throw new ArgumentNullException(nameof(doctorUserId));
-
-            var safePageNumber = pageNumber < 1 ? 1 : pageNumber;
-            var safePageSize = pageSize < 1
-                ? DefaultPageSize
-                : Math.Min(pageSize, MaxPageSize);
-
-            var colombiaTimeZone = ResolveColombiaTimeZone();
-            var utcDate = date.Kind == DateTimeKind.Utc ? date : date.ToUniversalTime();
-            var localDate = TimeZoneInfo.ConvertTimeFromUtc(utcDate, colombiaTimeZone).Date;
-            var utcStart = TimeZoneInfo.ConvertTimeToUtc(localDate, colombiaTimeZone);
-            var utcEnd = TimeZoneInfo.ConvertTimeToUtc(localDate.AddDays(1), colombiaTimeZone);
-
-            var query = context.Appointments
-                .AsNoTracking()
-                .Include(a => a.Patient)
-                .Include(a => a.PatientGuest)
-                .Include(a => a.Doctor)
-                    .ThenInclude(d => d.DoctorProfile)
-                .Include(a => a.DoctorAvailabilitySlot)
-                .Where(a => a.DoctorUserId == doctorUserId &&
-                            a.Date >= utcStart &&
-                            a.Date < utcEnd);
-
-            var totalCount = await query.CountAsync();
-
-            var items = await query
-                .OrderBy(a => a.DoctorAvailabilitySlot.StartTime)
-                .Skip((safePageNumber - 1) * safePageSize)
-                .Take(safePageSize)
-                .Select(a => new DoctorAppointmentSearchItem
-                {
-                    AppointmentId = a.Id,
-                    TimeRange = $"{a.DoctorAvailabilitySlot.StartTime:hh\\:mm} - {a.DoctorAvailabilitySlot.EndTime:hh\\:mm}",
-                    Patient = a.Patient != null
-                        ? a.Patient.Name
-                        : a.PatientGuest != null
-                            ? a.PatientGuest.PatientName
-                            : "Sin paciente",
-                    PatientName = a.Patient != null
-                        ? a.Patient.Name
-                        : a.PatientGuest != null
-                            ? a.PatientGuest.PatientName
-                            : "Sin paciente",
-                    PatientType = a.PatientUserId != null ? "Registrado" : "Invitado",
-                    Specialty = a.Doctor.DoctorProfile.Specialty.ToString(),
-                    Status = "Programada",
-                    Start = a.Date.Add(a.DoctorAvailabilitySlot.StartTime),
-                    CreatedAt = a.CreatedAt
-                })
-                .ToListAsync();
-
-            return new DoctorAppointmentsSearchResult
-            {
-                Items = items,
-                TotalCount = totalCount,
-                PageNumber = safePageNumber,
-                PageSize = safePageSize
-            };
-        }
-
-        private static TimeZoneInfo ResolveColombiaTimeZone()
-        {
-            try
-            {
-                return TimeZoneInfo.FindSystemTimeZoneById("America/Bogota");
-            }
-            catch (TimeZoneNotFoundException)
-            {
-                return TimeZoneInfo.FindSystemTimeZoneById("SA Pacific Standard Time");
-            }
-            catch (InvalidTimeZoneException)
-            {
-                return TimeZoneInfo.FindSystemTimeZoneById("SA Pacific Standard Time");
-            }
-        }
-
-        public async Task<List<(DoctorAvailabilitySlot Slot, bool IsAvailable)>> GetDoctorDaySlotsAsync(
-            string doctorUserId,
-            DateTime date)
-        {
-            await using var context = await dbContextFactory.CreateDbContextAsync();
 
             var dayOfWeek = date.DayOfWeek;
             var day = date.Date;
@@ -296,17 +183,11 @@ namespace PiedraAzul.ApplicationServices.Services
             }
             else if (!string.IsNullOrWhiteSpace(patientGuestId))
             {
-                var guestExists = await context.PatientGuests
-                    .AnyAsync(g => g.PatientIdentification == patientGuestId);
-
-                if (!guestExists)
-                    throw new ArgumentNullException(nameof(patientGuestId));
-
                 query = query.Where(a => a.PatientGuestId == patientGuestId);
             }
             else
             {
-                throw new ArgumentException("Debe proporcionar paciente.");
+                throw new ArgumentException("Debe proporcionar patientUserId o patientGuestId.");
             }
 
             if (date != default)

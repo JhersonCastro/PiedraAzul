@@ -1,3 +1,4 @@
+using Microsoft.JSInterop;
 using PiedraAzul.Client.Models;
 using PiedraAzul.Client.Services.Wrappers;
 using Shared.Grpc;
@@ -15,56 +16,22 @@ namespace PiedraAzul.Client.Services.GrpcServices
 
         public async Task<Result<AppointmentResponse>> CreateAppointment(CreateAppointmentRequest request)
         {
-            return await GrpcExecutor.Execute(async () =>
+            var result = await GrpcExecutor.Execute(async () =>
             {
-                return await appointmentClient.CreateAppointmentAsync(request);
+                var response = await appointmentClient.CreateAppointmentAsync(request);
+                return response;
             });
+            return result;
         }
 
-        public async Task<Result<DoctorAppointmentsSearchResponse>> GetDoctorAppointments(
-            string doctorId,
-            DateTime date,
-            int pageNumber = 1,
-            int pageSize = 50)
+        public async Task<Result<AppointmentListResponse>> GetDoctorAppointments(DoctorAppointmentsRequest request)
         {
-            var utcDate = ConvertColombiaDateToUtc(date);
-
-            var request = new DoctorAppointmentsRequest
+            var result = await GrpcExecutor.Execute(async () =>
             {
-                DoctorId = doctorId,
-                Date = Google.Protobuf.WellKnownTypes.Timestamp
-                    .FromDateTime(utcDate),
-                PageNumber = pageNumber,
-                PageSize = pageSize
-            };
-
-            return await GrpcExecutor.Execute(async () =>
-            {
-                return await appointmentClient.GetDoctorAppointmentsAsync(request);
+                var response = await appointmentClient.GetDoctorAppointmentsAsync(request);
+                return response;
             });
-        }
-
-        private static DateTime ConvertColombiaDateToUtc(DateTime date)
-        {
-            var colombiaTimeZone = ResolveColombiaTimeZone();
-            var localDate = DateTime.SpecifyKind(date.Date, DateTimeKind.Unspecified);
-            return TimeZoneInfo.ConvertTimeToUtc(localDate, colombiaTimeZone);
-        }
-
-        private static TimeZoneInfo ResolveColombiaTimeZone()
-        {
-            try
-            {
-                return TimeZoneInfo.FindSystemTimeZoneById("America/Bogota");
-            }
-            catch (TimeZoneNotFoundException)
-            {
-                return TimeZoneInfo.FindSystemTimeZoneById("SA Pacific Standard Time");
-            }
-            catch (InvalidTimeZoneException)
-            {
-                return TimeZoneInfo.FindSystemTimeZoneById("SA Pacific Standard Time");
-            }
+            return result;
         }
     }
 }

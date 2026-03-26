@@ -1,8 +1,10 @@
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using PiedraAzul.ApplicationServices.AutoCompleteServices;
+using PiedraAzul.ApplicationServices.Mapping;
 using PiedraAzul.Data.Models;
 using Shared.Grpc;
 
@@ -11,7 +13,8 @@ namespace PiedraAzul.GrpcServices
     public class GrpcAppointment(
         PiedraAzul.ApplicationServices.Services.IAppointmentService appointmentService,
         PiedraAzul.ApplicationServices.Services.IPatientService patientService,
-        IPatientAutocompleteService patientAutocompleteService)
+        IPatientAutocompleteService patientAutocompleteService,
+        PatientMapper mapper)
         : AppointmentService.AppointmentServiceBase
     {
         public override async Task<AppointmentResponse> CreateAppointment(CreateAppointmentRequest request, ServerCallContext context)
@@ -22,158 +25,198 @@ namespace PiedraAzul.GrpcServices
             if (request.Date == null)
                 throw new RpcException(new Status(StatusCode.InvalidArgument, "Date must be provided"));
 
-            var normalizedDate = NormalizeToColombiaDayStartUtc(request.Date.ToDateTime());
+            var dateUtc = request.Date.ToDateTime().ToUniversalTime();
+
+            var normalizedDate = new DateTime(
+                dateUtc.Year,
+                dateUtc.Month,
+                dateUtc.Day,
+                0, 0, 0,
+                DateTimeKind.Utc
+            );
 
             if (string.IsNullOrWhiteSpace(request.DoctorId))
                 throw new RpcException(new Status(StatusCode.InvalidArgument, "DoctorUserId is required"));
 
-            if (!Guid.TryParse(request.DoctorAvailabilitySlotId, out var slotId))
+            if (!Guid.TryParse(request.DoctorAvailabilitySlotId, out var doctorAvailabilitySlotId))
                 throw new RpcException(new Status(StatusCode.InvalidArgument, "Invalid slot ID"));
 
             string? patientUserId = null;
 
+            // Guid se usa porque si es un usario, userid es un guid, pero si es un invitado, es un string largo (numero de identificacion, o sea su cedula)
             if (Guid.TryParse(request.PatientId, out _))
             {
+                // asumimos que es UserId válido
                 patientUserId = request.PatientId;
             }
             else if (!string.IsNullOrWhiteSpace(request.PatientIdentification))
             {
-                var guest = await patientService.GetPatientGuestById(request.PatientIdentification);
-
-                if (guest == null)
+                try
                 {
-                    if (string.IsNullOrWhiteSpace(request.PatientName) ||
-                        string.IsNullOrWhiteSpace(request.PatientPhone))
+                    var patientGuest = await patientService
+                        .GetPatientGuestById(request.PatientIdentification);
+
+                    if (patientGuest == null)
                     {
-                        throw new RpcException(new Status(
-                            StatusCode.InvalidArgument,
-                            "Patient name and phone required for guest"
-                        ));
+                        if (string.IsNullOrWhiteSpace(request.PatientName) ||
+                            string.IsNullOrWhiteSpace(request.PatientPhone))
+                        {
+                            throw new RpcException(new Status(
+                                StatusCode.InvalidArgument,
+                                "Patient name and phone required for guest"
+                            ));
+                        }
+
+                        var newPatientGuest = mapper.ToEntity(request);
+                        var result = await patientService.CreatePatientGuestAsync(newPatientGuest);
+
+                        if (result == null)
+                            throw new RpcException(new Status(StatusCode.Internal, "Failed to create guest"));
+
+                        await patientAutocompleteService.IndexGuestAsync(result);
                     }
-
-                    var newGuest = new PatientGuest
-                    {
-                        PatientName = request.PatientName,
-                        PatientPhone = request.PatientPhone,
-                        PatientIdentification = request.PatientIdentification,
-                        PatientExtraInfo = string.Empty
-                    };
-
-                    var result = await patientService.CreatePatientGuestAsync(newGuest);
-                    await patientAutocompleteService.IndexGuestAsync(result);
+                }
+                catch (RpcException)
+                {
+                    throw;
+                }
+                catch
+                {
+                    throw new RpcException(new Status(
+                        StatusCode.Internal,
+                        "Unexpected error while handling patient guest"
+                    ));
                 }
             }
 
             var appointment = new Appointment
             {
                 DoctorUserId = request.DoctorId,
-                DoctorAvailabilitySlotId = slotId,
+                DoctorAvailabilitySlotId = doctorAvailabilitySlotId,
                 Date = normalizedDate
             };
 
-            Appointment created;
             try
             {
-                created = await appointmentService.CreateAppointmentAsync(
+                var result = await appointmentService.CreateAppointmentAsync(
                     appointment,
                     patientUserId,
                     request.PatientIdentification
                 );
-            }
-            catch (ArgumentException ex)
-            {
-                throw new RpcException(new Status(StatusCode.InvalidArgument, ex.Message));
-            }
-            catch (InvalidOperationException ex)
-            {
-                throw new RpcException(new Status(StatusCode.FailedPrecondition, ex.Message));
+                return new AppointmentResponse
+                {
+                    Id = result.Id.ToString(),
+                    PatientId = result.PatientUserId ?? string.Empty,
+                    PatientGuestId = result.PatientGuestId ?? string.Empty,
+                    AppointmentSlotId = result.DoctorAvailabilitySlotId.ToString(),
+                    Start = Timestamp.FromDateTime(result.Date.Add(result.DoctorAvailabilitySlot.StartTime).ToUniversalTime()),
+                    CreatedAt = Google.Protobuf.WellKnownTypes.Timestamp
+                        .FromDateTime(result.CreatedAt.ToUniversalTime())
+                };
             }
             catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg &&
-                                               pg.SqlState == PostgresErrorCodes.UniqueViolation)
+                                               pg.SqlState == "23505")
             {
-                throw new RpcException(new Status(StatusCode.AlreadyExists, "Appointment already exists for that slot/date."));
+                throw new RpcException(new Status(StatusCode.AlreadyExists,
+                    "This appointment slot is already taken"));
             }
-
-            return new AppointmentResponse
+            catch
             {
-                Id = created.Id.ToString(),
-                PatientId = created.PatientUserId ?? "",
-                PatientGuestId = created.PatientGuestId ?? "",
-                AppointmentSlotId = created.DoctorAvailabilitySlotId.ToString(),
-                CreatedAt = Timestamp.FromDateTime(created.CreatedAt.ToUniversalTime())
-            };
+                throw new RpcException(new Status(StatusCode.Internal,
+                    "Error creating appointment"));
+            }
         }
 
-        public override async Task<DoctorAppointmentsSearchResponse> GetDoctorAppointments(
-            DoctorAppointmentsRequest request,
-            ServerCallContext context)
+        public override async Task<AppointmentListResponse> GetDoctorAppointments(
+    DoctorAppointmentsRequest request,
+    ServerCallContext context)
         {
             if (request == null)
                 throw new RpcException(new Status(StatusCode.InvalidArgument, "Request cannot be null"));
 
-            if (string.IsNullOrWhiteSpace(request.DoctorId))
-                throw new RpcException(new Status(StatusCode.InvalidArgument, "DoctorUserId is required"));
+            DateTime normalizedDate = default;
 
-            if (request.Date == null)
-                throw new RpcException(new Status(StatusCode.InvalidArgument, "Date must be provided"));
-
-            var date = request.Date.ToDateTime().ToUniversalTime();
-            var pageNumber = request.PageNumber < 1 ? 1 : request.PageNumber;
-            var pageSize = request.PageSize < 1 ? 50 : Math.Min(request.PageSize, 200);
-
-            var search = await appointmentService.SearchDoctorAppointmentsAsync(
-                request.DoctorId,
-                date,
-                pageNumber,
-                pageSize
-            );
-
-            var response = new DoctorAppointmentsSearchResponse
+            if (request.Date != null)
             {
-                TotalCount = search.TotalCount,
-                PageNumber = search.PageNumber,
-                PageSize = search.PageSize
-            };
+                var date = request.Date.ToDateTime();
 
-            response.Items.AddRange(search.Items.Select(a => new DoctorAppointmentItem
+                normalizedDate = new DateTime(
+                    date.Year,
+                    date.Month,
+                    date.Day,
+                    0, 0, 0,
+                    DateTimeKind.Utc);
+            }
+
+            var appointments = await appointmentService
+                .GetDoctorAppointmentsAsync(request.DoctorId, normalizedDate);
+
+            var response = new AppointmentListResponse();
+
+            response.Appointments.AddRange(appointments.Select(a =>
             {
-                AppointmentId = a.AppointmentId.ToString(),
-                TimeRange = a.TimeRange,
-                Patient = a.Patient,
-                PatientName = a.PatientName,
-                PatientType = a.PatientType,
-                Specialty = a.Specialty,
-                Status = a.Status,
-                Start = Timestamp.FromDateTime(DateTime.SpecifyKind(a.Start, DateTimeKind.Utc)),
-                CreatedAt = Timestamp.FromDateTime(a.CreatedAt.ToUniversalTime())
+                var combined = a.Date.Add(a.DoctorAvailabilitySlot.StartTime);
+
+                var utcDateTime = DateTime.SpecifyKind(combined, DateTimeKind.Utc);
+
+                return new AppointmentResponse
+                {
+                    Id = a.Id.ToString(),
+                    PatientId = a.PatientUserId ?? string.Empty,
+                    PatientGuestId = a.PatientGuestId ?? string.Empty,
+                    PatientType = a.PatientUserId != null ? "Registered" : "Guest",
+                    PatientName = a.PatientUserId != null
+                        ? (a.Patient?.Name ?? a.Patient?.UserName ?? "Paciente registrado")
+                        : (a.PatientGuest?.PatientName ?? "Paciente invitado"),
+                    AppointmentSlotId = a.DoctorAvailabilitySlotId.ToString(),
+
+                    Start = Google.Protobuf.WellKnownTypes.Timestamp
+                        .FromDateTime(utcDateTime),
+
+                    CreatedAt = Google.Protobuf.WellKnownTypes.Timestamp
+                        .FromDateTime(a.CreatedAt.ToUniversalTime())
+                };
             }));
 
             return response;
         }
 
-        private static DateTime NormalizeToColombiaDayStartUtc(DateTime date)
+        public override async Task<AppointmentListResponse> GetPatientAppointments(PatientAppointmentsRequest request, ServerCallContext context)
         {
-            var colombiaTimeZone = ResolveColombiaTimeZone();
-            var utcDate = date.Kind == DateTimeKind.Utc ? date : date.ToUniversalTime();
-            var colombiaDate = TimeZoneInfo.ConvertTimeFromUtc(utcDate, colombiaTimeZone).Date;
+            if (request == null)
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "Request cannot be null"));
 
-            return TimeZoneInfo.ConvertTimeToUtc(colombiaDate, colombiaTimeZone);
-        }
+            if (string.IsNullOrWhiteSpace(request.PatientId))
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "Patient ID required"));
 
-        private static TimeZoneInfo ResolveColombiaTimeZone()
-        {
-            try
+            List<Appointment> appointments;
+
+            if(Guid.TryParse(request.PatientId, out _))
             {
-                return TimeZoneInfo.FindSystemTimeZoneById("America/Bogota");
+                // asumimos que es UserId válido
+                appointments = await appointmentService
+                    .GetPatientAppointmentsAsync(request.PatientId, null);
             }
-            catch (TimeZoneNotFoundException)
+            else
             {
-                return TimeZoneInfo.FindSystemTimeZoneById("SA Pacific Standard Time");
+                appointments = await appointmentService
+                    .GetPatientAppointmentsAsync(null, request.PatientId);
             }
-            catch (InvalidTimeZoneException)
+
+            var response = new AppointmentListResponse();
+
+            response.Appointments.AddRange(appointments.Select(a => new AppointmentResponse
             {
-                return TimeZoneInfo.FindSystemTimeZoneById("SA Pacific Standard Time");
-            }
+                Id = a.Id.ToString(),
+                PatientId = a.PatientUserId ?? string.Empty,
+                PatientGuestId = a.PatientGuestId ?? string.Empty,
+                PatientType = a.PatientUserId != null ? "Registered" : "Guest",
+                AppointmentSlotId = a.DoctorAvailabilitySlotId.ToString(),
+                CreatedAt = Google.Protobuf.WellKnownTypes.Timestamp
+                    .FromDateTime(a.CreatedAt.ToUniversalTime())
+            }));
+
+            return response;
         }
     }
 }

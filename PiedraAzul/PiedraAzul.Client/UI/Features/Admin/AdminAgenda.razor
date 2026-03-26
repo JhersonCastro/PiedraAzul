@@ -62,52 +62,34 @@
                     <tbody class="divide-y divide-slate-100">
                         @if (citas == null || !citas.Any())
                         {
-                            <tr>
-                                <td colspan="5" class="py-6 text-center text-slate-500">
-                                    No hay citas para mostrar en esta fecha o seleccione un médico.
-                                </td>
-                            </tr>
+                            <tr><td colspan="5" class="py-6 text-center text-slate-500">No hay citas para mostrar en esta fecha o seleccione un médico.</td></tr>
                         }
                         else
                         {
                             @foreach (var cita in citas)
                             {
                                 <tr class="transition-colors hover:bg-slate-50/50">
-                                    <td class="px-6 py-4">
-                                        <div class="font-semibold text-slate-800">
-                                            @cita.Start.ToDateTime().ToString("hh:mm tt")
-                                        </div>
+                                     <td class="px-6 py-4">
+                                         <div class="font-semibold text-slate-800">
+                                             @cita.Start.ToDateTime().ToString("hh:mm tt")
+                                         </div>
+                                     </td>
+                                     <td class="px-6 py-4">
+                                         <div class="font-medium text-slate-900">@cita.PatientName</div>
+                                         <div class="text-sm text-slate-500">Tipo: @cita.PatientType</div>
                                     </td>
-
                                     <td class="px-6 py-4">
-                                        <div class="font-medium text-slate-900">
-                                            @cita.PatientName
-                                        </div>
-                                        <div class="text-sm text-slate-500">
-                                            Tipo: @cita.PatientType
-                                        </div>
+                                        <div class="inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">Consulta Médica</div>
                                     </td>
-
-                                    <td class="px-6 py-4">
-                                        <div class="inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
-                                            Consulta Médica
-                                        </div>
-                                    </td>
-
                                     <td class="px-6 py-4">
                                         <span class="inline-flex items-center gap-1.5 rounded-full border border-amber-200/50 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
                                             <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
                                             Confirmada
                                         </span>
                                     </td>
-
                                     <td class="px-6 py-4 text-right">
-                                        <button class="mr-3 text-sm font-medium text-teal-600 transition-colors hover:text-teal-800">
-                                            Ver Detalle
-                                        </button>
-                                        <button class="text-sm font-medium text-rose-500 transition-colors hover:text-rose-700">
-                                            Cancelar
-                                        </button>
+                                        <button class="mr-3 text-sm font-medium text-teal-600 transition-colors hover:text-teal-800">Ver Detalle</button>
+                                        <button class="text-sm font-medium text-rose-500 transition-colors hover:text-rose-700">Cancelar</button>
                                     </td>
                                 </tr>
                             }
@@ -127,12 +109,14 @@
 
 @code {
     private List<DoctorResponse> doctores = new();
-    private List<DoctorAppointmentItem> citas = new();
+    private List<AppointmentResponse> citas = new();
     private string SelectedDoctorId { get; set; } = "";
     private DateTime SelectedDate { get; set; } = DateTime.Today;
 
     protected override async Task OnInitializedAsync()
     {
+        // Traeremos los especialistas iterando sobre el enum (0, 1, 2, 3)
+        // Ya que el método nativo retorna por grupo.
         for (int i = 0; i <= 3; i++)
         {
             var result = await DoctorService.GetDoctorsByTypeAsync((global::PiedraAzul.Shared.Enums.DoctorType)i);
@@ -155,16 +139,16 @@
     {
         if (string.IsNullOrEmpty(SelectedDoctorId)) return;
         
-        var result = await AppointmentService.GetDoctorAppointments(
-            SelectedDoctorId,
-            SelectedDate,
-            1,
-            50
-        );
-
+        var request = new DoctorAppointmentsRequest 
+        { 
+            DoctorId = SelectedDoctorId, 
+            Date = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(SelectedDate.ToUniversalTime()) 
+        };
+        
+        var result = await AppointmentService.GetDoctorAppointments(request);
         if (result.IsSuccess && result.Value != null)
         {
-            citas = result.Value.Items.ToList();
+            citas = result.Value.Appointments.ToList();
         }
     }
 }
