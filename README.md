@@ -51,6 +51,7 @@ Para desarrollo sin conexión a internet o pruebas locales:
 
 Antes de comenzar debes tener instalado:
 
+* [.NET 10.0 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)
 * [Docker](https://www.docker.com/)
 * Docker Desktop ejecutándose
 
@@ -177,11 +178,15 @@ La documentación completa del proyecto se encuentra disponible en la carpeta co
 - **Historias de Usuario y Atributos de Calidad** - Definición de requisitos y escenarios de calidad
 - **DiagramasC4.drawio** - Diagramas de arquitectura en modelo C4
 - **Atributos de calidad.docx** - Especificación detallada de atributos de calidad priorizados (usabilidad y seguridad)
+- **Documento General del proyecto** El documento con toda la información del proyecto y los requisitos que se cumplierón
 
 **Recursos adicionales:**
+- [Historias de usuario](https://docs.google.com/spreadsheets/d/1pCTmF3Cr3cpM7gBGFOtzZ1qOcyH3zOh-8rqVREQ-S7M/edit?gid=209375213#gid=209375213)
 - [Prototipos en Figma](https://www.figma.com/design/FlGdsvvoSdX8jRe8qSrxtq/Software-III?node-id=0-1&t=SnDIq7n63B9LUn5B-1)
-- [Documento atributos de calidad](https://docs.google.com/document/d/1UkVKK1_C14V3rVn2_EX44BS6jK1bsTZ_/edit)
+- [Atributos de calidad](https://docs.google.com/document/d/1UkVKK1_C14V3rVn2_EX44BS6jK1bsTZ_/edit)
 - [Diagramas Modelo C4](https://app.diagrams.net/#G17fLFngDYyHThrFKKZ8bIZPwn7_HlTWcR#%7B%22pageId%22%3A%22zNMGI6wU0Mi8Qe2H5Q59%22%7D)
+- [Documento del proyecto](https://docs.google.com/document/d/1ULFJibJQNiNmlmFxS50KrworANlOQIKJMVJlV2dhxR4/edit?tab=t.0)
+- 
 
 ## Equipo
 
