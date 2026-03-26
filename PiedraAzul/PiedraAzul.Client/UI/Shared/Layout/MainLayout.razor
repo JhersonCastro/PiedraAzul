@@ -1,4 +1,4 @@
-﻿@using System.IdentityModel.Tokens.Jwt
+@using System.IdentityModel.Tokens.Jwt
 @using PiedraAzul.Client.Services.AuthServices
 @using PiedraAzul.Client.States
 @inject PiedraAzul.Client.Services.AuthServices.ITokenService TokenService
@@ -26,8 +26,9 @@
                 Piedra Azul
             </a>
 
-            <nav class="flex items-center gap-8 text-gray-600">
-                <a class="hover:text-gray-900">Servicios</a>
+            <nav class="flex items-center gap-6 text-gray-600">
+                <a href="/" class="hover:text-gray-900 transition-colors">Inicio</a>
+                <a href="/admin" class="hover:text-gray-900 transition-colors">Admin</a>
                 <a class="hover:text-gray-900">Ayuda</a>
 
                 @if (!_isLoaded)

@@ -49,10 +49,11 @@ La base de datos está alojada en AWS. Para desarrollo en equipo.
 ### Opción 2: Base de datos local con Docker
 Para desarrollo sin conexión a internet o pruebas locales:
 
-Antes de comenzar debes tener instalado:
+## 🛠️ 1. Requisitos Previos
 
-* [Docker](https://www.docker.com/)
-* Docker Desktop ejecutándose
+Antes de comenzar, debes tener instalado:
+1. **[.NET 10.0 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)** (Verificar que se instale la versión para tu sistema operativo).
+2. **[Docker Desktop](https://www.docker.com/)** (Debe estar abierto y en ejecución antes de seguir al siguiente paso).
 
 Ejecuta el siguiente comando en **CMD, PowerShell o terminal**:
 
@@ -67,13 +68,12 @@ postgres
 ```
 
 Esto creará un contenedor con:
-
 * **Base de datos:** PiedraAzulDB
 * **Usuario:** postgres
 * **Contraseña:** postgres
 * **Puerto:** 5432
 
-También se crea un **volumen persistente** para no perder los datos.
+*(También se crea un volumen permanente `postgres_data` para no perder los datos)*.
 
 ---
 
@@ -95,65 +95,56 @@ Usa la siguiente cadena de conexión según la opción elegida:
 # Verificar que el contenedor está corriendo
 
 ```bash
-docker ps
+dotnet tool install --global dotnet-ef
 ```
-
-Deberías ver algo similar a:
-
-```
-CONTAINER ID   IMAGE      NAME                 PORTS
-xxxxxxx        postgres   piedraazul-postgres  0.0.0.0:5432->5432/tcp
-```
+*(Si ya la tenías instalada, la terminal te lo indicará, lo cual está perfecto)*.
 
 ---
 
-# Entrar a PostgreSQL desde la terminal
+## 🏗️ 4. Restaurar Dependencias y Migrar Base de Datos
 
+Ahora debes ubicar tu terminal **exactamente en la carpeta del servidor backend**, donde se encuentra el archivo principal del proyecto. 
+
+Navega a la subcarpeta interna:
 ```bash
-docker exec -it piedraazul-postgres psql -U postgres -d PiedraAzulDB
+cd PiedraAzul/PiedraAzul
 ```
+*(Asegúrate de estar en la ruta donde se encuentra el archivo `PiedraAzul.csproj`)*.
 
----
-
-# Detener el contenedor
-
+**Restaurar los paquetes de NuGet:**  
+Esto descargará todas las librerías necesarias (.dlls) para que el proyecto funcione:
 ```bash
-docker stop piedraazul-postgres
+dotnet restore
 ```
 
----
-
-# Iniciar nuevamente
-
+**Crear y actualizar la Base de Datos:**  
+Aplicaremos las migraciones iniciales para que la base de datos quede lista:
 ```bash
-docker start piedraazul-postgres
+dotnet ef database update
 ```
+*(Debe terminar con un mensaje de "Done" o "Applying migration...")*.
 
 ---
 
-# Eliminar el contenedor
+## 🚀 5. Ejecutar la Aplicación
 
 Esto eliminará el contenedor pero **no el volumen de datos**.
 
+En la misma carpeta (`PiedraAzul/PiedraAzul`), ejecuta:
 ```bash
-docker rm piedraazul-postgres
+dotnet run
 ```
+
+Una vez termine de compilar, la terminal mostrará un mensaje indicando el puerto, por ejemplo: `Now listening on: http://localhost:5023`.  
+**Abre esa dirección en tu navegador web** y verás la aplicación PiedraAzul en pleno funcionamiento.
+
+*(Nota: Para detener el servidor, presiona `Ctrl + C` en esa misma terminal)*.
 
 ---
 
-# Eliminar también los datos
+## 🔄 Resumen de Comandos Útiles
 
-```bash
-docker volume rm postgres_data
-```
-
----
-
-# Notas
-
-* El puerto **5432 debe estar libre** en tu máquina.
-* Si cambias usuario o contraseña debes actualizar el **Connection String**.
-* El volumen `postgres_data` mantiene los datos aunque se borre el contenedor.
+Para tus próximas sesiones de programación, el proceso es mucho más simple. Ya no necesitas hacer lo anterior, solo debes:
 
 ---
 # Estructura Global del proyecto
