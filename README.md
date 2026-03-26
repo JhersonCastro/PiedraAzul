@@ -18,12 +18,12 @@ Sistema de gestión y reserva de citas médicas diseñado para optimizar el agen
 
 | Tecnología | Versión | Uso |
 |------------|---------|-----|
-| .NET | 8.0 | Backend API y lógica de negocio |
-| Blazor | 8.0 | Frontend SPA (WebAssembly o Server) |
-| Entity Framework Core | 8.0 | ORM para acceso a datos |
-| PostgreSQL | 16 | Base de datos relacional |
+| .NET | 10 | Backend API y lógica de negocio |
+| Blazor | 10 | Frontend SPA (WebAssembly o Server) |
+| Entity Framework Core | 10 | ORM para acceso a datos |
+| PostgreSQL | 17 | Base de datos relacional |
 | Docker | - | Contenedor para base de datos |
-| Tailwind CSS | 3.x | Estilos del frontend |
+| Tailwind CSS | 4.x | Estilos del frontend |
 | xUnit | - | Pruebas unitarias |
 | Git | - | Control de versiones |
 
@@ -49,11 +49,11 @@ La base de datos está alojada en AWS. Para desarrollo en equipo.
 ### Opción 2: Base de datos local con Docker
 Para desarrollo sin conexión a internet o pruebas locales:
 
-## 🛠️ 1. Requisitos Previos
+Antes de comenzar debes tener instalado:
 
-Antes de comenzar, debes tener instalado:
-1. **[.NET 10.0 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)** (Verificar que se instale la versión para tu sistema operativo).
-2. **[Docker Desktop](https://www.docker.com/)** (Debe estar abierto y en ejecución antes de seguir al siguiente paso).
+* [.NET 10.0 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/10.0)
+* [Docker](https://www.docker.com/)
+* Docker Desktop ejecutándose
 
 Ejecuta el siguiente comando en **CMD, PowerShell o terminal**:
 
@@ -68,12 +68,13 @@ postgres
 ```
 
 Esto creará un contenedor con:
+
 * **Base de datos:** PiedraAzulDB
 * **Usuario:** postgres
 * **Contraseña:** postgres
 * **Puerto:** 5432
 
-*(También se crea un volumen permanente `postgres_data` para no perder los datos)*.
+También se crea un **volumen persistente** para no perder los datos.
 
 ---
 
@@ -95,56 +96,65 @@ Usa la siguiente cadena de conexión según la opción elegida:
 # Verificar que el contenedor está corriendo
 
 ```bash
-dotnet tool install --global dotnet-ef
+docker ps
 ```
-*(Si ya la tenías instalada, la terminal te lo indicará, lo cual está perfecto)*.
+
+Deberías ver algo similar a:
+
+```
+CONTAINER ID   IMAGE      NAME                 PORTS
+xxxxxxx        postgres   piedraazul-postgres  0.0.0.0:5432->5432/tcp
+```
 
 ---
 
-## 🏗️ 4. Restaurar Dependencias y Migrar Base de Datos
+# Entrar a PostgreSQL desde la terminal
 
-Ahora debes ubicar tu terminal **exactamente en la carpeta del servidor backend**, donde se encuentra el archivo principal del proyecto. 
-
-Navega a la subcarpeta interna:
 ```bash
-cd PiedraAzul/PiedraAzul
+docker exec -it piedraazul-postgres psql -U postgres -d PiedraAzulDB
 ```
-*(Asegúrate de estar en la ruta donde se encuentra el archivo `PiedraAzul.csproj`)*.
-
-**Restaurar los paquetes de NuGet:**  
-Esto descargará todas las librerías necesarias (.dlls) para que el proyecto funcione:
-```bash
-dotnet restore
-```
-
-**Crear y actualizar la Base de Datos:**  
-Aplicaremos las migraciones iniciales para que la base de datos quede lista:
-```bash
-dotnet ef database update
-```
-*(Debe terminar con un mensaje de "Done" o "Applying migration...")*.
 
 ---
 
-## 🚀 5. Ejecutar la Aplicación
+# Detener el contenedor
+
+```bash
+docker stop piedraazul-postgres
+```
+
+---
+
+# Iniciar nuevamente
+
+```bash
+docker start piedraazul-postgres
+```
+
+---
+
+# Eliminar el contenedor
 
 Esto eliminará el contenedor pero **no el volumen de datos**.
 
-En la misma carpeta (`PiedraAzul/PiedraAzul`), ejecuta:
 ```bash
-dotnet run
+docker rm piedraazul-postgres
 ```
-
-Una vez termine de compilar, la terminal mostrará un mensaje indicando el puerto, por ejemplo: `Now listening on: http://localhost:5023`.  
-**Abre esa dirección en tu navegador web** y verás la aplicación PiedraAzul en pleno funcionamiento.
-
-*(Nota: Para detener el servidor, presiona `Ctrl + C` en esa misma terminal)*.
 
 ---
 
-## 🔄 Resumen de Comandos Útiles
+# Eliminar también los datos
 
-Para tus próximas sesiones de programación, el proceso es mucho más simple. Ya no necesitas hacer lo anterior, solo debes:
+```bash
+docker volume rm postgres_data
+```
+
+---
+
+# Notas
+
+* El puerto **5432 debe estar libre** en tu máquina.
+* Si cambias usuario o contraseña debes actualizar el **Connection String**.
+* El volumen `postgres_data` mantiene los datos aunque se borre el contenedor.
 
 ---
 # Estructura Global del proyecto
@@ -168,11 +178,15 @@ La documentación completa del proyecto se encuentra disponible en la carpeta co
 - **Historias de Usuario y Atributos de Calidad** - Definición de requisitos y escenarios de calidad
 - **DiagramasC4.drawio** - Diagramas de arquitectura en modelo C4
 - **Atributos de calidad.docx** - Especificación detallada de atributos de calidad priorizados (usabilidad y seguridad)
+- **Documento General del proyecto** El documento con toda la información del proyecto y los requisitos que se cumplierón
 
 **Recursos adicionales:**
+- [Historias de usuario](https://docs.google.com/spreadsheets/d/1pCTmF3Cr3cpM7gBGFOtzZ1qOcyH3zOh-8rqVREQ-S7M/edit?gid=209375213#gid=209375213)
 - [Prototipos en Figma](https://www.figma.com/design/FlGdsvvoSdX8jRe8qSrxtq/Software-III?node-id=0-1&t=SnDIq7n63B9LUn5B-1)
-- [Documento atributos de calidad](https://docs.google.com/document/d/1UkVKK1_C14V3rVn2_EX44BS6jK1bsTZ_/edit)
+- [Atributos de calidad](https://docs.google.com/document/d/1UkVKK1_C14V3rVn2_EX44BS6jK1bsTZ_/edit)
 - [Diagramas Modelo C4](https://app.diagrams.net/#G17fLFngDYyHThrFKKZ8bIZPwn7_HlTWcR#%7B%22pageId%22%3A%22zNMGI6wU0Mi8Qe2H5Q59%22%7D)
+- [Documento del proyecto](https://docs.google.com/document/d/1ULFJibJQNiNmlmFxS50KrworANlOQIKJMVJlV2dhxR4/edit?tab=t.0)
+- 
 
 ## Equipo
 
