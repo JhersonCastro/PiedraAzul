@@ -18,12 +18,12 @@ Sistema de gestión y reserva de citas médicas diseñado para optimizar el agen
 
 | Tecnología | Versión | Uso |
 |------------|---------|-----|
-| .NET | 8.0 | Backend API y lógica de negocio |
-| Blazor | 8.0 | Frontend SPA (WebAssembly o Server) |
-| Entity Framework Core | 8.0 | ORM para acceso a datos |
-| PostgreSQL | 16 | Base de datos relacional |
+| .NET | 10 | Backend API y lógica de negocio |
+| Blazor | 10 | Frontend SPA (WebAssembly o Server) |
+| Entity Framework Core | 10 | ORM para acceso a datos |
+| PostgreSQL | 17 | Base de datos relacional |
 | Docker | - | Contenedor para base de datos |
-| Tailwind CSS | 3.x | Estilos del frontend |
+| Tailwind CSS | 4.x | Estilos del frontend |
 | xUnit | - | Pruebas unitarias |
 | Git | - | Control de versiones |
 
