@@ -52,7 +52,7 @@
                 <table class="w-full text-left border-collapse">
                     <thead>
                         <tr class="bg-slate-50/50 border-b border-slate-100">
-                            <th class="py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Hora Y CITA ID</th>
+                            <th class="py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Hora</th>
                             <th class="py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Paciente</th>
                             <th class="py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Motivo/Servicio</th>
                             <th class="py-4 px-6 text-xs font-semibold text-slate-500 uppercase tracking-wider">Estado</th>
@@ -69,13 +69,14 @@
                             @foreach (var cita in citas)
                             {
                                 <tr class="hover:bg-slate-50/50 transition-colors">
-                                    <td class="py-4 px-6">
-                                        <div class="font-semibold text-slate-800">Cita Generada</div>
-                                        <div class="text-xs text-slate-500">@cita.Id.Substring(0, 8)</div>
-                                    </td>
-                                    <td class="py-4 px-6">
-                                        <div class="font-medium text-slate-900">ID Paciente: @cita.PatientId</div>
-                                        <div class="text-sm text-slate-500">Tipo: @cita.PatientType</div>
+                                     <td class="py-4 px-6">
+                                         <div class="font-semibold text-slate-800">
+                                             @cita.CreatedAt.ToDateTime().ToLocalTime().ToString("hh:mm tt")
+                                         </div>
+                                     </td>
+                                     <td class="py-4 px-6">
+                                         <div class="font-medium text-slate-900">@cita.PatientName</div>
+                                         <div class="text-sm text-slate-500">Tipo: @cita.PatientType</div>
                                     </td>
                                     <td class="py-4 px-6">
                                         <div class="inline-flex px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-medium">Consulta Médica</div>
