@@ -10,8 +10,9 @@ namespace PiedraAzul.Data.Models
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public Guid Id { get; set; }
 
-        public Guid DoctorId { get; set; }
-        public DoctorProfile Doctor { get; set; }
+        [Required]
+        public string DoctorUserId { get; set; }
+        public ApplicationUser Doctor { get; set; }
 
         public DayOfWeek DayOfWeek { get; set; }
 

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using PiedraAzul.Client.Services.AuthServices;
 using PiedraAzul.Client.Services.GrpcServices;
 using PiedraAzul.Client.Services.Interceptors;
+using PiedraAzul.Client.Services.RealTimeServices; 
 using PiedraAzul.Client.States;
 using Shared.Grpc;
 
@@ -43,7 +44,7 @@ namespace PiedraAzul.Client.Extensions
 
     public static class ClientWasmExtensions
     {
-        public static IServiceCollection AddClientWasm(this IServiceCollection services, string baseAddress)
+        public static IServiceCollection AddClientWasm(this IServiceCollection services, string baseAddress, string hubUrl)
         {
             services.AddSharedClientServices();
 
@@ -102,13 +103,17 @@ namespace PiedraAzul.Client.Extensions
                     sp.GetRequiredService<CallInvoker>()));
             #endregion
 
+            #region SignalR
+            services.AddScoped<IAppointmentHubService>(sp => new AppointmentHubService(hubUrl));
+            #endregion
+
             return services;
         }
     }
 
     public static class ClientServerExtensions
     {
-        public static IServiceCollection AddClientServer(this IServiceCollection services, string grpcUrl)
+        public static IServiceCollection AddClientServer(this IServiceCollection services, string grpcUrl, string hubUrl)
         {
             services.AddSharedClientServices();
 
@@ -152,6 +157,9 @@ namespace PiedraAzul.Client.Extensions
             services.AddScoped(sp =>
                 new PatientService.PatientServiceClient(
                     sp.GetRequiredService<CallInvoker>()));
+            #endregion
+            #region SignalR
+            services.AddScoped<IAppointmentHubService>(sp => new AppointmentHubService(hubUrl));
             #endregion
 
             return services;

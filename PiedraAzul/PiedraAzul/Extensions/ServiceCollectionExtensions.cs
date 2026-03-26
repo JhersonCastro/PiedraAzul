@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using PiedraAzul.ApplicationServices.AutoCompleteServices;
-using PiedraAzul.ApplicationServices.Mapping;
 using PiedraAzul.Client.Services;
 using PiedraAzul.Client.States;
 using Shared.Grpc;
@@ -72,9 +71,12 @@ namespace PiedraAzul.Extensions
                 {
                     OnMessageReceived = ctx =>
                     {
-                        ctx.Request.Cookies.TryGetValue("accessToken", out var accessToken);
-                        if (!string.IsNullOrEmpty(accessToken))
-                            ctx.Token = accessToken;
+                        var authHeader = ctx.Request.Headers["Authorization"].FirstOrDefault();
+
+                        if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer "))
+                        {
+                            ctx.Token = authHeader.Substring("Bearer ".Length).Trim();
+                        }
 
                         return Task.CompletedTask;
                     }
@@ -87,7 +89,7 @@ namespace PiedraAzul.Extensions
 
         public static IServiceCollection AddMappers(this IServiceCollection services)
         {
-            services.AddSingleton<PatientMapper>();
+            
 
 
             return services;

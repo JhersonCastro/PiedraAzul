@@ -9,18 +9,18 @@ namespace PiedraAzul.Data.Models
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public Guid Id { get; set; }
 
-        //Optional, as an appointment might be created by a guest patient, maybe we never create a account
-        public Guid? PatientId { get; set; }
-        public PatientProfile? Patient { get; set; }
+        // Usuario paciente (opcional por invitados)
+        public string? PatientUserId { get; set; }
+        public ApplicationUser? Patient { get; set; }
 
-        //Patient Basic data if the patient is a guest, this is to avoid having to create a account for them, and also to have a record of their data at the time of the appointment
-
+        // Invitado (si no hay cuenta)
         public string? PatientGuestId { get; set; }
         public PatientGuest? PatientGuest { get; set; }
 
-
-        public Guid DoctorId { get; set; }
-        public DoctorProfile Doctor { get; set; }
+        // Doctor SIEMPRE es usuario
+        [Required]
+        public string DoctorUserId { get; set; }
+        public ApplicationUser Doctor { get; set; }
 
         public Guid DoctorAvailabilitySlotId { get; set; }
         public DoctorAvailabilitySlot DoctorAvailabilitySlot { get; set; }

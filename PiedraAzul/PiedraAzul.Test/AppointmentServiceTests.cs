@@ -17,7 +17,7 @@ public class AppointmentServiceTests
 
         var date = new DateTime(2026, 03, 25, 12, 0, 0, DateTimeKind.Utc);
 
-        var result = await sut.SearchDoctorAppointmentsAsync("doctor-user-1", date, pageNumber: 1, pageSize: 1);
+        var result = await sut.SearchDoctorAppointmentsAsync("doctor-user-1", date, 1, 1);
 
         Assert.Equal(2, result.TotalCount);
         Assert.Single(result.Items);
@@ -36,7 +36,7 @@ public class AppointmentServiceTests
 
         var date = new DateTime(2099, 03, 25, 12, 0, 0, DateTimeKind.Utc);
 
-        var result = await sut.SearchDoctorAppointmentsAsync("doctor-user-1", date, pageNumber: 1, pageSize: 10);
+        var result = await sut.SearchDoctorAppointmentsAsync("doctor-user-1", date, 1, 10);
 
         Assert.Single(result.Items);
         Assert.Equal("Invitado", result.Items[0].PatientType);
@@ -57,13 +57,13 @@ public class AppointmentServiceTests
     {
         await using var context = await factory.CreateDbContextAsync();
 
+        // 🔹 Usuarios
         var doctorUser = new ApplicationUser
         {
             Id = "doctor-user-1",
             UserName = "doctor@example.com",
             Name = "Doctor Uno",
-            Email = "doctor@example.com",
-            IdentificationNumber = "DOC-1"
+            Email = "doctor@example.com"
         };
 
         var patientUser = new ApplicationUser
@@ -71,13 +71,12 @@ public class AppointmentServiceTests
             Id = "patient-user-1",
             UserName = "patient@example.com",
             Name = "Paciente Uno",
-            Email = "patient@example.com",
-            IdentificationNumber = "PAT-1"
+            Email = "patient@example.com"
         };
 
+        // 🔹 Perfiles
         var doctorProfile = new DoctorProfile
         {
-            DoctorId = Guid.NewGuid(),
             UserId = doctorUser.Id,
             User = doctorUser,
             Specialty = DoctorType.Physiotherapy,
@@ -86,24 +85,23 @@ public class AppointmentServiceTests
 
         var patientProfile = new PatientProfile
         {
-            PatientId = Guid.NewGuid(),
             UserId = patientUser.Id,
             User = patientUser
         };
 
+        // 🔹 Invitado
         var guest = new PatientGuest
         {
             PatientIdentification = "CC123",
             PatientName = "Invitado Uno",
-            PatientPhone = "3000000000",
-            PatientExtraInfo = "N/A"
+            PatientPhone = "3000000000"
         };
 
+        // 🔹 Slots (AHORA usan DoctorUserId)
         var slotA = new DoctorAvailabilitySlot
         {
             Id = Guid.NewGuid(),
-            DoctorId = doctorProfile.DoctorId,
-            Doctor = doctorProfile,
+            DoctorUserId = doctorUser.Id,
             DayOfWeek = DayOfWeek.Wednesday,
             StartTime = new TimeSpan(9, 0, 0),
             EndTime = new TimeSpan(9, 30, 0)
@@ -112,8 +110,7 @@ public class AppointmentServiceTests
         var slotB = new DoctorAvailabilitySlot
         {
             Id = Guid.NewGuid(),
-            DoctorId = doctorProfile.DoctorId,
-            Doctor = doctorProfile,
+            DoctorUserId = doctorUser.Id,
             DayOfWeek = DayOfWeek.Wednesday,
             StartTime = new TimeSpan(11, 0, 0),
             EndTime = new TimeSpan(11, 30, 0)
@@ -125,36 +122,33 @@ public class AppointmentServiceTests
         context.PatientGuests.Add(guest);
         context.DoctorAvailabilitySlots.AddRange(slotA, slotB);
 
+        // 🔹 Citas (ACTUALIZADAS)
         context.Appointments.AddRange(
             new Appointment
             {
                 Id = Guid.NewGuid(),
-                DoctorId = doctorProfile.DoctorId,
-                PatientId = patientProfile.PatientId,
+                DoctorUserId = doctorUser.Id,
+                PatientUserId = patientUser.Id,
                 Date = new DateTime(2026, 03, 25, 5, 0, 0, DateTimeKind.Utc),
                 DoctorAvailabilitySlotId = slotA.Id,
-                DoctorAvailabilitySlot = slotA,
                 CreatedAt = new DateTime(2026, 03, 20, 13, 0, 0, DateTimeKind.Utc)
             },
             new Appointment
             {
                 Id = Guid.NewGuid(),
-                DoctorId = doctorProfile.DoctorId,
-                PatientId = patientProfile.PatientId,
+                DoctorUserId = doctorUser.Id,
+                PatientUserId = patientUser.Id,
                 Date = new DateTime(2026, 03, 25, 5, 0, 0, DateTimeKind.Utc),
                 DoctorAvailabilitySlotId = slotB.Id,
-                DoctorAvailabilitySlot = slotB,
                 CreatedAt = new DateTime(2026, 03, 20, 14, 0, 0, DateTimeKind.Utc)
             },
             new Appointment
             {
                 Id = Guid.NewGuid(),
-                DoctorId = doctorProfile.DoctorId,
+                DoctorUserId = doctorUser.Id,
                 PatientGuestId = guest.PatientIdentification,
-                PatientGuest = guest,
                 Date = new DateTime(2099, 03, 25, 5, 0, 0, DateTimeKind.Utc),
                 DoctorAvailabilitySlotId = slotA.Id,
-                DoctorAvailabilitySlot = slotA,
                 CreatedAt = new DateTime(2099, 03, 20, 14, 0, 0, DateTimeKind.Utc)
             });
 

@@ -1,5 +1,10 @@
-﻿@using System.IdentityModel.Tokens.Jwt
+@using System.IdentityModel.Tokens.Jwt
+@using PiedraAzul.Client.Services.AuthServices
+@using PiedraAzul.Client.States
 @inject PiedraAzul.Client.Services.AuthServices.ITokenService TokenService
+
+@inject AuthenticationService AuthService
+@inject UserState UserState
 @inherits LayoutComponentBase
 
 <div class="flex min-h-screen flex-col bg-gray-50">
@@ -21,8 +26,9 @@
                 Piedra Azul
             </a>
 
-            <nav class="flex items-center gap-8 text-gray-600">
-                <a class="hover:text-gray-900">Servicios</a>
+            <nav class="flex items-center gap-6 text-gray-600">
+                <a href="/" class="hover:text-gray-900 transition-colors">Inicio</a>
+                <a href="/admin" class="hover:text-gray-900 transition-colors">Admin</a>
                 <a class="hover:text-gray-900">Ayuda</a>
 
                 @if (!_isLoaded)
@@ -137,31 +143,33 @@
     private bool _isAuthenticated = false;
     private string? _userName;
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnInitializedAsync()
     {
-        if (!firstRender) return;
-
-        var token = await TokenService.GetAccessTokenAsync();
-
-        if (!string.IsNullOrWhiteSpace(token))
+        if (UserState.UserResponse != null)
         {
             _isAuthenticated = true;
+            _userName = UserState.UserResponse.Name;
+            _isLoaded = true;
+            return;
+        }
 
-            try
-            {
-                var handler = new JwtSecurityTokenHandler();
-                var jwt = handler.ReadJwtToken(token);
+        try
+        {
+            var result = await AuthService.GetCurrentUserAsync();
 
-                _userName = jwt.Claims.FirstOrDefault(c => c.Type == "name")?.Value;
-            }
-            catch
+            if (result.IsSuccess && result.Value != null)
             {
-                _userName = "Usuario";
+                UserState.UserResponse = result.Value;
+
+                _isAuthenticated = true;
+                _userName = result.Value.Name;
             }
+        }
+        catch
+        {
+            _isAuthenticated = false;
         }
 
         _isLoaded = true;
-
-        StateHasChanged(); 
     }
 }

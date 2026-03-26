@@ -4,16 +4,20 @@ using Shared.Grpc;
 
 namespace PiedraAzul.GrpcServices
 {
-    public class GrpcDoctor(PiedraAzul.ApplicationServices.Services.IDoctorService doctorService) : DoctorService.DoctorServiceBase
+    public class GrpcDoctor(
+        PiedraAzul.ApplicationServices.Services.IDoctorService doctorService)
+        : DoctorService.DoctorServiceBase
     {
         public override async Task<DoctorResponse> GetDoctor(DoctorRequest request, ServerCallContext context)
         {
-            if (!Guid.TryParse(request.DoctorId, out Guid doctorId))
+            if (string.IsNullOrWhiteSpace(request.DoctorId))
             {
-                throw new RpcException(new Status(StatusCode.InvalidArgument, "Invalid DoctorId format."));
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "DoctorUserId is required."));
             }
 
-            var result = await doctorService.GetDoctorByIdAsync(doctorId);
+            // 🔥 ahora usamos UserId directamente
+            var result = await doctorService.GetDoctorByUserIdAsync(request.DoctorId);
+
             if (result == null)
             {
                 throw new RpcException(new Status(StatusCode.NotFound, "Doctor not found."));
@@ -21,8 +25,10 @@ namespace PiedraAzul.GrpcServices
 
             return new DoctorResponse
             {
-                DoctorId = result.DoctorId.ToString(),
+                // 🔥 ambos ahora son el mismo ID
+                DoctorId = result.UserId,
                 UserId = result.UserId,
+
                 Name = result.User.Name,
                 Specialty = (DoctorType)result.Specialty,
                 LicenseNumber = result.LicenseNumber,
@@ -30,19 +36,24 @@ namespace PiedraAzul.GrpcServices
                 AvatarUrl = result.User.AvatarUrl
             };
         }
+
         public override Task<DoctorListResponse> GetDoctors(Empty request, ServerCallContext context)
         {
             return GetAllDoctorsAsync();
         }
+
         public override async Task<DoctorListResponse> GetDoctorsByType(DoctorTypeRequest request, ServerCallContext context)
         {
-            var response = await doctorService.GetDoctorByTypeAsync((PiedraAzul.Shared.Enums.DoctorType)request.DoctorType);
+            var response = await doctorService
+                .GetDoctorByTypeAsync((PiedraAzul.Shared.Enums.DoctorType)request.DoctorType);
 
-            DoctorListResponse doctorListResponse= new DoctorListResponse();
+            var doctorListResponse = new DoctorListResponse();
+
             doctorListResponse.Doctors.AddRange(response.Select(d => new DoctorResponse
             {
                 UserId = d.UserId,
-                DoctorId = d.DoctorId.ToString(),
+                DoctorId = d.UserId, // 🔥 ya no existe DoctorId real
+
                 LicenseNumber = d.LicenseNumber,
                 Specialty = (DoctorType)d.Specialty,
                 Name = d.User.Name,
@@ -60,7 +71,7 @@ namespace PiedraAzul.GrpcServices
             response.Doctors.AddRange(doctors.Select(d => new DoctorResponse
             {
                 UserId = d.UserId,
-                DoctorId = d.DoctorId.ToString(),
+                DoctorId = d.UserId.ToString(),
                 LicenseNumber = d.LicenseNumber,
                 Specialty = (DoctorType)d.Specialty,
                 Name = d.User.Name,

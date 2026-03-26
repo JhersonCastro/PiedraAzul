@@ -145,7 +145,7 @@
 
         isLoading = true;
 
-        var result = await AppointmentService.GetDoctorAppointmentsAsync(selectedDoctorUserId, selectedDate, pageNumber, pageSize);
+        var result = await AppointmentService.GetDoctorAppointments(selectedDoctorUserId, selectedDate, pageNumber, pageSize);
 
         if (!result.IsSuccess || result.Value == null)
         {

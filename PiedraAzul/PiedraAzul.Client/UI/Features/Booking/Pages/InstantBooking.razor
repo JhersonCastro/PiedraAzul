@@ -229,7 +229,10 @@ else
             Date = Timestamp.FromDateTime(Model.DayOfYear.ToUniversalTime()),
         });
         if (!result.IsSuccess)
+        {
             _errorMessage = "Ocurrió un error al crear la cita. Por favor, inténtelo de nuevo.";
+            return;
+        }
         
         isLoading = false;
         isSuccess = true;
