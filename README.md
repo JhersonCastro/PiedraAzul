@@ -182,3 +182,12 @@ La documentación completa del proyecto se encuentra disponible en la carpeta co
 - [Prototipos en Figma](https://www.figma.com/design/FlGdsvvoSdX8jRe8qSrxtq/Software-III?node-id=0-1&t=SnDIq7n63B9LUn5B-1)
 - [Documento atributos de calidad](https://docs.google.com/document/d/1UkVKK1_C14V3rVn2_EX44BS6jK1bsTZ_/edit)
 - [Diagramas Modelo C4](https://app.diagrams.net/#G17fLFngDYyHThrFKKZ8bIZPwn7_HlTWcR#%7B%22pageId%22%3A%22zNMGI6wU0Mi8Qe2H5Q59%22%7D)
+
+## Equipo
+
+| Integrante | tareas |
+|------------|-----|
+| [Jherson Andres Castro] | [Desarrollo, integración, diseño] |
+| [Edier Fabian Dorado] | [Desarrollo, modelado] |
+| [Juan Fernando Portilla] | [Desarrollo, modelado, diseño] |
+| [Yezid Esteban Hernandez] | [Desarrollo, documentación] |
