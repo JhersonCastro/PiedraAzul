@@ -7,6 +7,7 @@ namespace PiedraAzul.ApplicationServices.Services
 {
     public interface IDoctorService
     {
+        Task<List<DoctorProfile>> GetAllDoctorsAsync();
         Task<List<DoctorProfile>> GetDoctorByTypeAsync(DoctorType type);
 
         Task<DoctorProfile?> GetDoctorByUserIdAsync(string userId);
@@ -20,6 +21,16 @@ namespace PiedraAzul.ApplicationServices.Services
             return await context.DoctorProfiles
                 .Include(d => d.User)
                 .FirstOrDefaultAsync(d => d.UserId == userId);
+        }
+
+        public async Task<List<DoctorProfile>> GetAllDoctorsAsync()
+        {
+            using var context = await dbContextFactory.CreateDbContextAsync();
+
+            return await context.DoctorProfiles
+                .Include(dp => dp.User)
+                .OrderBy(dp => dp.User.Name)
+                .ToListAsync();
         }
 
         public async Task<List<DoctorProfile>> GetDoctorByTypeAsync(DoctorType type)

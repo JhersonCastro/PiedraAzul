@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using PiedraAzul.ApplicationServices.AutoCompleteServices;
-using PiedraAzul.ApplicationServices.Mapping;
 using PiedraAzul.Client.Services;
 using PiedraAzul.Client.States;
 using Shared.Grpc;
@@ -90,7 +89,7 @@ namespace PiedraAzul.Extensions
 
         public static IServiceCollection AddMappers(this IServiceCollection services)
         {
-            services.AddSingleton<PatientMapper>();
+            
 
 
             return services;
