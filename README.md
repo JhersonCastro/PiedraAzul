@@ -167,3 +167,18 @@ El proyecto está organizado en una solución .NET con los siguientes proyectos:
 | `PiedraAzul.Shared/` | Modelos compartidos, DTOs y clases que se utilizan tanto en backend como frontend |
 | `PiedraAzul.Test/` | Pruebas unitarias con xUnit. Cubre la lógica de negocio y servicios del dominio |
 
+## Documentación
+
+La documentación completa del proyecto se encuentra disponible en la carpeta compartida de Google Drive:
+
+[Documentación del Proyecto](link-del-drive)
+
+**Contenido:**
+- **Historias de Usuario y Atributos de Calidad** - Definición de requisitos y escenarios de calidad
+- **DiagramasC4.drawio** - Diagramas de arquitectura en modelo C4
+- **Atributos de calidad.docx** - Especificación detallada de atributos de calidad priorizados (usabilidad y seguridad)
+
+**Recursos adicionales:**
+- [Prototipos en Figma](https://www.figma.com/design/FlGdsvvoSdX8jRe8qSrxtq/Software-III?node-id=0-1&t=SnDIq7n63B9LUn5B-1)
+- [Documento atributos de calidad](https://docs.google.com/document/d/1UkVKK1_C14V3rVn2_EX44BS6jK1bsTZ_/edit)
+- [Diagramas Modelo C4](https://app.diagrams.net/#G17fLFngDYyHThrFKKZ8bIZPwn7_HlTWcR#%7B%22pageId%22%3A%22zNMGI6wU0Mi8Qe2H5Q59%22%7D)
