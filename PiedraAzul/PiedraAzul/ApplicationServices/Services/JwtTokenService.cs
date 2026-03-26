@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using PiedraAzul.Data;
 using System.IdentityModel.Tokens.Jwt;
@@ -67,7 +67,8 @@ namespace PiedraAzul.ApplicationServices.Services
             {
                 var principal = tokenHandler.ValidateToken(token, parameters, out _);
 
-                var userId = principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+                var userId = principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value 
+                             ?? principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
                 return Task.FromResult(userId);
             }

@@ -1,7 +1,8 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 using PiedraAzul.ApplicationServices.Services;
 using PiedraAzul.Data;
 using PiedraAzul.Data.Models;
@@ -10,6 +11,7 @@ public class PostgresFixture : IAsyncLifetime
 {
     public IServiceProvider ServiceProvider { get; private set; } = null!;
     public IDbContextFactory<AppDbContext> DbContextFactory { get; private set; } = null!;
+    public IConfiguration Configuration { get; private set; } = null!;
 
     public async Task InitializeAsync()
     {
@@ -40,7 +42,21 @@ public class PostgresFixture : IAsyncLifetime
         .AddRoles<IdentityRole>()
         .AddEntityFrameworkStores<AppDbContext>();
 
+        Configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Jwt:Key"] = "SuperSecretTestKeyThatIsLongEnoughToBeAValidHmacSha256KeyOnlyForTesting",
+                ["Jwt:Issuer"] = "TestIssuer",
+                ["Jwt:Audience"] = "TestAudience"
+            })
+            .Build();
+
+        services.AddSingleton(Configuration);
         services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IPatientService, PatientService>();
+        services.AddScoped<IDoctorService, DoctorService>();
+        services.AddScoped<IJwtTokenService, JwtTokenService>();
+        services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 
         ServiceProvider = services.BuildServiceProvider();
 
