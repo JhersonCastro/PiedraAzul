@@ -113,10 +113,7 @@ else
     {
         var result = await AppointmentService.CreateAppointment(new()
         {
-            PatientId = _patientId,
-            PatientIdentification = string.Empty,
-            PatientName = string.Empty,
-            PatientPhone = string.Empty,
+            PatientUserId = _patientId,
 
             DoctorId = Model.DoctorId,
             DoctorAvailabilitySlotId = Model.SlotId,

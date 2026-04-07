@@ -7,6 +7,7 @@
 @using PiedraAzul.Client.Models.UserProfiles
 @using PiedraAzul.Client.Services.AuthServices
 @using PiedraAzul.Client.Services.GrpcServices
+@using PiedraAzul.Client.Services.Utils
 @using PiedraAzul.Client.States
 @using PiedraAzul.Client.UI.Features.Booking.Components
 @using PiedraAzul.Client.UI.Shared.Components.StepTag
@@ -219,10 +220,7 @@ else
     {
         var result = await AppointmentService.CreateAppointment(new()
         {
-            PatientId = string.Empty,
-            PatientIdentification = Model.PatientIdentification,
-            PatientName = Model.PatientName,
-            PatientPhone = Model.PatientPhone,
+            Guest = CreateContracts.CreateGuestPatientInput(Model.PatientName!, Model.PatientPhone!, Model.PatientIdentification!, ""),
 
             DoctorId = Model.DoctorId,
             DoctorAvailabilitySlotId = Model.SlotId,
