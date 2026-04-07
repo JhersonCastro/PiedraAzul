@@ -17,9 +17,9 @@ namespace PiedraAzul.Domain.Entities.Profiles.Doctor
 
         private Doctor() { }
 
-        public Doctor(string id, DoctorType specialty, string licenseNumber)
+        public Doctor(string userId, DoctorType specialty, string licenseNumber)
         {
-            Id = id;
+            Id = userId;
             Specialty = specialty;
             LicenseNumber = licenseNumber;
         }
