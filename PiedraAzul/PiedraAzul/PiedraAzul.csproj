@@ -32,7 +32,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\PiedraAzul.Client\PiedraAzul.Client.csproj" />
-		<ProjectReference Include="..\PiedraAzul.Shared\PiedraAzul.Shared.csproj" />
+		<ProjectReference Include="..\PiedraAzul.Shared\PiedraAzul.Contracts.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>

@@ -1,6 +1,9 @@
 <Solution>
+  <Project Path="PiedraAzul.Application/PiedraAzul.Application.csproj" Id="c0dc7256-b220-42af-9a12-326ac0426ade" />
+  <Project Path="PiedraAzul.Domain/PiedraAzul.Domain.csproj" Id="0a68bdd6-2561-46de-b9b4-e5f2d45c681b" />
+  <Project Path="PiedraAzul.Infrastructure/PiedraAzul.Infrastructure.csproj" Id="eab814a1-3cce-480a-8fa8-e136d6063ede" />
   <Project Path="PiedraAzul/PiedraAzul.Client/PiedraAzul.Client.csproj" />
-  <Project Path="PiedraAzul/PiedraAzul.Shared/PiedraAzul.Shared.csproj" />
+  <Project Path="PiedraAzul/PiedraAzul.Shared/PiedraAzul.Contracts.csproj" />
   <Project Path="PiedraAzul/PiedraAzul.Test/PiedraAzul.Test.csproj" Id="1c8769c4-4777-484e-9477-3512f9cea038" />
   <Project Path="PiedraAzul/PiedraAzul/PiedraAzul.csproj" />
 </Solution>
