@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Shared.Grpc;
 
 namespace PiedraAzul.Client.Models.UserProfiles
 {
@@ -8,5 +8,10 @@ namespace PiedraAzul.Client.Models.UserProfiles
         public string PatientIdentification { get; set; }
         public string PatientName { get; set; }
         public string PatientPhone { get; set; }
+
+        public PatientType Type { get; set; } 
+
+        public bool IsRegistered => Type == PatientType.Registered;
+        public bool IsGuest => Type == PatientType.Guest;
     }
 }
