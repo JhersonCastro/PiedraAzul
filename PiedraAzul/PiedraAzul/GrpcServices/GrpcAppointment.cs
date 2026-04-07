@@ -1,222 +1,170 @@
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.EntityFrameworkCore;
-using Npgsql;
-using PiedraAzul.ApplicationServices.AutoCompleteServices;
-using PiedraAzul.ApplicationServices.Mapping;
-using PiedraAzul.Data.Models;
+using Mediator;
+using PiedraAzul.Application.Common.Models.Appointments;
+using PiedraAzul.Application.Features.Appointments.CreateAppointment;
+using PiedraAzul.Application.Features.Doctors.Queries.GetDoctorAppointments;
+using PiedraAzul.Application.Features.Patients.Queries.GetPatientAppointments;
 using Shared.Grpc;
 
 namespace PiedraAzul.GrpcServices
 {
-    public class GrpcAppointment(
-        PiedraAzul.ApplicationServices.Services.IAppointmentService appointmentService,
-        PiedraAzul.ApplicationServices.Services.IPatientService patientService,
-        IPatientAutocompleteService patientAutocompleteService,
-        PatientMapper mapper)
+    public class GrpcAppointment(IMediator mediator)
         : AppointmentService.AppointmentServiceBase
     {
-        public override async Task<AppointmentResponse> CreateAppointment(CreateAppointmentRequest request, ServerCallContext context)
+        public override async Task<AppointmentResponse> CreateAppointment(
+            CreateAppointmentRequest request,
+            ServerCallContext context)
         {
             if (request == null)
                 throw new RpcException(new Status(StatusCode.InvalidArgument, "Request cannot be null"));
 
             if (request.Date == null)
-                throw new RpcException(new Status(StatusCode.InvalidArgument, "Date must be provided"));
-
-            var dateUtc = request.Date.ToDateTime().ToUniversalTime();
-
-            var normalizedDate = new DateTime(
-                dateUtc.Year,
-                dateUtc.Month,
-                dateUtc.Day,
-                0, 0, 0,
-                DateTimeKind.Utc
-            );
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "Date required"));
 
             if (string.IsNullOrWhiteSpace(request.DoctorId))
-                throw new RpcException(new Status(StatusCode.InvalidArgument, "DoctorUserId is required"));
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "DoctorId required"));
 
-            if (!Guid.TryParse(request.DoctorAvailabilitySlotId, out var doctorAvailabilitySlotId))
-                throw new RpcException(new Status(StatusCode.InvalidArgument, "Invalid slot ID"));
+            if (!Guid.TryParse(request.DoctorAvailabilitySlotId, out var slotId))
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "Invalid slotId"));
+
+            var date = DateOnly.FromDateTime(request.Date.ToDateTime());
 
             string? patientUserId = null;
+            string? patientGuestId = null;
 
-            // Guid se usa porque si es un usario, userid es un guid, pero si es un invitado, es un string largo (numero de identificacion, o sea su cedula)
-            if (Guid.TryParse(request.PatientId, out _))
+            switch (request.PatientCase)
             {
-                // asumimos que es UserId válido
-                patientUserId = request.PatientId;
+                case CreateAppointmentRequest.PatientOneofCase.PatientUserId:
+                    patientUserId = request.PatientUserId;
+                    break;
+
+                case CreateAppointmentRequest.PatientOneofCase.Guest:
+                    var g = request.Guest;
+
+                    if (string.IsNullOrWhiteSpace(g.Identification))
+                        throw new RpcException(new Status(StatusCode.InvalidArgument, "Guest identification required"));
+
+                    patientGuestId = g.Identification;
+                    break;
+
+                default:
+                    throw new RpcException(new Status(StatusCode.InvalidArgument, "Patient required"));
             }
-            else if (!string.IsNullOrWhiteSpace(request.PatientIdentification))
-            {
-                try
-                {
-                    var patientGuest = await patientService
-                        .GetPatientGuestById(request.PatientIdentification);
-
-                    if (patientGuest == null)
-                    {
-                        if (string.IsNullOrWhiteSpace(request.PatientName) ||
-                            string.IsNullOrWhiteSpace(request.PatientPhone))
-                        {
-                            throw new RpcException(new Status(
-                                StatusCode.InvalidArgument,
-                                "Patient name and phone required for guest"
-                            ));
-                        }
-
-                        var newPatientGuest = mapper.ToEntity(request);
-                        var result = await patientService.CreatePatientGuestAsync(newPatientGuest);
-
-                        if (result == null)
-                            throw new RpcException(new Status(StatusCode.Internal, "Failed to create guest"));
-
-                        await patientAutocompleteService.IndexGuestAsync(result);
-                    }
-                }
-                catch (RpcException)
-                {
-                    throw;
-                }
-                catch
-                {
-                    throw new RpcException(new Status(
-                        StatusCode.Internal,
-                        "Unexpected error while handling patient guest"
-                    ));
-                }
-            }
-
-            var appointment = new Appointment
-            {
-                DoctorUserId = request.DoctorId,
-                DoctorAvailabilitySlotId = doctorAvailabilitySlotId,
-                Date = normalizedDate
-            };
 
             try
             {
-                var result = await appointmentService.CreateAppointmentAsync(
-                    appointment,
-                    patientUserId,
-                    request.PatientIdentification
+                var appointment = await mediator.Send(
+                    new CreateAppointmentCommand(
+                        request.DoctorId,
+                        slotId,
+                        date,
+                        patientUserId,
+                        patientGuestId
+                    )
                 );
-                return new AppointmentResponse
-                {
-                    Id = result.Id.ToString(),
-                    PatientId = result.PatientUserId ?? string.Empty,
-                    PatientGuestId = result.PatientGuestId ?? string.Empty,
-                    AppointmentSlotId = result.DoctorAvailabilitySlotId.ToString(),
-                    Start = Timestamp.FromDateTime(result.Date.Add(result.DoctorAvailabilitySlot.StartTime).ToUniversalTime()),
-                    CreatedAt = Google.Protobuf.WellKnownTypes.Timestamp
-                        .FromDateTime(result.CreatedAt.ToUniversalTime())
-                };
+
+                return MapFromDomain(appointment);
             }
-            catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg &&
-                                               pg.SqlState == "23505")
+            catch (Exception ex)
             {
-                throw new RpcException(new Status(StatusCode.AlreadyExists,
-                    "This appointment slot is already taken"));
-            }
-            catch
-            {
-                throw new RpcException(new Status(StatusCode.Internal,
-                    "Error creating appointment"));
+                throw new RpcException(new Status(StatusCode.Internal, ex.Message));
             }
         }
 
         public override async Task<AppointmentListResponse> GetDoctorAppointments(
-    DoctorAppointmentsRequest request,
-    ServerCallContext context)
+            DoctorAppointmentsRequest request,
+            ServerCallContext context)
         {
-            if (request == null)
-                throw new RpcException(new Status(StatusCode.InvalidArgument, "Request cannot be null"));
+            if (string.IsNullOrWhiteSpace(request.DoctorId))
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "DoctorId required"));
 
-            DateTime normalizedDate = default;
+            DateOnly? date = null;
 
             if (request.Date != null)
-            {
-                var date = request.Date.ToDateTime();
+                date = DateOnly.FromDateTime(request.Date.ToDateTime());
 
-                normalizedDate = new DateTime(
-                    date.Year,
-                    date.Month,
-                    date.Day,
-                    0, 0, 0,
-                    DateTimeKind.Utc);
-            }
-
-            var appointments = await appointmentService
-                .GetDoctorAppointmentsAsync(request.DoctorId, normalizedDate);
+            var result = await mediator.Send(
+                new GetDoctorAppointmentsQuery(request.DoctorId, date)
+            );
 
             var response = new AppointmentListResponse();
-
-            response.Appointments.AddRange(appointments.Select(a =>
-            {
-                var combined = a.Date.Add(a.DoctorAvailabilitySlot.StartTime);
-
-                var utcDateTime = DateTime.SpecifyKind(combined, DateTimeKind.Utc);
-
-                return new AppointmentResponse
-                {
-                    Id = a.Id.ToString(),
-                    PatientId = a.PatientUserId ?? string.Empty,
-                    PatientGuestId = a.PatientGuestId ?? string.Empty,
-                    PatientType = a.PatientUserId != null ? "Registered" : "Guest",
-                    PatientName = a.PatientUserId != null
-                        ? (a.Patient?.Name ?? a.Patient?.UserName ?? "Paciente registrado")
-                        : (a.PatientGuest?.PatientName ?? "Paciente invitado"),
-                    AppointmentSlotId = a.DoctorAvailabilitySlotId.ToString(),
-
-                    Start = Google.Protobuf.WellKnownTypes.Timestamp
-                        .FromDateTime(utcDateTime),
-
-                    CreatedAt = Google.Protobuf.WellKnownTypes.Timestamp
-                        .FromDateTime(a.CreatedAt.ToUniversalTime())
-                };
-            }));
-
+            response.Appointments.AddRange(result.Select(MapFromDto));
             return response;
         }
 
-        public override async Task<AppointmentListResponse> GetPatientAppointments(PatientAppointmentsRequest request, ServerCallContext context)
+        public override async Task<AppointmentListResponse> GetPatientAppointments(
+            PatientAppointmentsRequest request,
+            ServerCallContext context)
         {
-            if (request == null)
-                throw new RpcException(new Status(StatusCode.InvalidArgument, "Request cannot be null"));
+            string? userId = null;
+            string? guestId = null;
 
-            if (string.IsNullOrWhiteSpace(request.PatientId))
-                throw new RpcException(new Status(StatusCode.InvalidArgument, "Patient ID required"));
-
-            List<Appointment> appointments;
-
-            if(Guid.TryParse(request.PatientId, out _))
+            switch (request.PatientCase)
             {
-                // asumimos que es UserId válido
-                appointments = await appointmentService
-                    .GetPatientAppointmentsAsync(request.PatientId, null);
+                case PatientAppointmentsRequest.PatientOneofCase.PatientUserId:
+                    userId = request.PatientUserId;
+                    break;
+
+                case PatientAppointmentsRequest.PatientOneofCase.PatientGuestId:
+                    guestId = request.PatientGuestId;
+                    break;
+
+                default:
+                    throw new RpcException(new Status(StatusCode.InvalidArgument, "Patient required"));
             }
-            else
-            {
-                appointments = await appointmentService
-                    .GetPatientAppointmentsAsync(null, request.PatientId);
-            }
+
+            var result = await mediator.Send(
+                new GetPatientAppointmentsQuery(userId, guestId)
+            );
 
             var response = new AppointmentListResponse();
+            response.Appointments.AddRange(
+                result.Select(a => MapFromDto(a))
+            ); return response;
+        }
 
-            response.Appointments.AddRange(appointments.Select(a => new AppointmentResponse
+        // ✅ Mapper para DTO (Queries)
+        private static AppointmentResponse MapFromDto(AppointmentDto a)
+        {
+            return new AppointmentResponse
             {
                 Id = a.Id.ToString(),
-                PatientId = a.PatientUserId ?? string.Empty,
-                PatientGuestId = a.PatientGuestId ?? string.Empty,
-                PatientType = a.PatientUserId != null ? "Registered" : "Guest",
-                AppointmentSlotId = a.DoctorAvailabilitySlotId.ToString(),
-                CreatedAt = Google.Protobuf.WellKnownTypes.Timestamp
-                    .FromDateTime(a.CreatedAt.ToUniversalTime())
-            }));
+                PatientUserId = a.PatientUserId ?? "",
+                PatientGuestId = a.PatientGuestId ?? "",
+                PatientType = a.PatientType,
+                PatientName = a.PatientName,
 
-            return response;
+                AppointmentSlotId = a.SlotId.ToString(),
+
+                Start = Timestamp.FromDateTime(
+                    DateTime.SpecifyKind(a.Start, DateTimeKind.Utc)
+                ),
+
+                CreatedAt = Timestamp.FromDateTime(a.CreatedAt.ToUniversalTime())
+            };
+        }
+
+        private static AppointmentResponse MapFromDomain(Domain.Entities.Operations.Appointment a)
+        {
+            var start = a.Date.ToDateTime(TimeOnly.MinValue);
+
+            return new AppointmentResponse
+            {
+                Id = a.Id.ToString(),
+                PatientUserId = a.PatientUserId ?? "",
+                PatientGuestId = a.PatientGuestId ?? "",
+                PatientType = a.PatientUserId != null ? "Registered" : "Guest",
+                PatientName = "", 
+
+                AppointmentSlotId = a.DoctorAvailabilitySlotId.ToString(),
+
+                Start = Timestamp.FromDateTime(
+                    DateTime.SpecifyKind(start, DateTimeKind.Utc)
+                ),
+
+                CreatedAt = Timestamp.FromDateTime(a.CreatedAt.ToUniversalTime())
+            };
         }
     }
 }

@@ -1,9 +1,14 @@
-﻿using Google.Protobuf.Collections;
+﻿using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
-using PiedraAzul.ApplicationServices.AutoCompleteServices;
-using PiedraAzul.ApplicationServices.Services;
-using PiedraAzul.Data;
-using PiedraAzul.GrpcServices;
+using Mediator;
+using PiedraAzul.Application.Common.Interfaces;
+using PiedraAzul.Application.Common.Models.Auth;
+using PiedraAzul.Application.Common.Models.User;
+using PiedraAzul.Application.Features.Auth.Commands.Login;
+using PiedraAzul.Application.Features.Auth.Commands.Register;
+using PiedraAzul.Application.Features.Users.Commands.CreateProfileForRole;
+using PiedraAzul.Application.Features.Users.Queries.GetUserById;
+using PiedraAzul.Application.Features.Users.Queries.GetUserRoles;
 using PiedraAzul.Shared.Grpc;
 using Shared.Grpc;
 using System.Security.Claims;
@@ -11,45 +16,75 @@ using System.Security.Claims;
 namespace PiedraAzul.GrpcServices
 {
     public class GrpcAuth(
-        IUserService userService,
+        IMediator mediator,
         IJwtTokenService jwtTokenService,
-        IRefreshTokenService refresh,
-        IPatientAutocompleteService patientAutocompleteService
-        //IDoctorAutocompleteService doctorAutoCompleteService
+        IRefreshTokenService refresh
     ) : AuthService.AuthServiceBase
     {
+        // =========================
+        // LOGIN
+        // =========================
         public override async Task<AuthResponse> Login(LoginRequest request, ServerCallContext context)
         {
-            var userAndRoles = await userService.Login(request.Email, request.Password);
-            var user = userAndRoles.Item1;
-            var roles = userAndRoles.Item2;
+            var result = await mediator.Send(new LoginCommand(request.Email, request.Password));
 
-            if (user == null)
+            if (result.User is null)
                 throw new RpcException(new Status(StatusCode.Unauthenticated, "Credenciales incorrectas"));
 
-            var accessToken = await jwtTokenService.CreateTokenAsync(user);
-            var refreshToken = await refresh.GenerateRefreshTokenAsync(user.Id);
+            var accessToken = await jwtTokenService.CreateTokenAsync(result.User.Id, result.Roles);
+            var refreshToken = await refresh.GenerateRefreshTokenAsync(result.User.Id);
 
             await GrpcCookieHelper.SetRefreshTokenCookie(context, refreshToken);
 
-            var userResponse = new UserResponse
-            {
-                Id = user.Id,
-                Name = user.Name,
-                Email = user.Email,
-                BirthDate = user.BirthDate?.ToShortDateString() ?? string.Empty,
-                Gender = (int)user.Gender,
-                IdentificationNumber = user.IdentificationNumber,
-            };
-            userResponse.Roles.AddRange(roles);
-
             return new AuthResponse
             {
-                User = userResponse,
+                User = MapUser(result.User, result.Roles),
                 AccessToken = accessToken
             };
         }
 
+        // =========================
+        // REGISTER
+        // =========================
+        public override async Task<AuthResponse> Register(RegisterRequest request, ServerCallContext context)
+        {
+            var roles = request.Roles.ToList();
+
+            var result = await mediator.Send(new RegisterCommand(
+                new RegisterUserDto(
+                    request.Email,
+                    request.Name,
+                    request.Phone,
+                    request.IdentificationNumber
+                ),
+                request.Password,
+                roles
+            ));
+
+            if (result.User is null)
+                throw new RpcException(new Status(StatusCode.Internal, "No se pudo registrar"));
+
+            // temporal
+            foreach (var role in roles)
+            {
+                await mediator.Send(new CreateProfileForRoleCommand(result.User.Id, role));
+            }
+
+            var accessToken = await jwtTokenService.CreateTokenAsync(result.User.Id, roles);
+            var refreshToken = await refresh.GenerateRefreshTokenAsync(result.User.Id);
+
+            await GrpcCookieHelper.SetRefreshTokenCookie(context, refreshToken);
+
+            return new AuthResponse
+            {
+                User = MapUser(result.User, roles),
+                AccessToken = accessToken
+            };
+        }
+
+        // =========================
+        // REFRESH TOKEN 
+        // =========================
         public override async Task<AuthResponse> RefreshToken(RefreshTokenRequest request, ServerCallContext context)
         {
             var refreshToken = GrpcCookieHelper.GetRefreshTokenFromCookie(context);
@@ -57,54 +92,47 @@ namespace PiedraAzul.GrpcServices
             if (string.IsNullOrEmpty(refreshToken))
                 throw new RpcException(new Status(StatusCode.Unauthenticated, "No hay refresh token"));
 
-            var storedToken = await refresh.ValidateRefreshTokenAsync(refreshToken);
+            var userId = await refresh.ValidateRefreshTokenAsync(refreshToken);
 
-            if (storedToken == null)
+            if (userId == null)
                 throw new RpcException(new Status(StatusCode.Unauthenticated, "Token inválido"));
 
-            var user = storedToken.User;
-            var roles = await userService.GetRolesByUser(user);
+            var user = await mediator.Send(new GetUserByIdQuery(userId));
+            var roles = await mediator.Send(new GetUserRolesQuery(userId));
 
-            var newRefreshToken = await refresh.RotateRefreshTokenAsync(storedToken);
-            var accessToken = await jwtTokenService.CreateTokenAsync(user);
+            var newRefreshToken = await refresh.RotateRefreshTokenAsync(refreshToken);
+            var accessToken = await jwtTokenService.CreateTokenAsync(userId, roles);
 
             await GrpcCookieHelper.SetRefreshTokenCookie(context, newRefreshToken);
 
-            var userResponse = new UserResponse
-            {
-                Id = user.Id,
-                Name = user.Name,
-                Email = user.Email,
-                BirthDate = user.BirthDate?.ToShortDateString() ?? string.Empty,
-                Gender = (int)user.Gender,
-                IdentificationNumber = user.IdentificationNumber,
-            };
-            userResponse.Roles.AddRange(roles);
-
             return new AuthResponse
             {
-                User = userResponse,
+                User = MapUser(user!, roles),
                 AccessToken = accessToken
             };
         }
 
-        public override async Task<Empty> RevokeToken(RevokeTokenRequest request, ServerCallContext context)
+        // =========================
+        // REVOKE TOKEN
+        // =========================
+        public override async Task<Shared.Grpc.Empty> RevokeToken(RevokeTokenRequest request, ServerCallContext context)
         {
             var refreshToken = GrpcCookieHelper.GetRefreshTokenFromCookie(context);
 
             if (!string.IsNullOrEmpty(refreshToken))
             {
-                var storedToken = await refresh.ValidateRefreshTokenAsync(refreshToken);
-                if (storedToken != null) 
-                    await refresh.RotateRefreshTokenAsync(storedToken);
+                await refresh.RotateRefreshTokenAsync(refreshToken);
             }
 
             await GrpcCookieHelper.DeleteRefreshTokenCookie(context);
 
-            return new Empty();
+            return new Shared.Grpc.Empty();
         }
 
-        public override async Task<UserResponse> GetCurrentUser(Empty request, ServerCallContext context)
+        // =========================
+        // CURRENT USER
+        // =========================
+        public override async Task<UserResponse> GetCurrentUser(Shared.Grpc.Empty request, ServerCallContext context)
         {
             var httpContext = context.GetHttpContext();
             var userClaims = httpContext.User;
@@ -117,72 +145,30 @@ namespace PiedraAzul.GrpcServices
             if (string.IsNullOrEmpty(userId))
                 throw new RpcException(new Status(StatusCode.Unauthenticated, "Token inválido"));
 
-            var user = await userService.GetById(userId);
+            var user = await mediator.Send(new GetUserByIdQuery(userId));
+            var roles = await mediator.Send(new GetUserRolesQuery(userId));
 
             if (user == null)
                 throw new RpcException(new Status(StatusCode.Unauthenticated, "Usuario no encontrado"));
 
-            var roles = await userService.GetRolesByUser(user);
-
-            var userResponse = new UserResponse
-            {
-                Id = user.Id,
-                Name = user.Name,
-                Email = user.Email,
-                BirthDate = user.BirthDate?.ToShortDateString() ?? string.Empty,
-                Gender = (int)user.Gender,
-                IdentificationNumber = user.IdentificationNumber,
-            };
-
-            userResponse.Roles.AddRange(roles);
-
-            return userResponse;
+            return MapUser(user, roles);
         }
 
-        public override async Task<AuthResponse> Register(RegisterRequest request, ServerCallContext context)
+        // =========================
+        // MAPPER
+        // =========================
+        private static UserResponse MapUser(UserDto user, List<string> roles)
         {
-            ApplicationUser userRequest = new ApplicationUser
-            {
-                Email = request.Email,
-                IdentificationNumber = request.IdentificationNumber,
-                PhoneNumber = request.Phone,
-                Gender = (Shared.Enums.GenderType)request.Gender,
-                BirthDate = request.BirthDate.ToDateTime(),
-                Name = request.Name,
-            };
-
-            var roles = request.Roles.ToList();
-            var user = await userService.Register(userRequest, request.Password, roles);
-
-            if (user == null)
-                throw new RpcException(new Status(StatusCode.Internal, "No se pudo registrar"));
-
-
-            foreach (var role in roles)
-            {
-                await userService.CreateProfileForRoleAsync(user, role);
-            }
-            var accessToken = await jwtTokenService.CreateTokenAsync(user);
-            var refreshToken = await refresh.GenerateRefreshTokenAsync(user.Id);
-
-            await GrpcCookieHelper.SetRefreshTokenCookie(context, refreshToken);
-
-            var userResponse = new UserResponse
+            var response = new UserResponse
             {
                 Id = user.Id,
                 Name = user.Name,
-                Email = user.Email,
-                BirthDate = user.BirthDate?.ToShortDateString() ?? string.Empty,
-                Gender = (int)user.Gender,
-                IdentificationNumber = user.IdentificationNumber,
+                Email = user.Email
             };
-            userResponse.Roles.AddRange(roles);
 
-            return new AuthResponse
-            {
-                User = userResponse,
-                AccessToken = accessToken
-            };
+            response.Roles.AddRange(roles);
+
+            return response;
         }
     }
 }
