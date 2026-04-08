@@ -1,26 +1,28 @@
 ﻿using Mediator;
 using PiedraAzul.Domain.Entities.Profiles.Patients;
 using PiedraAzul.Domain.Repositories;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
-namespace PiedraAzul.Application.Features.Patients.Commands.CreateGuestPatient
+namespace PiedraAzul.Application.Features.Patients.Commands.CreateGuestPatient;
+
+public class CreateGuestPatientHandler
+    : IRequestHandler<CreateGuestPatientCommand, string>
 {
+    private readonly IPatientGuestRepository _repo;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public class CreateGuestPatientHandler
-        : IRequestHandler<CreateGuestPatientCommand, string>
+    public CreateGuestPatientHandler(
+        IPatientGuestRepository repo,
+        IUnitOfWork unitOfWork)
     {
-        private readonly IPatientGuestRepository _repo;
+        _repo = repo;
+        _unitOfWork = unitOfWork;
+    }
 
-        public CreateGuestPatientHandler(IPatientGuestRepository repo)
-        {
-            _repo = repo;
-        }
-
-        public async ValueTask<string> Handle(
-            CreateGuestPatientCommand request,
-            CancellationToken ct)
+    public async ValueTask<string> Handle(
+        CreateGuestPatientCommand request,
+        CancellationToken ct)
+    {
+        return await _unitOfWork.ExecuteAsync(async ct =>
         {
             var patient = new GuestPatient(
                 Guid.NewGuid().ToString(),
@@ -32,6 +34,6 @@ namespace PiedraAzul.Application.Features.Patients.Commands.CreateGuestPatient
             await _repo.AddAsync(patient, ct);
 
             return patient.Id;
-        }
+        }, ct);
     }
 }
