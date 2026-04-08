@@ -9,8 +9,6 @@
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
 	  <BlazorWebAssemblyLoadAllGlobalizationData>false</BlazorWebAssemblyLoadAllGlobalizationData>
 
-	  <PublishTrimmed>true</PublishTrimmed>
-	  <TrimMode>full</TrimMode>
   </PropertyGroup>
 
   <ItemGroup>
