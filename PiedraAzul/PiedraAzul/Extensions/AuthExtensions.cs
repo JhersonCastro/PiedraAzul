@@ -11,7 +11,7 @@ using Microsoft.IdentityModel.Tokens;
 using PiedraAzul.ApplicationServices.AutoCompleteServices;
 using PiedraAzul.Client.Services;
 using PiedraAzul.Client.States;
-using Shared.Grpc;
+using PiedraAzul.Contracts.Grpc;
 using System.Security.Claims;
 using System.Text;
 
