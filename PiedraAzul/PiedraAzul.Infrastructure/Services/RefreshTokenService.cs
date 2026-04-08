@@ -7,12 +7,17 @@ using System.Text;
 
 namespace PiedraAzul.Infrastructure.Services
 {
-    public class RefreshTokenService(IDbContextFactory<AppDbContext> dbContext) : IRefreshTokenService
+    public class RefreshTokenService : IRefreshTokenService
     {
+        private readonly AppDbContext _context;
+
+        public RefreshTokenService(AppDbContext context)
+        {
+            _context = context;
+        }
+
         public async Task<string> GenerateRefreshTokenAsync(string userId)
         {
-            using var context = await dbContext.CreateDbContextAsync();
-
             var rawToken = GenerateToken();
             var hashed = HashToken(rawToken);
 
@@ -22,19 +27,17 @@ namespace PiedraAzul.Infrastructure.Services
                 userId
             );
 
-            await context.RefreshTokens.AddAsync(refreshToken);
-            await context.SaveChangesAsync();
+            await _context.RefreshTokens.AddAsync(refreshToken);
+            await _context.SaveChangesAsync();
 
             return rawToken;
         }
 
         public async Task<string?> ValidateRefreshTokenAsync(string token)
         {
-            using var context = await dbContext.CreateDbContextAsync();
-
             var hashed = HashToken(token);
 
-            var stored = await context.RefreshTokens
+            var stored = await _context.RefreshTokens
                 .Where(x =>
                     x.TokenHashed == hashed &&
                     !x.IsRevoked &&
@@ -46,16 +49,15 @@ namespace PiedraAzul.Infrastructure.Services
 
         public async Task<string> RotateRefreshTokenAsync(string token)
         {
-            using var context = await dbContext.CreateDbContextAsync();
-
             var hashed = HashToken(token);
 
-            var stored = await context.RefreshTokens
+            var stored = await _context.RefreshTokens
                 .SingleOrDefaultAsync(x => x.TokenHashed == hashed);
 
             if (stored == null)
                 throw new Exception("Invalid refresh token");
 
+            // 🔥 Revoca el actual
             stored.Revoke();
 
             var newRaw = GenerateToken();
@@ -66,8 +68,8 @@ namespace PiedraAzul.Infrastructure.Services
                 stored.UserId
             );
 
-            await context.RefreshTokens.AddAsync(newToken);
-            await context.SaveChangesAsync();
+            await _context.RefreshTokens.AddAsync(newToken);
+            await _context.SaveChangesAsync();
 
             return newRaw;
         }
