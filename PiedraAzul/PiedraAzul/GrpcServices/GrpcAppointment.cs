@@ -30,7 +30,7 @@ namespace PiedraAzul.GrpcServices
                 throw new RpcException(new Status(StatusCode.InvalidArgument, "Invalid slotId"));
 
             var date = DateOnly.FromDateTime(request.Date.ToDateTime());
-
+            
             string? patientUserId = null;
             GuestPatientRequest? patientGuest = null;
 
