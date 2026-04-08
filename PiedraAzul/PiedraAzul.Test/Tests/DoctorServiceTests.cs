@@ -2,7 +2,6 @@
 //using PiedraAzul.ApplicationServices.Services;
 //using PiedraAzul.Data;
 //using PiedraAzul.Data.Models;
-//using PiedraAzul.Shared.Enums;
 
 //namespace PiedraAzul.Test.Tests
 //{
