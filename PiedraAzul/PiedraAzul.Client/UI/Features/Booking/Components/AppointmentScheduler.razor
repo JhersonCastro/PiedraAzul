@@ -250,7 +250,7 @@ else
             var availability = await AvailabilityClient.GetDoctorSlotsByDate(DoctorId, date, CancellationToken.None);
             if (availability.IsSuccess)
             {
-                var slots = availability.Value!.Slots;
+                var slots = availability.Value!;
                 var refreshedSlot = slots.FirstOrDefault(s => s.Id == slotId);
             
                 if (_cache.TryGetValue(date.Date, out var cachedSlots))

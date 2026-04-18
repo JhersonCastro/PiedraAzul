@@ -8,6 +8,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<PackageReference Include="HotChocolate.AspNetCore.Authorization" Version="15.1.14" />
 		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
 		<PackageReference Include="Riok.Mapperly" Version="4.3.1" />
 		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.16.0" />

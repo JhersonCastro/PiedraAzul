@@ -1,4 +1,5 @@
 using PiedraAzul.GraphQL;
+using HotChocolate.AspNetCore.Authorization;
 
 namespace PiedraAzul.Extensions;
 

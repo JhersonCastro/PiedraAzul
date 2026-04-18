@@ -7,7 +7,7 @@ namespace PiedraAzul.Client.Services.GraphQLServices;
 
 public class GraphQLDoctorService(GraphQLHttpClient client)
 {
-    public async Task<List<DoctorGQL>> GetDoctorsByTypeAsync(DoctorType doctorType)
+    public async Task<List<DoctorGQL>> GetDoctorsByTypeAsync(string doctorType)
     {
         const string query = """
             query GetDoctorsByType($doctorType: DoctorSpecialty!) {
@@ -19,7 +19,7 @@ public class GraphQLDoctorService(GraphQLHttpClient client)
 
         var result = await client.ExecuteAsync<List<DoctorGQL>>(
             query,
-            new { doctorType = doctorType.ToString().ToUpperInvariant() },
+            new { doctorType = doctorType },
             "doctorsByType");
 
         return result ?? new();

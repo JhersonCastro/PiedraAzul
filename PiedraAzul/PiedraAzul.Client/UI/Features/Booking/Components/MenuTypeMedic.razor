@@ -209,7 +209,7 @@
         SelectedType = doctorType;
         if (!MedicsByType.TryGetValue(doctorType, out var medics))
         {
-            var response = await DoctorService.GetDoctorsByTypeAsync(doctorType);
+            var response = await DoctorService.GetDoctorsByTypeAsync(doctorType.ToGraphQL());
 
             medics = response.Select(ds => new DoctorModel()
             {

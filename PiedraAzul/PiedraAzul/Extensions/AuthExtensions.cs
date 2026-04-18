@@ -1,5 +1,4 @@
-﻿using Grpc.Net.Client;
-using Lucene.Net.Analysis;
+﻿using Lucene.Net.Analysis;
 using Lucene.Net.Analysis.Standard;
 using Lucene.Net.Index;
 using Lucene.Net.Store;
@@ -11,7 +10,6 @@ using Microsoft.IdentityModel.Tokens;
 using PiedraAzul.ApplicationServices.AutoCompleteServices;
 using PiedraAzul.Client.Services;
 using PiedraAzul.Client.States;
-using PiedraAzul.Contracts.Grpc;
 using System.Security.Claims;
 using System.Text;
 

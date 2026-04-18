@@ -1,5 +1,6 @@
 ﻿@page "/admin/agenda"
 @using PiedraAzul.Client.Models.GraphQL
+@using PiedraAzul.Contracts.Enums
 @inject PiedraAzul.Client.Services.GraphQLServices.GraphQLAppointmentService AppointmentService
 @inject PiedraAzul.Client.Services.GraphQLServices.GraphQLDoctorService DoctorService
 
@@ -118,7 +119,12 @@
     {
         for (int i = 0; i <= 3; i++)
         {
-            var result = await DoctorService.GetDoctorsByTypeAsync((Contracts.Enums.DoctorType)i);
+            var type = (DoctorType)i;
+
+            var result = await DoctorService.GetDoctorsByTypeAsync(
+                type.ToGraphQL()
+            );
+
             if (result.Any())
                 doctores.AddRange(result);
         }
