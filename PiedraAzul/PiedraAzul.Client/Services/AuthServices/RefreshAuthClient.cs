@@ -1,27 +1,47 @@
-﻿using Grpc.Net.Client;
-using Grpc.Net.Client.Web;
 using Microsoft.AspNetCore.Components;
-using PiedraAzul.Contracts.Grpc;
+using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace PiedraAzul.Client.Services.AuthServices;
 
 public class RefreshAuthClient
 {
-    public AuthService.AuthServiceClient Client { get; }
+    private readonly HttpClient httpClient;
 
     public RefreshAuthClient(NavigationManager navigation)
     {
-        var baseAddress = navigation.BaseUri;
+        httpClient = new HttpClient { BaseAddress = new Uri(navigation.BaseUri) };
+    }
 
-        var handler = new GrpcWebHandler(
-            GrpcWebMode.GrpcWeb,
-            new HttpClientHandler());
+    public async Task<string?> RefreshTokenAsync()
+    {
+        const string mutation = """
+            mutation RefreshToken {
+                refreshToken { accessToken }
+            }
+            """;
 
-        var channel = GrpcChannel.ForAddress(baseAddress, new GrpcChannelOptions
+        try
         {
-            HttpHandler = handler
-        });
+            var response = await httpClient.PostAsJsonAsync("/graphql", new { query = mutation });
 
-        Client = new AuthService.AuthServiceClient(channel);
+            if (!response.IsSuccessStatusCode) return null;
+
+            var json = await response.Content.ReadAsStringAsync();
+            var doc = JsonDocument.Parse(json);
+
+            if (doc.RootElement.TryGetProperty("data", out var data) &&
+                data.TryGetProperty("refreshToken", out var rt) &&
+                rt.TryGetProperty("accessToken", out var token))
+            {
+                return token.GetString();
+            }
+
+            return null;
+        }
+        catch
+        {
+            return null;
+        }
     }
 }

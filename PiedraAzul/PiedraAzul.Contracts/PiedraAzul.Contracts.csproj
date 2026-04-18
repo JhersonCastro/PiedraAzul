@@ -1,28 +1,9 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
-	
-	<ItemGroup>
-		<PackageReference Include="Google.Protobuf" Version="3.34.0" />
-		<PackageReference Include="Google.Protobuf.Tools" Version="3.34.0" />
-		<PackageReference Include="Grpc.Core.Api" Version="2.76.0" />
-		<PackageReference Include="Grpc.Tools" Version="2.78.0" PrivateAssets="all" />
-	</ItemGroup>
 
-	<ItemGroup>
-		<Protobuf Include="Protos\common.proto" GrpcServices="None" />
-
-
-		<Protobuf Include="Protos\auth.proto" GrpcServices="Both" />
-		<Protobuf Include="Protos\appointment.proto" GrpcServices="Both" />
-		<Protobuf Include="Protos\availability.proto" GrpcServices="Both" />
-		<Protobuf Include="Protos\doctor.proto" GrpcServices="Both" />
-		<Protobuf Include="Protos\system.proto" GrpcServices="Both" />
-		<Protobuf Include="Protos\patient.proto" GrpcServices="Both" />
-
-	</ItemGroup>
 </Project>

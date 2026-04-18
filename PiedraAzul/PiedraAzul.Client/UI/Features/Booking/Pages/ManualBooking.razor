@@ -1,16 +1,13 @@
 ﻿@page "/booking/manual"
-@using Google.Protobuf.WellKnownTypes
 @using PiedraAzul.Client.Models.Booking
 @using PiedraAzul.Client.Models.UserProfiles
-@using PiedraAzul.Client.Services.GrpcServices
+@using PiedraAzul.Client.Services.GraphQLServices
 @using PiedraAzul.Client.Services.Utils
 @using PiedraAzul.Client.UI.Features.Booking.Components
 @using PiedraAzul.Client.UI.Shared.Components
-@using PiedraAzul.Contracts.Grpc
 
-
-@inject GrpcPatientService PatientService
-@inject GrpcAppointmentService AppointmentService
+@inject GraphQLPatientService PatientService
+@inject GraphQLAppointmentService AppointmentService
 
 <!-- <AuthorizeGuard RequiredRole="Doctor" ReturnUrl="/medical-booking"> -->
 <EditForm Model="@Model" OnValidSubmit="HandlerSubmit">
@@ -181,13 +178,14 @@
     private PatientModel? SelectedPatient;
     private async Task HandlerSearch()
     {
-        var response = await PatientService.SearchPatientsAsync(Search, 10);
+        var response = await PatientService.SearchPatientsAsync(Search ?? "", 10);
         SearchResult = response.Select(p => new PatientModel
         {
             Id = p.Id,
             PatientName = p.Name,
             PatientIdentification = p.Identification,
             PatientPhone = p.Phone,
+            Type = p.Type == "GUEST" ? PatientTypeClient.Guest : PatientTypeClient.Registered
         }).ToList();
 
         await InvokeAsync(StateHasChanged);
@@ -233,35 +231,37 @@
 
     private async Task HandlerSubmit()
     {
-        var request = new CreateAppointmentRequest
-        {
-            DoctorId = Model.DoctorId,
-            DoctorAvailabilitySlotId = Model.SlotId,
-            Date = Timestamp.FromDateTime(Model.DayOfYear.ToUniversalTime())
-        };
+        string? patientUserId = null;
+        GuestPatientGqlInput? guestInput = null;
 
         if (SelectedPatient != null)
         {
             if (SelectedPatient.IsRegistered)
-            {
-                request.PatientUserId = SelectedPatient.Id;
-            }
+                patientUserId = SelectedPatient.Id;
             else
-            {
-                request.Guest = CreateContracts.CreateGuestPatientInput(SelectedPatient.PatientName, SelectedPatient.PatientPhone, SelectedPatient.PatientIdentification, "");
-            }
+                guestInput = CreateContracts.CreateGuestPatientInput(
+                    SelectedPatient.PatientName, SelectedPatient.PatientPhone,
+                    SelectedPatient.PatientIdentification, "");
         }
-        else
+        else if (Model.PatientName != null)
         {
-            request.Guest = CreateContracts.CreateGuestPatientInput(SelectedPatient.PatientName, SelectedPatient.PatientPhone, SelectedPatient.PatientIdentification, "");
+            guestInput = CreateContracts.CreateGuestPatientInput(
+                Model.PatientName, Model.PatientPhone ?? "",
+                Model.PatientIdentification ?? "", "");
         }
 
-        var result = await AppointmentService.CreateAppointment(request);
+        var input = new CreateAppointmentGqlInput(
+            DoctorId: Model.DoctorId!,
+            DoctorAvailabilitySlotId: Model.SlotId!,
+            Date: Model.DayOfYear,
+            PatientUserId: patientUserId,
+            Guest: guestInput
+        );
+
+        var result = await AppointmentService.CreateAppointment(input);
 
         if (!result.IsSuccess)
-        {
-            Console.WriteLine(result.Error.Message);
-        }
+            Console.WriteLine(result.Error?.Message);
     }
 
     private void HandlerCancel()
@@ -306,6 +306,7 @@
                 PatientName = p.Name,
                 PatientIdentification = p.Identification,
                 PatientPhone = p.Phone,
+                Type = p.Type == "GUEST" ? PatientTypeClient.Guest : PatientTypeClient.Registered
             }).ToList();
         }
         catch (TaskCanceledException)

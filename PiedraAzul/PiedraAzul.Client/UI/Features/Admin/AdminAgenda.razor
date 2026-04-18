@@ -1,7 +1,7 @@
 ﻿@page "/admin/agenda"
-@using global::PiedraAzul.Contracts.Grpc
-@inject PiedraAzul.Client.Services.GrpcServices.GrpcAppointmentService AppointmentService
-@inject PiedraAzul.Client.Services.GrpcServices.GrpcDoctorService DoctorService
+@using PiedraAzul.Client.Models.GraphQL
+@inject PiedraAzul.Client.Services.GraphQLServices.GraphQLAppointmentService AppointmentService
+@inject PiedraAzul.Client.Services.GraphQLServices.GraphQLDoctorService DoctorService
 
 <div class="min-h-screen bg-slate-50 p-8">
     <div class="mx-auto max-w-7xl">
@@ -31,6 +31,7 @@
                     {
                         <option value="@doc.UserId">@doc.Name (@doc.Specialty)</option>
                     }
+
                 </select>
             </div>
             
@@ -71,7 +72,7 @@
                                 <tr class="transition-colors hover:bg-slate-50/50">
                                      <td class="px-6 py-4">
                                          <div class="font-semibold text-slate-800">
-                                             @cita.Start.ToDateTime().ToString("hh:mm tt")
+                                             @cita.Start.ToString("hh:mm tt")
                                          </div>
                                      </td>
                                      <td class="px-6 py-4">
@@ -108,47 +109,33 @@
 </div>
 
 @code {
-    private List<DoctorResponse> doctores = new();
-    private List<AppointmentResponse> citas = new();
+    private List<DoctorGQL> doctores = new();
+    private List<AppointmentGQL> citas = new();
     private string SelectedDoctorId { get; set; } = "";
     private DateTime SelectedDate { get; set; } = DateTime.Today;
 
     protected override async Task OnInitializedAsync()
     {
-        // Traeremos los especialistas iterando sobre el enum (0, 1, 2, 3)
-        // Ya que el método nativo retorna por grupo.
         for (int i = 0; i <= 3; i++)
         {
-            var result = await DoctorService.GetDoctorsByTypeAsync((global::PiedraAzul.Contracts.Enums.DoctorType)i);
-            if (result != null && result.Any())
-            {
+            var result = await DoctorService.GetDoctorsByTypeAsync((Contracts.Enums.DoctorType)i);
+            if (result.Any())
                 doctores.AddRange(result);
-            }
         }
     }
 
     private void OnDateChange(ChangeEventArgs e)
     {
         if (DateTime.TryParse(e.Value?.ToString(), out var parsedDate))
-        {
             SelectedDate = parsedDate;
-        }
     }
 
     private async Task CargarCitas()
     {
         if (string.IsNullOrEmpty(SelectedDoctorId)) return;
-        
-        var request = new DoctorAppointmentsRequest 
-        { 
-            DoctorId = SelectedDoctorId, 
-            Date = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(SelectedDate.ToUniversalTime()) 
-        };
-        
-        var result = await AppointmentService.GetDoctorAppointments(request);
+
+        var result = await AppointmentService.GetDoctorAppointments(SelectedDoctorId, SelectedDate);
         if (result.IsSuccess && result.Value != null)
-        {
-            citas = result.Value.Appointments.ToList();
-        }
+            citas = result.Value;
     }
 }

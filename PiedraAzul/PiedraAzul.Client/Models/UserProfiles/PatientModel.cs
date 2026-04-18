@@ -1,17 +1,15 @@
-﻿using PiedraAzul.Contracts.Grpc;
+namespace PiedraAzul.Client.Models.UserProfiles;
 
-namespace PiedraAzul.Client.Models.UserProfiles
+public enum PatientTypeClient { Unknown = 0, Registered = 1, Guest = 2 }
+
+public class PatientModel
 {
-    public class PatientModel
-    {
-        public string Id { get; set; }
-        public string PatientIdentification { get; set; }
-        public string PatientName { get; set; }
-        public string PatientPhone { get; set; }
+    public string Id { get; set; } = "";
+    public string PatientIdentification { get; set; } = "";
+    public string PatientName { get; set; } = "";
+    public string PatientPhone { get; set; } = "";
+    public PatientTypeClient Type { get; set; }
 
-        public PatientType Type { get; set; } 
-
-        public bool IsRegistered => Type == PatientType.Registered;
-        public bool IsGuest => Type == PatientType.Guest;
-    }
+    public bool IsRegistered => Type == PatientTypeClient.Registered;
+    public bool IsGuest => Type == PatientTypeClient.Guest;
 }

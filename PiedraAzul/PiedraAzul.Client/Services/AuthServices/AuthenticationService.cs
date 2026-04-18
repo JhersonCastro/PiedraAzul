@@ -1,82 +1,109 @@
-﻿using Grpc.Core;
 using Microsoft.JSInterop;
 using PiedraAzul.Client.Models;
+using PiedraAzul.Client.Models.GraphQL;
 using PiedraAzul.Client.Models.UserProfiles;
+using PiedraAzul.Client.Services.GraphQLServices;
 using PiedraAzul.Client.Services.Wrappers;
-using PiedraAzul.Contracts.Grpc;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace PiedraAzul.Client.Services.AuthServices;
 
 public class AuthenticationService
 {
-    private readonly AuthService.AuthServiceClient authClient;
+    private readonly GraphQLHttpClient graphQL;
     private readonly IJSRuntime js;
 
-    public AuthenticationService(AuthService.AuthServiceClient authClient, IJSRuntime js)
+    public AuthenticationService(GraphQLHttpClient graphQL, IJSRuntime js)
     {
-        this.authClient = authClient;
+        this.graphQL = graphQL;
         this.js = js;
     }
-    public async Task<Result<UserResponse>> RegisterAsync(RegisterModel registerModel, string role)
+
+    public async Task<Result<UserGQL>> RegisterAsync(RegisterModel registerModel, string role)
     {
-        var result = await GrpcExecutor.Execute(async () => { 
-            RegisterRequest registerRequest = new RegisterRequest
-            {
-                BirthDate = registerModel.BirthDate.HasValue ? Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(registerModel.BirthDate.Value.ToUniversalTime()) : null,
-                Email = registerModel.Email ?? string.Empty,
-                Gender = (GenderType)registerModel.Gender,
-                IdentificationNumber = registerModel.Document,
-                Name = registerModel.FullName,
-                Password = registerModel.Password,
-                Phone = registerModel.Phone,
-                
-            };
-            registerRequest.Roles.Add(role);
-            var response = await authClient.RegisterAsync(registerRequest);
+        const string mutation = """
+            mutation Register($input: RegisterInput!) {
+                register(input: $input) {
+                    accessToken
+                    user { id name email roles }
+                }
+            }
+            """;
 
-            await js.InvokeVoidAsync("sessionStorage.setItem", "accessToken", response.AccessToken);
+        return await GraphQLExecutor.Execute(async () =>
+        {
+            var response = await graphQL.ExecuteAsync<AuthResponseGQL>(
+                mutation,
+                new
+                {
+                    input = new
+                    {
+                        email = registerModel.Email ?? "",
+                        password = registerModel.Password ?? "",
+                        name = registerModel.FullName ?? "",
+                        phone = registerModel.Phone ?? "",
+                        identificationNumber = registerModel.Document ?? "",
+                        roles = new[] { role }
+                    }
+                },
+                "register");
 
+            await js.InvokeVoidAsync("sessionStorage.setItem", "accessToken", response!.AccessToken);
             return response.User;
         });
-        return result;
     }
-    public async Task<Result<UserResponse>> LoginAsync(LoginModel loginModel)
+
+    public async Task<Result<UserGQL>> LoginAsync(LoginModel loginModel)
     {
-        var result = await GrpcExecutor.Execute(async () =>
+        const string mutation = """
+            mutation Login($input: LoginInput!) {
+                login(input: $input) {
+                    accessToken
+                    user { id name email roles }
+                }
+            }
+            """;
+
+        return await GraphQLExecutor.Execute(async () =>
         {
-            var response = await authClient.LoginAsync(new LoginRequest
-            {
-                Email = loginModel.Login,
-                Password = loginModel.Password
-            });
+            var response = await graphQL.ExecuteAsync<AuthResponseGQL>(
+                mutation,
+                new { input = new { email = loginModel.Login, password = loginModel.Password } },
+                "login");
 
             if (response == null || string.IsNullOrEmpty(response.AccessToken))
-                throw new RpcException(new Status(StatusCode.Unauthenticated, "Credenciales inválidas"));
+                throw new GraphQLClientException("Credenciales inválidas");
 
             await js.InvokeVoidAsync("sessionStorage.setItem", "accessToken", response.AccessToken);
-
             return response.User;
         });
-
-        return result;
     }
-    public async Task<Result<UserResponse>> GetCurrentUserAsync()
+
+    public async Task<Result<UserGQL>> GetCurrentUserAsync()
     {
-        var result = await GrpcExecutor.Execute(async () =>
+        const string query = """
+            query CurrentUser {
+                currentUser { id name email roles }
+            }
+            """;
+
+        return await GraphQLExecutor.Execute(async () =>
         {
-            var response = await authClient.GetCurrentUserAsync(new PiedraAzul.Contracts.Grpc.Empty());
-            return response;
+            var user = await graphQL.ExecuteAsync<UserGQL>(query, null, "currentUser");
+            return user!;
         });
-        return result;
     }
 
     public async Task Logout()
     {
-        
+        const string mutation = """
+            mutation RevokeToken {
+                revokeToken
+            }
+            """;
+
         try
         {
-            await authClient.RevokeTokenAsync(new RevokeTokenRequest());
+            await graphQL.ExecuteAsync<bool>(mutation, null, "revokeToken");
         }
         catch { }
 
@@ -85,7 +112,5 @@ public class AuthenticationService
     }
 
     public async Task<string?> GetToken()
-    {
-        return await js.InvokeAsync<string>("sessionStorage.getItem", "accessToken");
-    }
+        => await js.InvokeAsync<string>("sessionStorage.getItem", "accessToken");
 }

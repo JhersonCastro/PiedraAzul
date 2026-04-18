@@ -20,33 +20,30 @@ builder.Services.AddRazorComponents()
 
 // 🔹 API stuff
 builder.Services.AddSignalR();
-builder.Services.AddGrpc();
+builder.Services.AddPiedraAzulGraphQL();
 
-//InteractivityAuto 
-builder.Services.AddClientServer(builder.Configuration["GrpcUrl"] ?? "https://localhost:7128",
+// InteractivityAuto
+builder.Services.AddClientServer(builder.Configuration["GraphQLUrl"] ?? "https://localhost:7128",
                                 builder.Configuration["hubUrl"] ?? "https://localhost:7128");
 
 // 🔹 Auth
 builder.Services.AddAuth(builder.Configuration);
 
 var app = builder.Build();
+
 // middlewares
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.MapStaticAssets();
-app.UseGrpcWeb();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
-
 app.UseAntiforgery();
 
 // endpoints
-app.MapGrpcServices();
+app.MapGraphQLEndpoint();
 app.MapHubs();
-
-
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()

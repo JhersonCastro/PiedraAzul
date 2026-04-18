@@ -1,7 +1,0 @@
-syntax = "proto3";
-
-option csharp_namespace = "PiedraAzul.Contracts.Grpc";
-
-package common;
-
-message Empty {}
