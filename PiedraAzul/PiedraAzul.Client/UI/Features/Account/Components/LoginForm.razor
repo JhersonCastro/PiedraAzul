@@ -1,7 +1,5 @@
-﻿@using Grpc.Core
 @using PiedraAzul.Client.Models
 @using PiedraAzul.Client.Models.UserProfiles
-@using PiedraAzul.Client.Services
 @using PiedraAzul.Client.Services.AuthServices
 @using PiedraAzul.Client.States
 @inject NavigationManager NavigationManager
@@ -55,11 +53,13 @@
             focus:ring-teal-400"
                        placeholder="Tu contraseña" />
         </div>
+
         <!-- Error Message -->
         @if (!string.IsNullOrEmpty(_errorMessage))
         {
             <p class="text-sm text-red-500">@_errorMessage</p>
         }
+
         <!-- Acciones -->
         <div class="mt-6 space-y-3">
 
@@ -90,32 +90,23 @@
     public string? ReturnUrl { get; set; } = string.Empty;
 
     private string? _errorMessage;
+
     private async Task HandleLogin()
     {
-        Console.WriteLine($"Login: {loginModel.Login}");
-
         var result = await AuthService.LoginAsync(loginModel);
 
-        if(!result.IsSuccess)
+        if (!result.IsSuccess)
         {
-            switch(result.Error!.Code)
-            {
-                case StatusCode.Unauthenticated:
-                    _errorMessage = "Credenciales inválidas. Por favor, verifica tu información.";
-                    break;
-                default:
-                    _errorMessage = "Ocurrió un error al intentar iniciar sesión. Por favor, intenta nuevamente.";
-                    break;
-            }
+            _errorMessage = result.Error!.Type == "Auth"
+                ? "Credenciales inválidas. Por favor, verifica tu información."
+                : "Ocurrió un error al intentar iniciar sesión. Por favor, intenta nuevamente.";
             return;
         }
-        
-        var user = result.Value;
 
-        UserState.UserResponse = user;
-        if(string.IsNullOrEmpty(ReturnUrl))
+        UserState.User = result.Value;
+
+        if (string.IsNullOrEmpty(ReturnUrl))
             return;
-        
 
         NavigationManager.NavigateTo(ReturnUrl);
     }

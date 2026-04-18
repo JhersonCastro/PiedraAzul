@@ -1,18 +1,17 @@
 ﻿@page "/instant-medical-booking"
 
-@using Google.Protobuf.WellKnownTypes
 @using Microsoft.AspNetCore.Components.Forms
 @using PiedraAzul.Client.Models
 @using PiedraAzul.Client.Models.Booking
 @using PiedraAzul.Client.Models.UserProfiles
 @using PiedraAzul.Client.Services.AuthServices
-@using PiedraAzul.Client.Services.GrpcServices
+@using PiedraAzul.Client.Services.GraphQLServices
 @using PiedraAzul.Client.Services.Utils
 @using PiedraAzul.Client.States
 @using PiedraAzul.Client.UI.Features.Booking.Components
 @using PiedraAzul.Client.UI.Shared.Components.StepTag
 @inject NavigationManager Navigation
-@inject GrpcAppointmentService AppointmentService
+@inject GraphQLAppointmentService AppointmentService
 @inject AuthenticationService AuthService
 @inject UserState UserState
 
@@ -203,7 +202,7 @@ else
     {
         await base.OnInitializedAsync();
 
-        if (UserState.UserResponse != null) Navigation.NavigateTo("/medical-booking", forceLoad: false, replace: true); 
+        if (UserState.User != null) Navigation.NavigateTo("/medical-booking", forceLoad: false, replace: true);
 
         var response = await AuthService.GetCurrentUserAsync();
         if (response.IsSuccess)
@@ -218,14 +217,13 @@ else
     }
     private async Task HandlerSubmit()
     {
-        var result = await AppointmentService.CreateAppointment(new()
-        {
-            Guest = CreateContracts.CreateGuestPatientInput(Model.PatientName!, Model.PatientPhone!, Model.PatientIdentification!, ""),
-
-            DoctorId = Model.DoctorId,
-            DoctorAvailabilitySlotId = Model.SlotId,
-            Date = Timestamp.FromDateTime(Model.DayOfYear.ToUniversalTime()),
-        });
+        var result = await AppointmentService.CreateAppointment(new CreateAppointmentGqlInput(
+            Guest: CreateContracts.CreateGuestPatientInput(Model.PatientName!, Model.PatientPhone!, Model.PatientIdentification!, ""),
+            PatientUserId: null,
+            DoctorId: Model.DoctorId,
+            DoctorAvailabilitySlotId: Model.SlotId,
+            Date: Model.DayOfYear.ToUniversalTime()
+        ));
         if (!result.IsSuccess)
         {
             _errorMessage = "Ocurrió un error al crear la cita. Por favor, inténtelo de nuevo.";

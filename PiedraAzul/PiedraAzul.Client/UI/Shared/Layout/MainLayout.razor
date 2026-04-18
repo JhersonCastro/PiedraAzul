@@ -28,7 +28,7 @@
 
             <nav class="flex items-center gap-6 text-gray-600">
                 <a href="/" class="transition-colors hover:text-gray-900">Inicio</a>
-                @if (UserState?.UserResponse?.Roles.Contains("Admin") == true)
+                @if (UserState?.User?.Roles.Contains("Admin") == true)
                 {
                     <a href="/admin" class="transition-colors hover:text-gray-900">Admin</a>
                 }
@@ -148,10 +148,10 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (UserState.UserResponse != null)
+        if (UserState.User != null)
         {
             _isAuthenticated = true;
-            _userName = UserState.UserResponse.Name;
+            _userName = UserState.User.Name;
             _isLoaded = true;
             return;
         }
@@ -162,7 +162,7 @@
 
             if (result.IsSuccess && result.Value != null)
             {
-                UserState.UserResponse = result.Value;
+                UserState.User = result.Value;
 
                 _isAuthenticated = true;
                 _userName = result.Value.Name;
