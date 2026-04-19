@@ -4,6 +4,7 @@
 @using PiedraAzul.Client.States
 @inject NavigationManager NavigationManager
 @inject AuthenticationService AuthService
+@inject PasskeyService PasskeyService
 @inject UserState UserState
 
 <EditForm Model="@loginModel" OnValidSubmit="HandleLogin" class="mx-auto w-full max-w-lg">
@@ -69,6 +70,21 @@
                 Iniciar sesión
             </button>
 
+            @if (_passkeySupported)
+            {
+                <button type="button"
+                        @onclick="HandlePasskeyLogin"
+                        disabled="@_passkeyLoading"
+                        class="w-full flex items-center justify-center gap-2 rounded-lg border border-gray-300
+                    bg-white py-3 font-semibold text-gray-700 shadow-sm transition duration-200
+                    hover:bg-gray-50 disabled:opacity-60">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 1a5 5 0 1 0 5 5 5 5 0 0 0-5-5zm0 8a3 3 0 1 1 3-3 3 3 0 0 1-3 3zm-1 2h2v2.18A7 7 0 0 1 19 20H5a7 7 0 0 1 6-6.82V11z"/>
+                    </svg>
+                    @(_passkeyLoading ? "Verificando..." : "Ingresar con passkey")
+                </button>
+            }
+
             <button type="button"
                     @onclick="async () => await OnRegisterClick.InvokeAsync()"
                     class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 rounded-lg
@@ -90,6 +106,15 @@
     public string? ReturnUrl { get; set; } = string.Empty;
 
     private string? _errorMessage;
+    private bool _passkeySupported;
+    private bool _passkeyLoading;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        _passkeySupported = await PasskeyService.IsSupportedAsync();
+        StateHasChanged();
+    }
 
     private async Task HandleLogin()
     {
@@ -103,11 +128,39 @@
             return;
         }
 
-        UserState.User = result.Value;
+        // Force a full page reload so the server re-renders with the new auth cookie
+        // and PersistentAuthenticationStateProvider picks up the authenticated state.
+        var destination = string.IsNullOrEmpty(ReturnUrl) ? "/" : ReturnUrl;
+        NavigationManager.NavigateTo(destination, forceLoad: true);
+    }
 
-        if (string.IsNullOrEmpty(ReturnUrl))
-            return;
+    private async Task HandlePasskeyLogin()
+    {
+        _passkeyLoading = true;
+        _errorMessage = null;
+        StateHasChanged();
 
-        NavigationManager.NavigateTo(ReturnUrl);
+        try
+        {
+            var result = await PasskeyService.LoginAsync();
+
+            if (!result.IsSuccess)
+            {
+                _errorMessage = "No se pudo verificar la passkey. Intenta de nuevo.";
+                return;
+            }
+
+            var destination = string.IsNullOrEmpty(ReturnUrl) ? "/" : ReturnUrl;
+            NavigationManager.NavigateTo(destination, forceLoad: true);
+        }
+        catch
+        {
+            _errorMessage = "Autenticación con passkey cancelada o fallida.";
+        }
+        finally
+        {
+            _passkeyLoading = false;
+            StateHasChanged();
+        }
     }
 }

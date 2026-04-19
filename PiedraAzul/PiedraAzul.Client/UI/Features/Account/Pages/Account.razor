@@ -1,20 +1,292 @@
 @page "/account"
+@using PiedraAzul.Client.Models.GraphQL
 @using PiedraAzul.Client.Services.AuthServices
 @using PiedraAzul.Client.States
-@inject NavigationManager Navigation
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject NavigationManager Nav
 @inject UserState UserState
 @inject AuthenticationService AuthService
+@inject PasskeyService PasskeyService
+@inject HttpClient Http
+
+<PageTitle>Mi cuenta | Piedra Azul</PageTitle>
+
+<div class="mx-auto max-w-2xl px-4 py-10 space-y-6">
+
+    @if (_loading)
+    {
+        <div class="flex justify-center py-20"><div class="spinner"></div></div>
+    }
+    else if (_user is null)
+    {
+        <p class="text-center text-gray-500">No se pudo cargar el perfil.</p>
+    }
+    else
+    {
+        <!-- Profile card -->
+        <div class="rounded-2xl border border-gray-100 bg-white p-6 shadow-xl">
+            <h2 class="mb-5 text-xl font-bold text-gray-800">Mi perfil</h2>
+
+            <!-- Avatar -->
+            <div class="mb-6 flex items-center gap-5">
+                <div class="relative">
+                    <img src="@(_user.AvatarUrl == "default.png" ? "/Avatars/default.png" : _user.AvatarUrl)"
+                         alt="Avatar"
+                         class="h-20 w-20 rounded-full object-cover border-2 border-gray-200 shadow" />
+                    <label class="absolute -bottom-1 -right-1 cursor-pointer rounded-full bg-[#257D8D]
+                                  p-1.5 text-white shadow hover:bg-[#1E5F6F] transition"
+                           title="Cambiar foto">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"
+                                  stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                        </svg>
+                        <InputFile OnChange="OnAvatarSelected" accept="image/*" class="hidden" />
+                    </label>
+                </div>
+                <div>
+                    <p class="font-semibold text-gray-800 text-lg">@_user.Name</p>
+                    <p class="text-sm text-gray-500">@_user.Email</p>
+                    <div class="mt-1 flex gap-1 flex-wrap">
+                        @foreach (var role in _user.Roles)
+                        {
+                            <span class="rounded-full bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-700 capitalize">
+                                @role
+                            </span>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(_avatarError))
+            {
+                <p class="mb-3 text-sm text-red-500">@_avatarError</p>
+            }
+            @if (_avatarSuccess)
+            {
+                <p class="mb-3 text-sm text-green-600">Foto actualizada.</p>
+            }
+
+            <!-- Nombre -->
+            <div class="mb-4">
+                <label class="mb-1 block text-sm font-semibold text-gray-700">Nombre</label>
+                <div class="flex gap-2">
+                    <input @bind="_editName" @bind:event="oninput"
+                           class="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700
+                                  focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-400" />
+                    <button @onclick="SaveNameAsync"
+                            disabled="@(_savingName || _editName == _user.Name)"
+                            class="rounded-lg bg-[#257D8D] px-4 py-2 text-sm font-semibold text-white
+                                   transition hover:bg-[#1E5F6F] disabled:opacity-50">
+                        @(_savingName ? "Guardando…" : "Guardar")
+                    </button>
+                </div>
+                @if (!string.IsNullOrEmpty(_nameMsg))
+                {
+                    <p class="mt-1 text-xs @(_nameError ? "text-red-500" : "text-green-600")">@_nameMsg</p>
+                }
+            </div>
+
+            <!-- Email (readonly) -->
+            <div class="mb-5">
+                <label class="mb-1 block text-sm font-semibold text-gray-700">Correo</label>
+                <input value="@_user.Email" readonly
+                       class="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-500 cursor-not-allowed" />
+            </div>
+
+            <!-- Logout -->
+            <button @onclick="LogoutAsync"
+                    class="w-full rounded-lg border border-red-200 py-2.5 text-sm font-semibold text-red-600
+                           transition hover:bg-red-50">
+                Cerrar sesión
+            </button>
+        </div>
+
+        <!-- Security card -->
+        <div class="rounded-2xl border border-gray-100 bg-white p-6 shadow-xl">
+            <div class="mb-4 flex items-center justify-between">
+                <h2 class="text-xl font-bold text-gray-800">Seguridad</h2>
+                <button @onclick='() => Nav.NavigateTo("/account/passkeys")'
+                        class="rounded-lg bg-[#257D8D] px-4 py-2 text-sm font-semibold text-white
+                               transition hover:bg-[#1E5F6F]">
+                    + Registrar passkey
+                </button>
+            </div>
+
+            <p class="mb-4 text-sm text-gray-500">
+                Las passkeys te permiten ingresar con Face ID, huella dactilar o llave de seguridad USB — sin contraseña.
+            </p>
+
+            @if (_loadingPasskeys)
+            {
+                <div class="flex justify-center py-6"><div class="spinner"></div></div>
+            }
+            else if (_passkeys.Count == 0)
+            {
+                <div class="rounded-lg border border-dashed border-gray-200 py-8 text-center text-sm text-gray-400">
+                    No tienes passkeys registradas aún.
+                </div>
+            }
+            else
+            {
+                <ul class="space-y-2">
+                    @foreach (var pk in _passkeys)
+                    {
+                        <li class="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-4 py-3">
+                            <div class="flex items-center gap-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-teal-600 flex-shrink-0"
+                                     viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 1a5 5 0 1 0 0 10A5 5 0 0 0 12 1zm0 12c-5.33 0-8 2.67-8 4v2h16v-2c0-1.33-2.67-4-8-4z" />
+                                </svg>
+                                <div>
+                                    <p class="text-sm font-semibold text-gray-700">@pk.FriendlyName</p>
+                                    <p class="text-xs text-gray-400">@pk.CreatedAt.ToLocalTime().ToString("dd MMM yyyy, HH:mm")</p>
+                                </div>
+                            </div>
+                            <button @onclick="() => DeletePasskeyAsync(pk.Id)"
+                                    disabled="@_deletingPasskey"
+                                    class="rounded-md px-3 py-1 text-xs font-medium text-red-500 border border-red-200
+                                           hover:bg-red-50 transition disabled:opacity-50">
+                                Eliminar
+                            </button>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    }
+
+</div>
 
 @code {
+    private UserGQL? _user;
+    private bool _loading = true;
+    private bool _loadingPasskeys = true;
+
+    private string _editName = "";
+    private bool _savingName;
+    private string? _nameMsg;
+    private bool _nameError;
+
+    private bool _avatarSuccess;
+    private string? _avatarError;
+
+    private List<PasskeyGQL> _passkeys = [];
+    private bool _deletingPasskey;
+
     protected override async Task OnInitializedAsync()
     {
-        await base.OnInitializedAsync();
-        if (UserState.User != null) return;
+        if (UserState.User is not null)
+        {
+            _user = UserState.User;
+            _editName = _user.Name;
+            _loading = false;
+        }
+        else
+        {
+            var result = await AuthService.GetCurrentUserAsync();
+            if (result.IsSuccess)
+            {
+                _user = result.Value;
+                UserState.User = _user;
+                _editName = _user!.Name;
+            }
+            _loading = false;
+        }
 
-        var response = await AuthService.GetCurrentUserAsync();
-        if (!response.IsSuccess)
-            Navigation.NavigateTo("/account/auth", forceLoad: false, replace: true);
-
-        UserState.User = response.Value;
+        await LoadPasskeysAsync();
     }
+
+    private async Task LoadPasskeysAsync()
+    {
+        _loadingPasskeys = true;
+        var result = await PasskeyService.GetMyPasskeysAsync();
+        _passkeys = result.IsSuccess ? result.Value! : [];
+        _loadingPasskeys = false;
+    }
+
+    private async Task SaveNameAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_editName) || _user is null) return;
+
+        _savingName = true;
+        _nameMsg = null;
+        StateHasChanged();
+
+        var result = await AuthService.UpdateProfileAsync(_editName.Trim(), null);
+
+        if (result.IsSuccess)
+        {
+            _user.Name = _editName.Trim();
+            UserState.User = _user;
+            _nameMsg = "Nombre actualizado.";
+            _nameError = false;
+        }
+        else
+        {
+            _nameMsg = "No se pudo guardar el nombre.";
+            _nameError = true;
+        }
+
+        _savingName = false;
+    }
+
+    private async Task OnAvatarSelected(InputFileChangeEventArgs e)
+    {
+        _avatarError = null;
+        _avatarSuccess = false;
+
+        var file = e.File;
+        if (file.Size > 5 * 1024 * 1024)
+        {
+            _avatarError = "La imagen no puede superar 5 MB.";
+            return;
+        }
+
+        using var content = new MultipartFormDataContent();
+        var stream = file.OpenReadStream(5 * 1024 * 1024);
+        content.Add(new StreamContent(stream), "file", file.Name);
+
+        try
+        {
+            var response = await Http.PostAsync("/api/avatar", content);
+            if (!response.IsSuccessStatusCode)
+            {
+                _avatarError = "Error al subir la imagen.";
+                return;
+            }
+
+            var json = await response.Content.ReadFromJsonAsync<AvatarResponse>();
+            if (json?.Url is null) { _avatarError = "Respuesta inválida."; return; }
+
+            var updateResult = await AuthService.UpdateProfileAsync(_user!.Name, json.Url);
+            if (updateResult.IsSuccess)
+            {
+                _user!.AvatarUrl = json.Url;
+                UserState.User = _user;
+                _avatarSuccess = true;
+            }
+            else
+            {
+                _avatarError = "Foto subida pero no se pudo guardar.";
+            }
+        }
+        catch
+        {
+            _avatarError = "Ocurrió un error al subir la imagen.";
+        }
+    }
+
+    private async Task DeletePasskeyAsync(string id)
+    {
+        _deletingPasskey = true;
+        var result = await PasskeyService.DeletePasskeyAsync(id);
+        if (result.IsSuccess)
+            _passkeys.RemoveAll(p => p.Id == id);
+        _deletingPasskey = false;
+    }
+
+    private async Task LogoutAsync()
+        => await AuthService.Logout();
+
+    private record AvatarResponse(string Url);
 }

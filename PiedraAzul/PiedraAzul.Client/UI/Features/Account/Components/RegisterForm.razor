@@ -4,6 +4,7 @@
 @using PiedraAzul.Contracts.Enums
 
 @inject AuthenticationService AuthService
+@inject NavigationManager NavigationManager
 
 <EditForm Model="@registerModel"  class="flex justify-center">
 
@@ -212,19 +213,20 @@
 
     [Parameter]
     public EventCallback OnLoginClick { get; set; }
+    private string? _errorMessage;
+
     private async Task HandleRegister()
     {
-        var user = await AuthService.RegisterAsync(registerModel, "Patient");
-        if (user != null)
+        var result = await AuthService.RegisterAsync(registerModel, "Patient");
+        if (result.IsSuccess)
         {
-            // Registro exitoso, redirigir o mostrar mensaje de éxito
-            Console.WriteLine("Registro exitoso");
+            // Cookie set by server — force reload so PersistentAuthenticationStateProvider
+            // reads the new authenticated state from the fresh server prerender.
+            NavigationManager.NavigateTo("/", forceLoad: true);
         }
         else
         {
-            // Error en el registro, mostrar mensaje de error
-            Console.WriteLine("Error en el registro");
+            _errorMessage = "No se pudo completar el registro. Intenta de nuevo.";
         }
-        Console.WriteLine(registerModel.Document);
     }
 }
