@@ -1,4 +1,4 @@
-using Microsoft.JSInterop;
+using Microsoft.AspNetCore.Components;
 using PiedraAzul.Client.Models;
 using PiedraAzul.Client.Models.GraphQL;
 using PiedraAzul.Client.Models.UserProfiles;
@@ -7,31 +7,19 @@ using PiedraAzul.Client.Services.Wrappers;
 
 namespace PiedraAzul.Client.Services.AuthServices;
 
-public class AuthenticationService
+public class AuthenticationService(GraphQLHttpClient graphQL, NavigationManager nav)
 {
-    private readonly GraphQLHttpClient graphQL;
-    private readonly IJSRuntime js;
-
-    public AuthenticationService(GraphQLHttpClient graphQL, IJSRuntime js)
-    {
-        this.graphQL = graphQL;
-        this.js = js;
-    }
-
     public async Task<Result<UserGQL>> RegisterAsync(RegisterModel registerModel, string role)
     {
         const string mutation = """
             mutation Register($input: RegisterInput!) {
-                register(input: $input) {
-                    accessToken
-                    user { id name email roles }
-                }
+                register(input: $input) { id name email roles avatarUrl }
             }
             """;
 
         return await GraphQLExecutor.Execute(async () =>
         {
-            var response = await graphQL.ExecuteAsync<AuthResponseGQL>(
+            var user = await graphQL.ExecuteAsync<UserGQL>(
                 mutation,
                 new
                 {
@@ -47,8 +35,7 @@ public class AuthenticationService
                 },
                 "register");
 
-            await js.InvokeVoidAsync("sessionStorage.setItem", "accessToken", response!.AccessToken);
-            return response.User;
+            return user!;
         });
     }
 
@@ -56,25 +43,21 @@ public class AuthenticationService
     {
         const string mutation = """
             mutation Login($input: LoginInput!) {
-                login(input: $input) {
-                    accessToken
-                    user { id name email roles }
-                }
+                login(input: $input) { id name email roles avatarUrl }
             }
             """;
 
         return await GraphQLExecutor.Execute(async () =>
         {
-            var response = await graphQL.ExecuteAsync<AuthResponseGQL>(
+            var user = await graphQL.ExecuteAsync<UserGQL>(
                 mutation,
                 new { input = new { email = loginModel.Login, password = loginModel.Password } },
                 "login");
 
-            if (response == null || string.IsNullOrEmpty(response.AccessToken))
+            if (user is null)
                 throw new GraphQLClientException("Credenciales inválidas");
 
-            await js.InvokeVoidAsync("sessionStorage.setItem", "accessToken", response.AccessToken);
-            return response.User;
+            return user;
         });
     }
 
@@ -82,7 +65,7 @@ public class AuthenticationService
     {
         const string query = """
             query CurrentUser {
-                currentUser { id name email roles }
+                currentUser { id name email roles avatarUrl }
             }
             """;
 
@@ -93,24 +76,35 @@ public class AuthenticationService
         });
     }
 
-    public async Task Logout()
+    public async Task<Result<UserGQL>> UpdateProfileAsync(string name, string? avatarUrl)
     {
         const string mutation = """
-            mutation RevokeToken {
-                revokeToken
+            mutation UpdateProfile($input: UpdateProfileInput!) {
+                updateProfile(input: $input) { id name email roles avatarUrl }
             }
             """;
 
-        try
+        return await GraphQLExecutor.Execute(async () =>
         {
-            await graphQL.ExecuteAsync<bool>(mutation, null, "revokeToken");
-        }
-        catch { }
-
-        await js.InvokeVoidAsync("sessionStorage.clear");
-        await js.InvokeVoidAsync("location.reload");
+            var user = await graphQL.ExecuteAsync<UserGQL>(
+                mutation,
+                new { input = new { name, avatarUrl } },
+                "updateProfile");
+            return user!;
+        });
     }
 
-    public async Task<string?> GetToken()
-        => await js.InvokeAsync<string>("sessionStorage.getItem", "accessToken");
+    public async Task Logout()
+    {
+        const string mutation = """
+            mutation Logout {
+                logout
+            }
+            """;
+
+        try { await graphQL.ExecuteAsync<bool>(mutation, null, "logout"); }
+        catch { }
+
+        nav.NavigateTo("/", forceLoad: true);
+    }
 }

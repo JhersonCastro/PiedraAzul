@@ -16,9 +16,7 @@ public static class SharedClientServicesExtensions
 
         #region Auth Services
         services.AddScoped<AuthenticationService>();
-        services.AddScoped<JwtService>();
-        services.AddScoped<RefreshAuthClient>();
-        services.AddScoped<ITokenService, TokenService>();
+        services.AddScoped<PasskeyService>();
         #endregion
 
         #region GraphQL Feature Services
@@ -29,7 +27,7 @@ public static class SharedClientServicesExtensions
         #endregion
 
         #region Auth
-        services.AddScoped<AuthenticationStateProvider, JwtAuthStateProvider>();
+        services.AddScoped<AuthenticationStateProvider, PersistentAuthenticationStateProvider>();
         services.AddAuthorizationCore();
         #endregion
 
@@ -44,11 +42,9 @@ public static class ClientWasmExtensions
         services.AddSharedClientServices();
 
         services.AddScoped<GraphQLHttpClient>(sp =>
-        {
-            var tokenService = sp.GetRequiredService<ITokenService>();
-            var httpClient = new HttpClient { BaseAddress = new Uri(baseAddress) };
-            return new GraphQLHttpClient(httpClient, tokenService);
-        });
+            new GraphQLHttpClient(new HttpClient { BaseAddress = new Uri(baseAddress) }));
+
+        services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(baseAddress) });
 
         #region SignalR
         services.AddScoped<IAppointmentHubService>(sp => new AppointmentHubService(hubUrl));
@@ -64,12 +60,11 @@ public static class ClientServerExtensions
     {
         services.AddSharedClientServices();
 
+        // GraphQL client registered here is overridden in server Program.cs with cookie forwarding
         services.AddScoped<GraphQLHttpClient>(sp =>
-        {
-            var tokenService = sp.GetRequiredService<ITokenService>();
-            var httpClient = new HttpClient { BaseAddress = new Uri(graphqlUrl) };
-            return new GraphQLHttpClient(httpClient, tokenService);
-        });
+            new GraphQLHttpClient(new HttpClient { BaseAddress = new Uri(graphqlUrl) }));
+
+        services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(graphqlUrl) });
 
         #region SignalR
         services.AddScoped<IAppointmentHubService>(sp => new AppointmentHubService(hubUrl));
