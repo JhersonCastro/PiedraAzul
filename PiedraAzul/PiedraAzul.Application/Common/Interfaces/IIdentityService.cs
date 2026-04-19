@@ -12,5 +12,6 @@ namespace PiedraAzul.Application.Common.Interfaces
         Task<UserDto?> GetById(string userId);
         Task<List<UserDto>> GetByIds(List<string> userIds);
         Task CreateProfileForRoleAsync(string userId, string role);
+        Task<UserDto?> UpdateProfileAsync(string userId, string name, string? avatarUrl);
     }
 }

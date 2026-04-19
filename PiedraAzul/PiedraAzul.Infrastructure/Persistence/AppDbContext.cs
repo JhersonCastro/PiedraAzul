@@ -7,6 +7,7 @@ using PiedraAzul.Domain.Entities.Profiles.Patients;
 using PiedraAzul.Infrastructure.Auth;
 using PiedraAzul.Infrastructure.Identity;
 
+
 namespace PiedraAzul.Infrastructure.Persistence
 {
     public class AppDbContext : IdentityDbContext<ApplicationUser>
@@ -17,6 +18,7 @@ namespace PiedraAzul.Infrastructure.Persistence
         public DbSet<DoctorAvailabilitySlot> DoctorAvailabilitySlots => Set<DoctorAvailabilitySlot>();
         public DbSet<Patient> Patients => Set<Patient>();
         public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+        public DbSet<PasskeyCredential> PasskeyCredentials => Set<PasskeyCredential>();
         public AppDbContext(DbContextOptions<AppDbContext> options)
             : base(options) { }
 

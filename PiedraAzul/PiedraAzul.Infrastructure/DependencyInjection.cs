@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Fido2NetLib;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,11 +26,13 @@ public static class DependencyInjection
         services.AddDbContext<AppDbContext>(options =>
             options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
 
-        // Identity 
+        // Identity
         services.AddIdentityCore<ApplicationUser>()
             .AddRoles<IdentityRole>()
+            .AddSignInManager()
             .AddEntityFrameworkStores<AppDbContext>()
-            .AddDefaultTokenProviders();
+            .AddDefaultTokenProviders()
+            .AddClaimsPrincipalFactory<ApplicationUserClaimsFactory>();
 
         services.Configure<IdentityOptions>(options =>
         {
@@ -60,6 +63,20 @@ public static class DependencyInjection
         // Caching
         services.AddMemoryCache();
         services.AddSingleton<ISlotCache, SlotCache>();
+
+        // Fido2 / Passkeys
+        services.AddSingleton<IFido2>(_ =>
+        {
+            var origins = configuration.GetSection("Fido2:Origins").Get<string[]>()
+                ?? ["https://localhost:7128"];
+            return new Fido2(new Fido2Configuration
+            {
+                ServerDomain = configuration["Fido2:ServerDomain"] ?? "localhost",
+                ServerName = configuration["Fido2:ServerName"] ?? "PiedraAzul",
+                Origins = new HashSet<string>(origins),
+                TimestampDriftTolerance = 300000
+            });
+        });
 
         // Unit of Work
         services.AddScoped<IUnitOfWork, UnitOfWork>();

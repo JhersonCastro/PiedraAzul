@@ -143,6 +143,19 @@ public class IdentityService(
         await context.SaveChangesAsync();
     }
 
+    public async Task<UserDto?> UpdateProfileAsync(string userId, string name, string? avatarUrl)
+    {
+        var user = await userManager.FindByIdAsync(userId);
+        if (user is null) return null;
+
+        user.Name = name;
+        if (!string.IsNullOrWhiteSpace(avatarUrl))
+            user.AvatarUrl = avatarUrl;
+
+        await userManager.UpdateAsync(user);
+        return ToDto(user);
+    }
+
     private static UserDto ToDto(ApplicationUser user)
     {
         return new UserDto(
