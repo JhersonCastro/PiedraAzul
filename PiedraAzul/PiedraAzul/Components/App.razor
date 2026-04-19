@@ -1,5 +1,3 @@
-﻿@using Microsoft.AspNetCore.Components.Authorization
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -14,40 +12,12 @@
     <ImportMap />
     <link rel="icon" type="image/png" href="favicon.png" />
     <link rel="preload" href="_framework/blazor.webassembly.js" as="script">
-    <HeadOutlet @rendermode="new InteractiveAutoRenderMode(prerender: false)" />
+    <HeadOutlet @rendermode="InteractiveAuto" />
 </head>
 
 <body>
-
-    <!-- Landing -->
-    <div id="landing">
-        <div class="flex h-screen flex-col items-center justify-center text-center">
-            <h1 class="text-4xl font-bold text-blue-600">Piedra Azul</h1>
-            <p class="mt-4 text-gray-600">Cargando aplicación...</p>
-            <div class="spinner mt-6"></div>
-        </div>
-    </div>
-
-    <!-- APP REAL -->
-    <div id="app" style="display:none">
-        <CascadingAuthenticationState>
-            <Routes @rendermode="new InteractiveAutoRenderMode(prerender: false)" />
-        </CascadingAuthenticationState>
-    </div>
-
-    <script>
-            const observer = new MutationObserver(() => {
-                const app = document.querySelector("#app");
-                if (app && app.children.length > 0) {
-                    document.getElementById("landing").style.display = "none";
-                    app.style.display = "block";
-                    observer.disconnect();
-                }
-            });
-
-            observer.observe(document.querySelector("#app"), { childList: true });
-    </script>
-
+    <Routes @rendermode="InteractiveAuto" />
+    <script src="js/passkey.js"></script>
     <script src="@Assets["_framework/blazor.web.js"]"></script>
 </body>
 

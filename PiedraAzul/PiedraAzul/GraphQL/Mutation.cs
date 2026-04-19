@@ -1,6 +1,8 @@
 using HotChocolate;
+using HotChocolate.Authorization;
 using Mediator;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using PiedraAzul.Application.Common.Interfaces;
 using PiedraAzul.Application.Common.Models.Auth;
 using PiedraAzul.Application.Common.Models.Patients;
@@ -8,51 +10,46 @@ using PiedraAzul.Application.Features.Appointments.CreateAppointment;
 using PiedraAzul.Application.Features.Auth.Commands.Login;
 using PiedraAzul.Application.Features.Auth.Commands.Register;
 using PiedraAzul.Application.Features.Users.Commands.CreateProfileForRole;
-using PiedraAzul.Application.Features.Users.Queries.GetUserById;
-using PiedraAzul.Application.Features.Users.Queries.GetUserRoles;
 using PiedraAzul.GraphQL.Inputs;
 using PiedraAzul.GraphQL.Types;
+using PiedraAzul.Infrastructure.Identity;
+using System.Security.Claims;
 
 namespace PiedraAzul.GraphQL;
 
 public class Mutation
 {
-    public async Task<AuthResponseType> LoginAsync(
+    public async Task<UserType> LoginAsync(
         LoginInput input,
         [Service] IMediator mediator,
-        [Service] IHttpContextAccessor httpContextAccessor,
-        [Service] IJwtTokenService jwtTokenService,
-        [Service] IRefreshTokenService refresh)
+        [Service] UserManager<ApplicationUser> userManager,
+        [Service] SignInManager<ApplicationUser> signInManager)
     {
         var result = await mediator.Send(new LoginCommand(input.Email, input.Password));
 
         if (result.User is null)
             throw new GraphQLException("Credenciales incorrectas");
 
-        var accessToken = await jwtTokenService.CreateTokenAsync(result.User.Id, result.Roles);
-        var refreshToken = await refresh.GenerateRefreshTokenAsync(result.User.Id);
+        var user = await userManager.FindByIdAsync(result.User.Id)
+            ?? throw new GraphQLException("Usuario no encontrado");
 
-        SetRefreshTokenCookie(httpContextAccessor.HttpContext!, refreshToken);
+        await signInManager.SignInAsync(user, isPersistent: true);
 
-        return new AuthResponseType
+        return new UserType
         {
-            AccessToken = accessToken,
-            User = new UserType
-            {
-                Id = result.User.Id,
-                Name = result.User.Name,
-                Email = result.User.Email,
-                Roles = result.Roles
-            }
+            Id = user.Id,
+            Name = user.Name,
+            Email = user.Email ?? "",
+            AvatarUrl = user.AvatarUrl,
+            Roles = result.Roles
         };
     }
 
-    public async Task<AuthResponseType> RegisterAsync(
+    public async Task<UserType> RegisterAsync(
         RegisterInput input,
         [Service] IMediator mediator,
-        [Service] IHttpContextAccessor httpContextAccessor,
-        [Service] IJwtTokenService jwtTokenService,
-        [Service] IRefreshTokenService refresh)
+        [Service] UserManager<ApplicationUser> userManager,
+        [Service] SignInManager<ApplicationUser> signInManager)
     {
         var result = await mediator.Send(new RegisterCommand(
             new RegisterUserDto(input.Email, input.Name, input.Phone, input.IdentificationNumber),
@@ -66,74 +63,25 @@ public class Mutation
         foreach (var role in input.Roles)
             await mediator.Send(new CreateProfileForRoleCommand(result.User.Id, role));
 
-        var accessToken = await jwtTokenService.CreateTokenAsync(result.User.Id, input.Roles);
-        var refreshToken = await refresh.GenerateRefreshTokenAsync(result.User.Id);
+        var user = await userManager.FindByIdAsync(result.User.Id)
+            ?? throw new GraphQLException("Usuario no encontrado");
 
-        SetRefreshTokenCookie(httpContextAccessor.HttpContext!, refreshToken);
+        await signInManager.SignInAsync(user, isPersistent: true);
 
-        return new AuthResponseType
+        return new UserType
         {
-            AccessToken = accessToken,
-            User = new UserType
-            {
-                Id = result.User.Id,
-                Name = result.User.Name,
-                Email = result.User.Email,
-                Roles = input.Roles
-            }
+            Id = user.Id,
+            Name = user.Name,
+            Email = user.Email ?? "",
+            AvatarUrl = user.AvatarUrl,
+            Roles = input.Roles
         };
     }
 
-    public async Task<AuthResponseType> RefreshTokenAsync(
-        [Service] IMediator mediator,
-        [Service] IHttpContextAccessor httpContextAccessor,
-        [Service] IJwtTokenService jwtTokenService,
-        [Service] IRefreshTokenService refresh)
+    public async Task<bool> LogoutAsync(
+        [Service] SignInManager<ApplicationUser> signInManager)
     {
-        var httpContext = httpContextAccessor.HttpContext!;
-        var refreshToken = httpContext.Request.Cookies["refreshToken"];
-
-        if (string.IsNullOrEmpty(refreshToken))
-            throw new GraphQLException("No hay refresh token");
-
-        var userId = await refresh.ValidateRefreshTokenAsync(refreshToken);
-
-        if (userId == null)
-            throw new GraphQLException("Token inválido");
-
-        var user = await mediator.Send(new GetUserByIdQuery(userId));
-        var roles = await mediator.Send(new GetUserRolesQuery(userId));
-
-        var newRefreshToken = await refresh.RotateRefreshTokenAsync(refreshToken);
-        var accessToken = await jwtTokenService.CreateTokenAsync(userId, roles);
-
-        SetRefreshTokenCookie(httpContext, newRefreshToken);
-
-        return new AuthResponseType
-        {
-            AccessToken = accessToken,
-            User = new UserType
-            {
-                Id = user!.Id,
-                Name = user.Name,
-                Email = user.Email,
-                Roles = roles
-            }
-        };
-    }
-
-    public async Task<bool> RevokeTokenAsync(
-        [Service] IHttpContextAccessor httpContextAccessor,
-        [Service] IRefreshTokenService refresh)
-    {
-        var httpContext = httpContextAccessor.HttpContext!;
-        var refreshToken = httpContext.Request.Cookies["refreshToken"];
-
-        if (!string.IsNullOrEmpty(refreshToken))
-            await refresh.RotateRefreshTokenAsync(refreshToken);
-
-        httpContext.Response.Cookies.Delete("refreshToken");
-
+        await signInManager.SignOutAsync();
         return true;
     }
 
@@ -175,15 +123,84 @@ public class Mutation
         return AppointmentType.FromDomain(appointment);
     }
 
-    private static void SetRefreshTokenCookie(HttpContext httpContext, string refreshToken)
+    public async Task<string> BeginPasskeyRegistrationAsync(
+        BeginPasskeyRegistrationInput input,
+        [Service] IPasskeyService passkeys)
     {
-        httpContext.Response.Cookies.Append("refreshToken", refreshToken, new CookieOptions
+        return await passkeys.BeginRegistrationAsync(input.UserId, input.Email, input.DisplayName);
+    }
+
+    public async Task<bool> CompletePasskeyRegistrationAsync(
+        CompletePasskeyRegistrationInput input,
+        [Service] IPasskeyService passkeys)
+    {
+        return await passkeys.CompleteRegistrationAsync(
+            input.UserId, input.AttestationResponse, input.FriendlyName);
+    }
+
+    public async Task<string> BeginPasskeyAssertionAsync(
+        [Service] IPasskeyService passkeys)
+    {
+        return await passkeys.BeginAssertionAsync();
+    }
+
+    public async Task<UserType> CompletePasskeyAssertionAsync(
+        CompletePasskeyAssertionInput input,
+        [Service] IPasskeyService passkeys,
+        [Service] UserManager<ApplicationUser> userManager,
+        [Service] SignInManager<ApplicationUser> signInManager)
+    {
+        var (userId, roles) = await passkeys.CompleteAssertionAsync(input.AssertionResponse);
+
+        var user = await userManager.FindByIdAsync(userId)
+            ?? throw new GraphQLException("Usuario no encontrado");
+
+        await signInManager.SignInAsync(user, isPersistent: true);
+
+        return new UserType
         {
-            HttpOnly = true,
-            Secure = true,
-            SameSite = SameSiteMode.None,
-            MaxAge = TimeSpan.FromDays(7),
-            Path = "/"
-        });
+            Id = user.Id,
+            Name = user.Name,
+            Email = user.Email ?? "",
+            AvatarUrl = user.AvatarUrl,
+            Roles = roles
+        };
+    }
+
+    [Authorize]
+    public async Task<bool> DeletePasskeyAsync(
+        string passkeyId,
+        [Service] IPasskeyService passkeys,
+        [Service] IHttpContextAccessor httpContextAccessor)
+    {
+        var userId = httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? throw new GraphQLException("No autenticado");
+
+        if (!Guid.TryParse(passkeyId, out var id))
+            throw new GraphQLException("ID de passkey inválido");
+
+        return await passkeys.DeletePasskeyAsync(userId, id);
+    }
+
+    [Authorize]
+    public async Task<UserType> UpdateProfileAsync(
+        UpdateProfileInput input,
+        [Service] IIdentityService identity,
+        [Service] IHttpContextAccessor httpContextAccessor)
+    {
+        var userId = httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? throw new GraphQLException("No autenticado");
+
+        var user = await identity.UpdateProfileAsync(userId, input.Name, input.AvatarUrl)
+            ?? throw new GraphQLException("No se pudo actualizar el perfil");
+
+        return new UserType
+        {
+            Id = user.Id,
+            Name = user.Name,
+            Email = user.Email,
+            AvatarUrl = user.AvatarUrl,
+            Roles = []
+        };
     }
 }

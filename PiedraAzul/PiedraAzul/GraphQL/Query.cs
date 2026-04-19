@@ -2,6 +2,7 @@ using HotChocolate;
 using HotChocolate.Authorization;
 using Mediator;
 using Microsoft.AspNetCore.Http;
+using PiedraAzul.Application.Common.Interfaces;
 using PiedraAzul.Application.Features.Doctors.Queries.GetDoctorAppointments;
 using PiedraAzul.Application.Features.Doctors.Queries.GetDoctorByUserId;
 using PiedraAzul.Application.Features.Doctors.Queries.GetDoctorDaySlots;
@@ -125,7 +126,26 @@ public class Query
             Id = user.Id,
             Name = user.Name,
             Email = user.Email,
+            AvatarUrl = user.AvatarUrl,
             Roles = roles
         };
+    }
+
+    [Authorize]
+    public async Task<List<PasskeyType>> GetMyPasskeysAsync(
+        [Service] IPasskeyService passkeys,
+        [Service] IHttpContextAccessor httpContextAccessor)
+    {
+        var userId = httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? throw new GraphQLException("No autenticado");
+
+        var list = await passkeys.GetUserPasskeysAsync(userId);
+
+        return list.Select(p => new PasskeyType
+        {
+            Id = p.Id.ToString(),
+            FriendlyName = p.FriendlyName,
+            CreatedAt = p.CreatedAt
+        }).ToList();
     }
 }
