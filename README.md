@@ -82,6 +82,10 @@ También se crea un **volumen persistente** para no perder los datos.
 
 Usa la siguiente cadena de conexión según la opción elegida:
 
+**Opción AWS:**
+```json
+"DefaultConnection": "Host=ep-purple-tree-acshudb6-pooler.sa-east-1.aws.neon.tech; Database=piedraazuldb; Username=neondb_owner; Password=npg_jZeBbRzS5G3i; SSL Mode=VerifyFull; Channel Binding=Require;"
+```
 
 **Opción local con docker:**
 
