@@ -5,7 +5,8 @@
 @inject UserState UserState
 @inject PiedraAzul.Client.Services.GraphQLServices.GraphQLPatientService PatientService
 
-<div>
+<div class="min-h-screen bg-slate-50 pb-12">
+    
     <!-- HEADER / NAV (Reusable from DoctorPanel) -->
     <header class="bg-white border-b sticky top-0 z-30">
         <div class="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
@@ -21,7 +22,7 @@
                 <!-- Nav Links -->
                 <nav class="hidden md:flex items-center gap-8">
                     <a href="/doctor" class="text-slate-500 font-medium hover:text-slate-900 transition-colors py-7">Dashboard</a>
-                    <a href="/doctor/pacientes" class="text-slate-900 font-semibold border-b-2 border-primary py-7">Pacientes</a>
+                    <a href="/doctor/patients" class="text-slate-900 font-semibold border-b-2 border-primary py-7">Pacientes</a>
                     <a href="/doctor/agenda" class="text-slate-500 font-medium hover:text-slate-900 transition-colors">Mi Agenda</a>
                 </nav>
             </div>
@@ -42,8 +43,45 @@
             </div>
         </div>
     </header>
-    
+
     <main class="max-w-7xl mx-auto px-4 mt-12">
+        
+        <!-- Page Title -->
+        <div class="mb-10">
+            <h1 class="text-5xl font-black text-slate-900 mb-2">Base de datos del paciente</h1>
+            <p class="text-slate-500 text-xl font-medium">Maneja y mira registros de todos los pacientes registrados.</p>
+        </div>
+
+        <!-- Filters Section -->
+        <div class="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100 flex flex-col md:flex-row items-end gap-6 mb-10">
+            <div class="flex-1 w-full">
+                <label class="block text-slate-500 font-bold uppercase tracking-wider text-xs mb-3 ml-1">ESPECIALISTA</label>
+                <div class="relative group">
+                    <div class="absolute inset-y-0 left-5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-primary transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                    </div>
+                    <input type="text" 
+                           placeholder="Busca pacientes por nombre, id, teléfono..." 
+                           class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 pl-14 pr-6 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all" />
+                </div>
+            </div>
+
+            <div class="w-full md:w-72">
+                <label class="block text-slate-500 font-bold uppercase tracking-wider text-xs mb-3 ml-1">FECHA</label>
+                <div class="relative group">
+                    <input type="date" 
+                           class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-6 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all text-slate-700 font-medium" />
+                </div>
+            </div>
+
+            <button class="bg-primary text-white px-10 py-4 rounded-2xl font-bold hover:opacity-90 transition-all shadow-lg shadow-primary/20 h-[60px]">
+                Buscar
+            </button>
+        </div>
+
+        
+        
+
         <footer class="mt-20 flex flex-col md:flex-row items-center justify-between gap-6 py-8 border-t border-slate-100">
             <div class="text-slate-400 font-medium italic text-sm">
                 © 2026 Clínica Piedra Azul.
@@ -54,8 +92,8 @@
                 <a href="#" class="hover:text-primary transition-colors">Soporte</a>
             </div>
         </footer>
-    </main>
 
+    </main>
 </div>
 
 @code {
