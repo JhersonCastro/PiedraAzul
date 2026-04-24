@@ -79,7 +79,88 @@
             </button>
         </div>
 
-        
+        <!-- Patients Table -->
+        <div class="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden mb-8">
+            <div class="overflow-x-auto">
+                <table class="w-full border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50/50 border-b border-slate-100">
+                            <th class="px-8 py-6 text-left text-slate-400 font-bold uppercase tracking-[0.1em] text-[11px]">NOMBRE PACIENTE</th>
+                            <th class="px-8 py-6 text-left text-slate-400 font-bold uppercase tracking-[0.1em] text-[11px]">IDENTIFICACIÓN</th>
+                            <th class="px-8 py-6 text-left text-slate-400 font-bold uppercase tracking-[0.1em] text-[11px]">ULTIMA VISITA</th>
+                            <th class="px-8 py-6 text-left text-slate-400 font-bold uppercase tracking-[0.1em] text-[11px]">ESTADO</th>
+                            <th class="px-8 py-6 text-right text-slate-400 font-bold uppercase tracking-[0.1em] text-[11px]">ACCIONES</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-50">
+                        @foreach (var p in dummyPatients)
+                        {
+                            <tr class="hover:bg-slate-50/50 transition-colors">
+                                <td class="px-8 py-6">
+                                    <div class="flex items-center gap-4">
+                                        <div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
+                                            @GetInitials(p.Name)
+                                        </div>
+                                        <span class="font-bold text-slate-900 text-lg">@p.Name</span>
+                                    </div>
+                                </td>
+                                <td class="px-8 py-6">
+                                    <span class="text-slate-600 font-bold font-mono">@p.Id</span>
+                                </td>
+                                <td class="px-8 py-6">
+                                    <span class="text-slate-500 font-medium">@p.LastVisit</span>
+                                </td>
+                                <td class="px-8 py-6">
+                                    <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold @GetStatusClass(p.Status)">
+                                        <span class="w-1.5 h-1.5 rounded-full @GetStatusDotClass(p.Status)"></span>
+                                        @p.Status
+                                    </span>
+                                </td>
+                                <td class="px-8 py-6 text-right">
+                                    <div class="flex items-center justify-end gap-3">
+                                        <button class="flex items-center gap-2 bg-slate-50 text-slate-600 px-4 py-2 rounded-xl text-sm font-bold hover:bg-slate-100 transition-all">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
+                                            Ver registros
+                                        </button>
+                                        <button class="flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-xl text-sm font-bold hover:bg-primary/20 transition-all border border-primary/20">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
+                                            Cita nueva
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Table Footer / Pagination -->
+            <div class="bg-slate-50/50 px-8 py-6 flex items-center justify-between">
+                <span class="text-slate-500 font-medium">Mostrando 1 a 4 de 248 pacientes</span>
+                
+                <div class="flex items-center gap-2">
+                    <button class="p-2 text-slate-400 hover:text-slate-900 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                    </button>
+                    <button class="w-10 h-10 rounded-full bg-primary text-white font-bold flex items-center justify-center shadow-lg shadow-primary/30">1</button>
+                    <button class="w-10 h-10 rounded-full text-slate-500 font-bold flex items-center justify-center hover:bg-slate-100 transition-colors">2</button>
+                    <button class="w-10 h-10 rounded-full text-slate-500 font-bold flex items-center justify-center hover:bg-slate-100 transition-colors">3</button>
+                    <span class="text-slate-400 px-2">...</span>
+                    <button class="w-10 h-10 rounded-full text-slate-500 font-bold flex items-center justify-center hover:bg-slate-100 transition-colors">62</button>
+                    <button class="p-2 text-slate-400 hover:text-slate-900 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Actions -->
+        <div class="flex justify-end">
+            <button class="bg-primary text-white px-8 py-4 rounded-2xl font-bold flex items-center gap-3 hover:opacity-90 transition-all shadow-lg shadow-primary/20">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Exportar a CSV
+            </button>
+        </div>
         
 
         <footer class="mt-20 flex flex-col md:flex-row items-center justify-between gap-6 py-8 border-t border-slate-100">
@@ -97,5 +178,41 @@
 </div>
 
 @code {
-    //tantito de logica
+    private class PatientVM
+    {
+        public string Name { get; set; } = "";
+        public string Id { get; set; } = "";
+        public string LastVisit { get; set; } = "";
+        public string Status { get; set; } = "";
+    }
+
+    private List<PatientVM> dummyPatients = new()
+    {
+        new() { Name = "Juan Díaz", Id = "1002964507", LastVisit = "15 mar, 2026", Status = "Activo" },
+        new() { Name = "Mango Güeno", Id = "1001234567", LastVisit = "15 mar, 2026", Status = "Programado" },
+        new() { Name = "Rafael Sánchez", Id = "1007654321", LastVisit = "14 mar, 2026", Status = "Inactivo" },
+        new() { Name = "Alice Wonderful", Id = "1001324567", LastVisit = "10 dic, 1996", Status = "Activo" }
+    };
+
+    private string GetInitials(string name)
+    {
+        var parts = name.Split(' ');
+        return string.Join("", parts.Select(p => p[0])).ToUpper();
+    }
+
+    private string GetStatusClass(string status) => status switch
+    {
+        "Activo" => "bg-emerald-50 text-emerald-600",
+        "Programado" => "bg-amber-50 text-amber-600",
+        "Inactivo" => "bg-slate-100 text-slate-500",
+        _ => "bg-slate-50 text-slate-400"
+    };
+
+    private string GetStatusDotClass(string status) => status switch
+    {
+        "Activo" => "bg-emerald-500",
+        "Programado" => "bg-amber-500",
+        "Inactivo" => "bg-slate-400",
+        _ => "bg-slate-300"
+    };
 }
