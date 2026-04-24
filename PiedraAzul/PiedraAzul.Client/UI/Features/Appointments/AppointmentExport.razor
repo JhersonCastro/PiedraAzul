@@ -2,47 +2,41 @@
 @layout PiedraAzul.Client.UI.Shared.Layout.EmptyLayout
 @using PiedraAzul.Client.Models.GraphQL
 @using PiedraAzul.Client.States
+@using PiedraAzul.Client.Services.GraphQLServices
+@using PiedraAzul.Contracts.Enums
+@using System.Text
 @inject UserState UserState
 @inject NavigationManager NavigationManager
+@inject GraphQLAppointmentService AppointmentService
+@inject GraphQLDoctorService DoctorService
+@inject IJSRuntime JS
 
 <div class="min-h-screen bg-slate-50 pb-12">
     
-    <!-- HEADER / NAV -->
+    <!-- HEADER / NAV (Standard shared header) -->
     <header class="bg-white border-b sticky top-0 z-30">
         <div class="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
             <div class="flex items-center gap-8">
-                <!-- Logo -->
                 <div class="flex items-center gap-3">
                     <div class="bg-primary p-2 rounded-lg text-white">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
                     </div>
                     <span class="text-xl font-bold text-slate-800">Piedra Azul</span>
                 </div>
-
                 <nav class="hidden md:flex items-center gap-8">
-                    @if (IsAdmin)
-                    {
-                        <a href="/admin" class="text-slate-500 font-medium hover:text-slate-900 transition-colors">Panel Admin</a>
-                    }
-                    @if (IsDoctor)
-                    {
-                        <a href="/doctor" class="text-slate-500 font-medium hover:text-slate-900 transition-colors">Dashboard</a>
-                    }
-                    <a href="#" class="text-slate-900 font-semibold border-b-2 border-primary py-7">Servicios</a>
+                    @if (IsAdmin) { <a href="/admin" class="text-slate-500 font-medium hover:text-slate-900 transition-colors">Admin</a> }
+                    @if (IsDoctor) { <a href="/doctor" class="text-slate-500 font-medium hover:text-slate-900 transition-colors">Dashboard</a> }
+                    <span class="text-slate-900 font-semibold border-b-2 border-primary py-7">Exportar</span>
                 </nav>
             </div>
-
             <div class="flex items-center gap-6">
-                <button class="relative p-2 text-slate-400 hover:text-slate-600 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-                </button>
-
+                <!-- User Profile -->
                 <div class="flex items-center gap-3 pl-6 border-l">
                     <div class="text-right hidden sm:block">
-                        <div class="text-sm font-bold text-slate-900">Dr. Roberto Gómez</div>
+                        <div class="text-sm font-bold text-slate-900">@UserState?.User?.Name</div>
                         <div class="text-xs text-slate-400">@UserState?.User?.Roles.FirstOrDefault()</div>
                     </div>
-                    <img src="https://ui-avatars.com/api/?name=Roberto+Gomez&background=257D8D&color=fff" alt="User" class="w-10 h-10 rounded-full border-2 border-slate-100 shadow-sm" />
+                    <img src="https://ui-avatars.com/api/?name=@UserState?.User?.Name&background=257D8D&color=fff" alt="User" class="w-10 h-10 rounded-full border-2 border-slate-100" />
                 </div>
             </div>
         </div>
@@ -74,11 +68,13 @@
                 <div>
                     <label class="block text-slate-500 font-bold uppercase tracking-wider text-xs mb-3 ml-1">MÉDICO / TERAPISTA</label>
                     <div class="relative">
-                        <select @bind="SelectedDoctor" disabled="@(!IsAdmin)" 
+                        <select @bind="SelectedDoctorId" @bind:after="CargarCitas" disabled="@(!CanSelectDoctor)" 
                                 class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-6 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all text-slate-700 font-medium appearance-none">
-                            <option value="all">Todos los profesionales</option>
-                            <option value="1">Dr. Roberto Gómez</option>
-                            <option value="2">Dra. Marta Lucía</option>
+                            <option value="">Seleccione un profesional...</option>
+                            @foreach (var doc in doctores)
+                            {
+                                <option value="@doc.UserId">@doc.Name (@doc.Specialty)</option>
+                            }
                         </select>
                         <div class="absolute inset-y-0 right-6 flex items-center pointer-events-none text-slate-400">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
@@ -88,7 +84,7 @@
 
                 <div>
                     <label class="block text-slate-500 font-bold uppercase tracking-wider text-xs mb-3 ml-1">FECHA DE CITAS</label>
-                    <input type="date" @bind="SelectedDate" 
+                    <input type="date" @bind="SelectedDate" @bind:after="CargarCitas"
                            class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-6 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all text-slate-700 font-medium" />
                 </div>
             </div>
@@ -98,7 +94,7 @@
         <div class="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden mb-8">
             <div class="px-8 py-6 bg-slate-50/30 flex items-center justify-between border-b border-slate-100">
                 <h3 class="text-xl font-bold text-slate-900">Vista Previa de Exportación</h3>
-                <span class="bg-primary/10 text-primary px-4 py-1.5 rounded-full text-xs font-bold tracking-tight">8 citas encontradas</span>
+                <span class="bg-primary/10 text-primary px-4 py-1.5 rounded-full text-xs font-bold tracking-tight">@citas.Count citas encontradas</span>
             </div>
 
             <div class="overflow-x-auto">
@@ -107,21 +103,27 @@
                         <tr class="border-b border-slate-50 bg-slate-50/20 text-slate-400 font-bold uppercase tracking-[0.1em] text-[10px]">
                             <th class="px-8 py-5">PACIENTE</th>
                             <th class="px-8 py-5">HORARIO</th>
-                            <th class="px-8 py-5">ESPECIALIDAD</th>
+                            <th class="px-8 py-5">TIPO</th>
                             <th class="px-8 py-5">ESTADO</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-50">
-                        @foreach (var app in dummyAppointments)
+                        @if (!citas.Any())
                         {
-                            <tr class="text-slate-700 font-medium">
-                                <td class="px-8 py-5 font-bold text-slate-900">@app.Patient</td>
-                                <td class="px-8 py-5 text-slate-500 font-mono">@app.Time</td>
-                                <td class="px-8 py-5 text-slate-500">@app.Specialty</td>
+                            <tr>
+                                <td colspan="4" class="px-8 py-10 text-center text-slate-400 italic">No se encontraron citas para los filtros seleccionados.</td>
+                            </tr>
+                        }
+                        @foreach (var app in citas.OrderBy(a => a.Start))
+                        {
+                            <tr class="text-slate-700 font-medium hover:bg-slate-50/50 transition-colors">
+                                <td class="px-8 py-5 font-bold text-slate-900">@app.PatientName</td>
+                                <td class="px-8 py-5 text-slate-500 font-mono">@app.Start.ToString("hh:mm tt")</td>
+                                <td class="px-8 py-5 text-slate-500 text-xs uppercase font-bold">@app.PatientType</td>
                                 <td class="px-8 py-5">
-                                    <span class="inline-flex items-center gap-2">
-                                        <span class="w-2 h-2 rounded-full @(app.Status == "Confirmada" ? "bg-emerald-500" : "bg-amber-500")"></span>
-                                        @app.Status
+                                    <span class="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-bold">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                        Confirmada
                                     </span>
                                 </td>
                             </tr>
@@ -129,21 +131,17 @@
                     </tbody>
                 </table>
             </div>
-
-            <div class="p-6 text-center border-t border-slate-50">
-                <button class="text-primary font-bold hover:underline transition-all">
-                    Ver lista completa (8 resultados)
-                </button>
-            </div>
         </div>
 
         <!-- Action Buttons -->
         <div class="flex flex-col sm:flex-row items-center justify-end gap-4 mb-10">
-            <button class="w-full sm:w-auto flex items-center justify-center gap-3 bg-white border-2 border-slate-100 px-10 py-4 rounded-2xl font-bold text-slate-600 hover:bg-slate-50 transition-all">
+            <button @onclick="PrintList" disabled="@(!citas.Any())" 
+                    class="w-full sm:w-auto flex items-center justify-center gap-3 bg-white border-2 border-slate-100 px-10 py-4 rounded-2xl font-bold text-slate-600 hover:bg-slate-50 transition-all disabled:opacity-50">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
                 Imprimir Listado
             </button>
-            <button class="w-full sm:w-auto flex items-center justify-center gap-3 bg-primary text-white px-10 py-4 rounded-2xl font-bold hover:opacity-90 transition-all shadow-xl shadow-primary/30">
+            <button @onclick="ExportCSV" disabled="@(!citas.Any())"
+                    class="w-full sm:w-auto flex items-center justify-center gap-3 bg-primary text-white px-10 py-4 rounded-2xl font-bold hover:opacity-90 transition-all shadow-xl shadow-primary/30 disabled:opacity-50">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 Exportar a CSV
             </button>
@@ -167,31 +165,96 @@
 </div>
 
 @code {
-    private string SelectedDoctor { get; set; } = "all";
-    private DateTime SelectedDate { get; set; } = new DateTime(2026, 3, 10);
+    private string SelectedDoctorId { get; set; } = "";
+    private DateTime SelectedDate { get; set; } = DateTime.Today;
+    private List<DoctorGQL> doctores = new();
+    private List<AppointmentGQL> citas = new();
 
     private bool IsAdmin => UserState?.User?.Roles.Contains("Admin") == true;
     private bool IsDoctor => UserState?.User?.Roles.Contains("Doctor") == true;
+    private bool IsAgendador => UserState?.User?.Roles.Contains("Agendador") == true;
+    private bool CanSelectDoctor => IsAdmin || IsAgendador;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (UserState.User == null) return;
+
+        if (CanSelectDoctor)
+        {
+            // Cargar todos los tipos de doctores
+            foreach (DoctorType type in Enum.GetValues(typeof(DoctorType)))
+            {
+                var result = await DoctorService.GetDoctorsByTypeAsync(type.ToGraphQL());
+                if (result != null)
+                {
+                    foreach(var d in result)
+                    {
+                        if (!doctores.Any(x => x.UserId == d.UserId))
+                            doctores.Add(d);
+                    }
+                }
+            }
+        }
+        else if (IsDoctor)
+        {
+            // Si es doctor, debe verse a sí mismo en la lista
+            var docResult = await DoctorService.GetDoctorAsync(UserState.User.Id);
+            if (docResult.IsSuccess && docResult.Value != null)
+            {
+                doctores.Add(docResult.Value);
+                SelectedDoctorId = docResult.Value.UserId;
+            }
+            else
+            {
+                // Fallback con datos del usuario si el servicio de perfiles falla
+                doctores.Add(new DoctorGQL { UserId = UserState.User.Id, Name = UserState.User.Name, Specialty = "Médico" });
+                SelectedDoctorId = UserState.User.Id;
+            }
+            
+            await CargarCitas();
+        }
+    }
+
+    private async Task CargarCitas()
+    {
+        if (string.IsNullOrEmpty(SelectedDoctorId)) return;
+
+        var result = await AppointmentService.GetDoctorAppointments(SelectedDoctorId, SelectedDate);
+        if (result.IsSuccess && result.Value != null)
+        {
+            citas = result.Value;
+        }
+        else
+        {
+            citas = new();
+        }
+    }
+
+    private async Task ExportCSV()
+    {
+        if (!citas.Any()) return;
+
+        var csv = new StringBuilder();
+        csv.AppendLine("Paciente;Horario;Tipo;Estado;CreadaEn");
+
+        foreach (var app in citas.OrderBy(a => a.Start))
+        {
+            csv.AppendLine($"{app.PatientName};{app.Start:HH:mm};{app.PatientType};Confirmada;{app.CreatedAt:yyyy-MM-dd HH:mm}");
+        }
+
+        var fileName = $"Citas_{SelectedDate:yyyyMMdd}_{SelectedDoctorId}.csv";
+        await JS.InvokeVoidAsync("downloadFile", fileName, "text/csv", csv.ToString());
+    }
+
+    private async Task PrintList()
+    {
+        await JS.InvokeVoidAsync("window.print");
+    }
 
     private void GoBack()
     {
-        if (IsDoctor) NavigationManager.NavigateTo("/doctor");
-        else NavigationManager.NavigateTo("/admin");
+        if (IsAdmin) NavigationManager.NavigateTo("/admin");
+        else if (IsDoctor) NavigationManager.NavigateTo("/doctor");
+        else NavigationManager.NavigateTo("/");
     }
-
-    private class AppointmentVM
-    {
-        public string Patient { get; set; } = "";
-        public string Time { get; set; } = "";
-        public string Specialty { get; set; } = "";
-        public string Status { get; set; } = "";
-    }
-
-    private List<AppointmentVM> dummyAppointments = new()
-    {
-        new() { Patient = "Carlos Alberto Ruiz", Time = "08:30 AM", Specialty = "Terapia General", Status = "Confirmada" },
-        new() { Patient = "Maria Fernanda López", Time = "09:15 AM", Specialty = "Quiropraxia", Status = "Confirmada" },
-        new() { Patient = "Juan Pablo Duarte", Time = "10:00 AM", Specialty = "Fisioterapia", Status = "Pendiente" },
-        new() { Patient = "Lucía Torres", Time = "11:30 AM", Specialty = "Nutrición", Status = "Confirmada" }
-    };
 }
