@@ -69,7 +69,23 @@
             </button>
         </div>
 
-        
+        <!-- Search Bar -->
+        <div class="relative mb-12 group">
+            <div class="absolute inset-y-0 left-6 flex items-center pointer-events-none text-slate-400 group-focus-within:text-primary transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            </div>
+            <input type="text" 
+                   placeholder="Buscar historia médica (Nombre, identificación, o teléfono...)" 
+                   class="w-full bg-white border border-slate-200 rounded-2xl py-5 pl-16 pr-8 text-lg focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-sm" />
+        </div>
+
+        <!-- Stats Section -->
+        <div class="mb-12">
+            <div class="flex items-center justify-between mb-8">
+                <h2 class="text-2xl font-bold text-slate-900">Resumen citas de hoy</h2>
+                <span class="text-slate-500 font-medium">@DateTime.Now.ToString("dd MMMM, yyyy", new System.Globalization.CultureInfo("es-ES"))</span>
+            </div>
+        </div>
 
         
 
