@@ -1,72 +1,76 @@
-//using Microsoft.AspNetCore.Identity;
-//using Microsoft.EntityFrameworkCore;
-//using Microsoft.EntityFrameworkCore.Storage;
-//using Microsoft.Extensions.DependencyInjection;
-//using Microsoft.Extensions.Configuration;
-//using PiedraAzul.ApplicationServices.Services;
-//using PiedraAzul.Data;
-//using PiedraAzul.Data.Models;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using PiedraAzul.Infrastructure.Identity;
+using PiedraAzul.Infrastructure.Persistence;
+using Testcontainers.PostgreSql;
 
-//public class PostgresFixture : IAsyncLifetime
-//{
-//    public IServiceProvider ServiceProvider { get; private set; } = null!;
-//    public IDbContextFactory<AppDbContext> DbContextFactory { get; private set; } = null!;
-//    public IConfiguration Configuration { get; private set; } = null!;
+namespace PiedraAzul.Test;
 
-//    public async Task InitializeAsync()
-//    {
-//        var services = new ServiceCollection();
+public sealed class PostgresFixture : IAsyncLifetime
+{
+    private readonly PostgreSqlContainer _postgresContainer = new PostgreSqlBuilder()
+        .WithImage("postgres:16-alpine")
+        .WithDatabase("piedraazul_test")
+        .WithUsername("postgres")
+        .WithPassword("postgres")
+        .Build();
 
-//        var dbName = $"TestDb_{Guid.NewGuid()}";
+    public IServiceProvider ServiceProvider { get; private set; } = null!;
+    public IDbContextFactory<AppDbContext> DbContextFactory { get; private set; } = null!;
+    public IConfiguration Configuration { get; private set; } = null!;
 
-//        var root = new InMemoryDatabaseRoot();
+    public async Task InitializeAsync()
+    {
+        await _postgresContainer.StartAsync();
 
-//        services.AddDbContext<AppDbContext>(options =>
-//        {
-//            options.UseInMemoryDatabase(dbName, root);
-//        });
+        var services = new ServiceCollection();
+        var connectionString = _postgresContainer.GetConnectionString();
 
-//        services.AddDbContextFactory<AppDbContext>(options =>
-//        {
-//            options.UseInMemoryDatabase(dbName, root);
-//        });
+        services.AddDbContext<AppDbContext>(options =>
+            options.UseNpgsql(connectionString));
 
-//        services.AddIdentityCore<ApplicationUser>(options =>
-//        {
-//            options.Password.RequireDigit = false;
-//            options.Password.RequireUppercase = false;
-//            options.Password.RequireNonAlphanumeric = false;
-//            options.Password.RequireLowercase = false;
-//            options.Password.RequiredLength = 4;
-//        })
-//        .AddRoles<IdentityRole>()
-//        .AddEntityFrameworkStores<AppDbContext>();
+        services.AddDbContextFactory<AppDbContext>(options =>
+            options.UseNpgsql(connectionString));
 
-//        Configuration = new ConfigurationBuilder()
-//            .AddInMemoryCollection(new Dictionary<string, string?>
-//            {
-//                ["Jwt:Key"] = "SuperSecretTestKeyThatIsLongEnoughToBeAValidHmacSha256KeyOnlyForTesting",
-//                ["Jwt:Issuer"] = "TestIssuer",
-//                ["Jwt:Audience"] = "TestAudience"
-//            })
-//            .Build();
+        services.AddIdentityCore<ApplicationUser>(options =>
+        {
+            options.Password.RequireDigit = false;
+            options.Password.RequireUppercase = false;
+            options.Password.RequireNonAlphanumeric = false;
+            options.Password.RequireLowercase = false;
+            options.Password.RequiredLength = 4;
+        })
+        .AddRoles<IdentityRole>()
+        .AddEntityFrameworkStores<AppDbContext>();
 
-//        services.AddSingleton(Configuration);
-//        services.AddScoped<IUserService, UserService>();
-//        services.AddScoped<IPatientService, PatientService>();
-//        services.AddScoped<IDoctorService, DoctorService>();
-//        services.AddScoped<IJwtTokenService, JwtTokenService>();
-//        services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+        Configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Jwt:Key"] = "SuperSecretTestKeyThatIsLongEnoughToBeAValidHmacSha256KeyOnlyForTesting",
+                ["Jwt:Issuer"] = "TestIssuer",
+                ["Jwt:Audience"] = "TestAudience"
+            })
+            .Build();
 
-//        ServiceProvider = services.BuildServiceProvider();
+        services.AddSingleton(Configuration);
 
-//        DbContextFactory = ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
+        ServiceProvider = services.BuildServiceProvider();
+        DbContextFactory = ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
 
-//        using var scope = ServiceProvider.CreateScope();
-//        var ctx = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await using var scope = ServiceProvider.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await context.Database.MigrateAsync();
+    }
 
-//        await ctx.Database.EnsureCreatedAsync();
-//    }
+    public async Task DisposeAsync()
+    {
+        await _postgresContainer.DisposeAsync();
 
-//    public Task DisposeAsync() => Task.CompletedTask;
-//}
+        if (ServiceProvider is IAsyncDisposable asyncDisposable)
+            await asyncDisposable.DisposeAsync();
+        else
+            (ServiceProvider as IDisposable)?.Dispose();
+    }
+}
