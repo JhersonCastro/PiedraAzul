@@ -141,7 +141,7 @@
 
         <!-- Action Buttons -->
         <div class="flex flex-col sm:flex-row items-center justify-end gap-4 mb-10">
-            <button class="w-full sm:w-auto flex items-center justify-center gap-3 bg-white border-2 border-slate-100 px-10 py-4 rounded-2xl font-bold text-slate-600 hover:bg-slate-50 transition-all">
+            <button @onclick="PrintList" class="w-full sm:w-auto flex items-center justify-center gap-3 bg-white border-2 border-slate-100 px-10 py-4 rounded-2xl font-bold text-slate-600 hover:bg-slate-50 transition-all">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
                 Imprimir Listado
             </button>
@@ -181,22 +181,92 @@
         else NavigationManager.NavigateTo("/admin");
     }
 
-    private async Task ExportToCsv()
+    private async Task PrintList()
     {
-        var csv = "Paciente,Horario,Especialidad,Estado\n";
+        var doctorName = specialists.FirstOrDefault(s => s.Id == SelectedDoctor)?.Name ?? "Todos";
+        var dateStr = SelectedDate.ToString("dd/MM/yyyy");
+        
+        var html = $@"
+            <html>
+            <head>
+                <style>
+                    body {{ font-family: sans-serif; padding: 40px; }}
+                    table {{ width: 100%; border-collapse: collapse; }}
+                    th, td {{ border: 1px solid black; padding: 12px; text-align: left; }}
+                    .header-row {{ background-color: #f0f0f0; font-weight: bold; text-align: center; font-size: 18px; }}
+                    .sub-header {{ font-weight: bold; }}
+                    .col-header {{ background-color: #f9f9f9; font-weight: bold; font-size: 12px; text-transform: uppercase; }}
+                </style>
+            </head>
+            <body>
+                <table>
+                    <tr class='header-row'><th colspan='5'>Registro Piedra Azul {dateStr}</th></tr>
+                    <tr><th colspan='5' class='sub-header'>Especialista: {doctorName}</th></tr>
+                    <tr class='col-header'>
+                        <th>Paciente</th><th>Horario</th><th>Especialidad</th><th>Estado</th><th>Asistencia</th>
+                    </tr>";
+        
         foreach (var app in dummyAppointments)
         {
-            csv += $"\"{app.Patient}\",\"{app.Time}\",\"{app.Specialty}\",\"{app.Status}\"\n";
+            html += $"<tr><td><b>{app.Patient}</b></td><td>{app.Time}</td><td>{app.Specialty}</td><td>{app.Status}</td><td></td></tr>";
+        }
+        
+        html += "</table><script>window.print();</script></body></html>";
+
+        await JS.InvokeVoidAsync("eval", $@"
+            var win = window.open('', '_blank');
+            win.document.write(`{html}`);
+            win.document.close();
+        ");
+    }
+
+    private async Task ExportToCsv()
+    {
+        var doctorName = specialists.FirstOrDefault(s => s.Id == SelectedDoctor)?.Name ?? "Todos";
+        var dateStr = SelectedDate.ToString("dd/MM/yyyy");
+        
+        // Generamos un HTML compatible con Excel para mantener los bordes (cuadros)
+        var html = $@"
+            <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:x='urn:schemas-microsoft-com:office:excel' xmlns='http://www.w3.org/TR/REC-html40'>
+            <head><meta charset='utf-8'/></head>
+            <body>
+                <table border='1' style='border-collapse:collapse; font-family: Calibri, sans-serif;'>
+                    <tr style='background-color:#f1f5f9; font-weight:bold; height:40px;'>
+                        <th colspan='5' style='text-align:center; font-size:16px;'>Registro Piedra Azul {dateStr}</th>
+                    </tr>
+                    <tr style='height:30px;'>
+                        <th colspan='5' style='text-align:left; font-size:12px; padding-left:10px;'>Especialista: {doctorName}</th>
+                    </tr>
+                    <tr style='background-color:#f8fafc; font-weight:bold; text-transform:uppercase; font-size:10px;'>
+                        <th style='width:250px;'>PACIENTE</th>
+                        <th style='width:100px;'>HORARIO</th>
+                        <th style='width:150px;'>ESPECIALIDAD</th>
+                        <th style='width:120px;'>ESTADO</th>
+                        <th style='width:100px;'>ASISTENCIA</th>
+                    </tr>";
+        
+        foreach (var app in dummyAppointments)
+        {
+            html += $@"
+                <tr>
+                    <td style='font-weight:bold;'>{app.Patient}</td>
+                    <td style='text-align:center;'>{app.Time}</td>
+                    <td>{app.Specialty}</td>
+                    <td style='text-align:center;'>{app.Status}</td>
+                    <td></td>
+                </tr>";
         }
 
-        var fileName = $"Exportacion_Citas_{SelectedDate:yyyyMMdd}.csv";
-        var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
+        html += "</table></body></html>";
+
+        var fileName = $"Listado_Citas_{SelectedDate:yyyyMMdd}.xls";
+        var bytes = System.Text.Encoding.UTF8.GetBytes(html);
         var base64 = Convert.ToBase64String(bytes);
         
         await JS.InvokeVoidAsync("eval", $@"
             var link = document.createElement('a');
             link.download = '{fileName}';
-            link.href = 'data:text/csv;base64,{base64}';
+            link.href = 'data:application/vnd.ms-excel;base64,{base64}';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -228,12 +298,12 @@
     private List<AppointmentVM> dummyAppointments = new()
     {
         new() { Patient = "Carlos Alberto Ruiz", Time = "08:30 AM", Specialty = "Terapia General", Status = "Confirmada" },
-        new() { Patient = "Maria Fernanda López", Time = "09:15 AM", Specialty = "Quiropraxia", Status = "Confirmada" },
+        new() { Patient = "Maria Fernanda Lopez Mocada", Time = "09:15 AM", Specialty = "Quiropraxia", Status = "Confirmada" },
         new() { Patient = "Juan Pablo Duarte", Time = "10:00 AM", Specialty = "Fisioterapia", Status = "Pendiente" },
         new() { Patient = "Lucía Torres", Time = "11:30 AM", Specialty = "Nutrición", Status = "Confirmada" },
         new() { Patient = "Andrés Felipe", Time = "12:00 PM", Specialty = "Psicología", Status = "Confirmada" },
         new() { Patient = "Camila Rivas", Time = "01:30 PM", Specialty = "Odontología", Status = "Pendiente" },
-        new() { Patient = "Julian Castro", Time = "02:15 PM", Specialty = "Dermatología", Status = "Confirmada" },
+        new() { Patient = "Juliana Castro", Time = "02:15 PM", Specialty = "Dermatología", Status = "Confirmada" },
         new() { Patient = "Elena Blanco", Time = "03:00 PM", Specialty = "Cardiología", Status = "Confirmada" }
     };
 }
