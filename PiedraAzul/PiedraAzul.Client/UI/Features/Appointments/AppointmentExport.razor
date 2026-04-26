@@ -4,6 +4,7 @@
 @using PiedraAzul.Client.States
 @inject UserState UserState
 @inject NavigationManager NavigationManager
+@inject IJSRuntime JS
 
 <div class="min-h-screen bg-slate-50 pb-12">
     
@@ -75,10 +76,11 @@
                     <label class="block text-slate-500 font-bold uppercase tracking-wider text-xs mb-3 ml-1">MÉDICO / TERAPISTA</label>
                     <div class="relative">
                         <select @bind="SelectedDoctor" disabled="@(!IsAdmin)" 
-                                class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-6 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all text-slate-700 font-medium appearance-none">
-                            <option value="all">Todos los profesionales</option>
-                            <option value="1">Dr. Roberto Gómez</option>
-                            <option value="2">Dra. Marta Lucía</option>
+                                class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-6 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all text-slate-700 font-medium appearance-none disabled:opacity-50 disabled:cursor-not-allowed">
+                            @foreach (var spec in specialists)
+                            {
+                                <option value="@spec.Id">@spec.Name</option>
+                            }
                         </select>
                         <div class="absolute inset-y-0 right-6 flex items-center pointer-events-none text-slate-400">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
@@ -143,7 +145,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
                 Imprimir Listado
             </button>
-            <button class="w-full sm:w-auto flex items-center justify-center gap-3 bg-primary text-white px-10 py-4 rounded-2xl font-bold hover:opacity-90 transition-all shadow-xl shadow-primary/30">
+            <button @onclick="ExportToCsv" class="w-full sm:w-auto flex items-center justify-center gap-3 bg-primary text-white px-10 py-4 rounded-2xl font-bold hover:opacity-90 transition-all shadow-xl shadow-primary/30">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 Exportar a CSV
             </button>
@@ -179,6 +181,34 @@
         else NavigationManager.NavigateTo("/admin");
     }
 
+    private async Task ExportToCsv()
+    {
+        var csv = "Paciente,Horario,Especialidad,Estado\n";
+        foreach (var app in dummyAppointments)
+        {
+            csv += $"\"{app.Patient}\",\"{app.Time}\",\"{app.Specialty}\",\"{app.Status}\"\n";
+        }
+
+        var fileName = $"Exportacion_Citas_{SelectedDate:yyyyMMdd}.csv";
+        var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
+        var base64 = Convert.ToBase64String(bytes);
+        
+        await JS.InvokeVoidAsync("eval", $@"
+            var link = document.createElement('a');
+            link.download = '{fileName}';
+            link.href = 'data:text/csv;base64,{base64}';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        ");
+    }
+
+    private class SpecialistVM
+    {
+        public string Id { get; set; } = "";
+        public string Name { get; set; } = "";
+    }
+
     private class AppointmentVM
     {
         public string Patient { get; set; } = "";
@@ -187,11 +217,23 @@
         public string Status { get; set; } = "";
     }
 
+    private List<SpecialistVM> specialists = new()
+    {
+        new() { Id = "all", Name = "Todos los profesionales" },
+        new() { Id = "1", Name = "Dr. Roberto Gómez" },
+        new() { Id = "2", Name = "Dra. Marta Lucía" },
+        new() { Id = "3", Name = "Dr. Samuel Mendez" }
+    };
+
     private List<AppointmentVM> dummyAppointments = new()
     {
         new() { Patient = "Carlos Alberto Ruiz", Time = "08:30 AM", Specialty = "Terapia General", Status = "Confirmada" },
         new() { Patient = "Maria Fernanda López", Time = "09:15 AM", Specialty = "Quiropraxia", Status = "Confirmada" },
         new() { Patient = "Juan Pablo Duarte", Time = "10:00 AM", Specialty = "Fisioterapia", Status = "Pendiente" },
-        new() { Patient = "Lucía Torres", Time = "11:30 AM", Specialty = "Nutrición", Status = "Confirmada" }
+        new() { Patient = "Lucía Torres", Time = "11:30 AM", Specialty = "Nutrición", Status = "Confirmada" },
+        new() { Patient = "Andrés Felipe", Time = "12:00 PM", Specialty = "Psicología", Status = "Confirmada" },
+        new() { Patient = "Camila Rivas", Time = "01:30 PM", Specialty = "Odontología", Status = "Pendiente" },
+        new() { Patient = "Julian Castro", Time = "02:15 PM", Specialty = "Dermatología", Status = "Confirmada" },
+        new() { Patient = "Elena Blanco", Time = "03:00 PM", Specialty = "Cardiología", Status = "Confirmada" }
     };
 }
