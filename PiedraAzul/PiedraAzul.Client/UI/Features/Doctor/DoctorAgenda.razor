@@ -5,6 +5,7 @@
 @inject UserState UserState
 
 <div class="min-h-screen bg-slate-50 pb-12">
+    
     <!-- HEADER / NAV -->
     <header class="bg-white border-b sticky top-0 z-30">
         <div class="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
@@ -66,8 +67,10 @@
 
         <!-- Calendar Container -->
         <div class="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+            
             <!-- Calendar Header -->
             <div class="p-8 border-b border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6">
+                
                 <!-- Month/Year Navigation -->
                 <div class="flex items-center gap-8">
                     <div class="flex items-center gap-2">
@@ -82,6 +85,7 @@
                         @(char.ToUpper(CurrentDate.ToString("MMMM", new CultureInfo("es-ES"))[0]) + CurrentDate.ToString("MMMM yyyy", new CultureInfo("es-ES")).Substring(1))
                     </h2>
                 </div>
+
                 <!-- View Switcher -->
                 <div class="flex items-center p-1 bg-slate-100 rounded-xl">
                     <button class="px-6 py-2 rounded-lg font-bold text-sm bg-white text-slate-900 shadow-sm transition-all">Mes</button>
@@ -89,6 +93,7 @@
                     <button class="px-6 py-2 rounded-lg font-bold text-sm text-slate-500 hover:text-slate-900 transition-all">Día</button>
                 </div>
             </div>
+            
             <!-- Calendar Grid -->
             <div class="grid grid-cols-7 border-b border-slate-100 bg-slate-50/50">
                 @foreach (var day in DaysOfWeek)
@@ -98,6 +103,44 @@
                 </div>
             }
             </div>
+            <!-- Appointments Placeholder -->
+            <div class="grid grid-cols-7 grid-rows-5 min-h-[700px]">
+                @foreach (var date in CalendarDays)
+                {
+                    var isCurrentMonth = date.Month == CurrentDate.Month;
+                    var isToday = date.Date == DateTime.Today;
+                    
+                    <div class="relative p-4 border-r border-b border-slate-100 last:border-r-0 group hover:bg-slate-50/50 transition-all @(isCurrentMonth ? "" : "bg-slate-50/30")">
+
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-lg font-bold @(isToday ? "bg-primary text-white w-8 h-8 rounded-full flex items-center justify-center shadow-lg shadow-primary/30" : isCurrentMonth ? "text-slate-900" : "text-slate-300")">
+                                @date.Day
+                            </span>
+                        </div>
+
+                        
+                        <div class="space-y-1.5 overflow-hidden">
+                            @if (MockAppointments.ContainsKey(date.Date))
+                            {
+                                var apps = MockAppointments[date.Date];
+                                @foreach (var app in apps.Take(3))
+                                {
+                                    <div class="text-[10px] font-bold p-2 rounded-lg border border-primary/10 @(app.Status == "Urgent" ? "bg-rose-50 text-rose-600 border-rose-100" : app.Status == "Internal" ? "bg-slate-100 text-slate-600 border-slate-200" : "bg-primary/5 text-primary") truncate flex items-center gap-1.5">
+                                        <span class="font-black opacity-60">@app.Time</span>
+                                        <span class="opacity-80">- @app.Patient</span>
+                                    </div>
+                                }
+                                @if (apps.Count > 3)
+                                {
+                                    <div class="text-[10px] font-black text-primary px-2 pt-1">
+                                        +@(apps.Count - 3) more
+                                    </div>
+                                }
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
         </div>
     </main>
 </div>
@@ -106,7 +149,13 @@
     private DateTime CurrentDate = new DateTime(2026, 3, 1);
     private string[] DaysOfWeek = { "Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo" };
     private List<DateTime> CalendarDays = new();
-    
+
+    protected override void OnInitialized()
+    {
+        CalculateCalendar();
+        LoadMockData();
+    }
+
     private void CalculateCalendar()
     {
         CalendarDays.Clear();
@@ -136,4 +185,55 @@
         CalculateCalendar();
     }
 
+    private class Appointment { public string Time; public string Patient; public string Status; }
+    private Dictionary<DateTime, List<Appointment>> MockAppointments = new();
+
+    private void LoadMockData()
+    {
+        // Sample data for March 2026 (matching the prototype as much as possible)
+        MockAppointments[new DateTime(2026, 3, 2)] = new List<Appointment> {
+            new() { Time = "08:00", Patient = "M. Santos", Status = "Normal" },
+            new() { Time = "09:30", Patient = "L. Vargas", Status = "Normal" }
+        };
+        MockAppointments[new DateTime(2026, 3, 3)] = new List<Appointment> {
+            new() { Time = "10:00", Patient = "J. Pérez (Urgent)", Status = "Urgent" }
+        };
+        MockAppointments[new DateTime(2026, 3, 4)] = new List<Appointment> {
+            new() { Time = "09:00", Patient = "Carlos M.", Status = "Normal" },
+            new() { Time = "10:15", Patient = "A. Rodríguez", Status = "Normal" },
+            new() { Time = "11:30", Patient = "E. Silva", Status = "Normal" },
+            new() { Time = "14:00", Patient = "T. Miller", Status = "Normal" },
+            new() { Time = "16:00", Patient = "R. Davis", Status = "Normal" }
+        };
+        MockAppointments[new DateTime(2026, 3, 5)] = new List<Appointment> {
+            new() { Time = "14:00", Patient = "Staff Meeting", Status = "Internal" }
+        };
+        MockAppointments[new DateTime(2026, 3, 10)] = new List<Appointment> {
+            new() { Time = "08:30", Patient = "T. López", Status = "Normal" }
+        };
+        MockAppointments[new DateTime(2026, 3, 12)] = new List<Appointment> {
+            new() { Time = "13:00", Patient = "M. Gómez", Status = "Normal" }
+        };
+    }
 }
+
+<style>
+    .bg-primary { background-color: #257D8D; }
+    .text-primary { color: #257D8D; }
+    .border-primary { border-color: #257D8D; }
+    .shadow-primary\/20 { --tw-shadow-color: rgba(37, 125, 141, 0.2); shadow-color: var(--tw-shadow-color); }
+    .shadow-primary\/30 { --tw-shadow-color: rgba(37, 125, 141, 0.3); shadow-color: var(--tw-shadow-color); }
+</style>
+
+@code {
+    // Helper extension to capitalize first letter
+}
+
+@functions {
+    // I will use a simple C# helper instead of @functions if possible
+}
+
+@code {
+    // Adding the extension method logic here for simplicity in the razor file
+}
+
