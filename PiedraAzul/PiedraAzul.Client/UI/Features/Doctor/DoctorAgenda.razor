@@ -3,6 +3,7 @@
 @using System.Globalization
 @using PiedraAzul.Client.States
 @inject UserState UserState
+@inject NavigationManager NavigationManager
 
 <div class="min-h-screen bg-slate-50 pb-12">
     
@@ -113,7 +114,7 @@
                     var isCurrentMonth = date.Month == CurrentDate.Month;
                     var isToday = date.Date == DateTime.Today;
                     
-                    <div class="relative p-4 border-r border-b border-slate-100 last:border-r-0 group hover:bg-slate-50/50 transition-all @(isCurrentMonth ? "" : "bg-slate-50/30")">
+                    <div @onclick="() => IrACronograma(date)" class="relative p-4 border-r border-b border-slate-100 last:border-r-0 group hover:bg-slate-50/50 transition-all cursor-pointer @(isCurrentMonth ? "" : "bg-slate-50/30")">
 
                         <div class="flex items-center justify-between mb-3">
                             <span class="text-lg font-bold @(isToday ? "bg-primary text-white w-8 h-8 rounded-full flex items-center justify-center shadow-lg shadow-primary/30" : isCurrentMonth ? "text-slate-900" : "text-slate-300")">
@@ -128,7 +129,7 @@
                                 var apps = MockAppointments[date.Date];
                                 @foreach (var app in apps.Take(3))
                                 {
-                                    <div class="text-[10px] font-bold p-2 rounded-lg border border-primary/10 @(app.Status == "Urgent" ? "bg-rose-50 text-rose-600 border-rose-100" : app.Status == "Internal" ? "bg-slate-100 text-slate-600 border-slate-200" : "bg-primary/5 text-primary") truncate flex items-center gap-1.5">
+                                     <div @onclick:stopPropagation="true" class="text-[10px] font-bold p-2 rounded-lg border border-primary/10 @(app.Status == "Urgent" ? "bg-rose-50 text-rose-600 border-rose-100" : app.Status == "Internal" ? "bg-slate-100 text-slate-600 border-slate-200" : "bg-primary/5 text-primary") truncate flex items-center gap-1.5">
                                         <span class="font-black opacity-60">@app.Time</span>
                                         <span class="opacity-80">- @app.Patient</span>
                                     </div>
@@ -186,6 +187,11 @@
     {
         CurrentDate = CurrentDate.AddMonths(1);
         CalculateCalendar();
+    }
+
+    private void IrACronograma(DateTime date)
+    {
+        NavigationManager.NavigateTo($"/doctor/cronograma-diario?date={date:yyyy-MM-dd}");
     }
 
     private class Appointment { public string Time; public string Patient; public string Status; }
