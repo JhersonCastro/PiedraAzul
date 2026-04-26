@@ -85,16 +85,19 @@
             </div>
             <!-- View Switcher -->
             <div class="flex items-center p-1 bg-slate-100 rounded-xl">
+                <button class="px-6 py-2 rounded-lg font-bold text-sm bg-white text-slate-900 shadow-sm transition-all">Mes</button>
+                <button class="px-6 py-2 rounded-lg font-bold text-sm text-slate-500 hover:text-slate-900 transition-all">Semana</button>
+                <button class="px-6 py-2 rounded-lg font-bold text-sm text-slate-500 hover:text-slate-900 transition-all">Día</button>
             </div>
-            <!-- Calendar Grid -->
-            <div class="grid grid-cols-7 border-b border-slate-100 bg-slate-50/50">
-                @foreach (var day in DaysOfWeek)
-                {
-                    <div class="py-4 text-center text-xs font-black text-slate-400 uppercase tracking-widest border-r border-slate-100 last:border-0">
-                        @day
-                    </div>
-                }
-            </div>
+        </div>
+        <!-- Calendar Grid -->
+        <div class="grid grid-cols-7 border-b border-slate-100 bg-slate-50/50">
+            @foreach (var day in DaysOfWeek)
+            {
+                <div class="py-4 text-center text-xs font-black text-slate-400 uppercase tracking-widest border-r border-slate-100 last:border-0">
+                    @day
+                </div>
+            }
         </div>
     </main>
 </div>
