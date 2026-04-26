@@ -26,6 +26,29 @@
             </div>
         </div>
     </header>
+
+    <main class="max-w-7xl mx-auto px-4 mt-8">
+        <!-- Specialist Search Header -->
+        <div class="flex flex-col md:flex-row items-end justify-between gap-6 mb-12">
+            <div>
+                <h1 class="text-5xl font-black text-slate-900 mb-2">Configurar Horario</h1>
+                <p class="text-slate-500 text-lg font-medium">Gestiona tu disponibilidad semanal para citas con pacientes.</p>
+            </div>
+
+            <div class="flex flex-col gap-2">
+                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Especialista</label>
+                <div class="bg-white p-2 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 min-w-[400px]">
+                    <div class="pl-4 text-slate-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                    </div>
+                    <input type="text" placeholder="Selecciona un especialista" class="flex-1 bg-transparent border-none focus:outline-none text-slate-700 font-bold" />
+                    <button class="bg-primary text-white px-8 py-3 rounded-xl font-bold hover:opacity-90 transition-all shadow-lg shadow-primary/20">
+                        BUSCAR
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
 </div>
 
 @code {
