@@ -49,7 +49,7 @@
                 </li>
             </ol>
         </nav>
-        
+
         <!-- Header Title & Controls -->
         <div class="flex flex-col md:flex-row items-center justify-between gap-6 mb-10">
             <h1 class="text-5xl font-black text-slate-900">Dr. Roberto Gómez</h1>
@@ -63,9 +63,29 @@
                 </button>
             </div>
         </div>
+
+        <!-- Calendar Container -->
+        <div class="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+            <!-- Calendar Header -->
+            <div class="p-8 border-b border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6">
+            </div>
+            <!-- View Switcher -->
+            <div class="flex items-center p-1 bg-slate-100 rounded-xl">
+            </div>
+            <!-- Calendar Grid -->
+            <div class="grid grid-cols-7 border-b border-slate-100 bg-slate-50/50">
+                @foreach (var day in DaysOfWeek)
+                {
+                    <div class="py-4 text-center text-xs font-black text-slate-400 uppercase tracking-widest border-r border-slate-100 last:border-0">
+                        @day
+                    </div>
+                }
+            </div>
+        </div>
     </main>
 </div>
 
 @code {
-    //codiguito
+    private string[] DaysOfWeek = { "Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo" };
+
 }
