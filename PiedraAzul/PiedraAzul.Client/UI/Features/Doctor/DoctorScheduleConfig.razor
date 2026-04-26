@@ -13,5 +13,16 @@
 }
 
 <style>
-    /*estilitos*/
+    .bg-primary { background-color: #257D8D; }
+    .text-primary { color: #257D8D; }
+    .border-primary { border-color: #257D8D; }
+    .shadow-primary\/20 { --tw-shadow-color: rgba(37, 125, 141, 0.2); }
+    .shadow-primary\/30 { --tw-shadow-color: rgba(37, 125, 141, 0.3); }
+    .focus\:ring-primary\/20:focus { --tw-ring-color: rgba(37, 125, 141, 0.2); }
+    .peer-checked\:bg-primary:checked ~ .peer-checked\:bg-primary { background-color: #257D8D; }
+    
+    /* Utility for peer checked background */
+    .peer:checked ~ .peer-checked\:bg-primary {
+        background-color: #257D8D;
+    }
 </style>
