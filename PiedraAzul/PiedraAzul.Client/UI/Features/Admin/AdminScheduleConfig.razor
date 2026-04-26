@@ -142,14 +142,130 @@
                         }
                     </div>
                 </div>
+
+                <!-- Schedule Grid -->
+                <div class="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/40 border border-slate-100 overflow-hidden">
+                    <div class="grid grid-cols-[120px_1fr_1fr_1fr_1fr_1fr] border-b border-slate-100 bg-slate-50/20">
+                        <div class="p-8 flex items-center justify-center text-[10px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-100">Horario</div>
+                        @foreach (var day in WeekDays)
+                        {
+                            <div class="p-8 border-r border-slate-100 last:border-0 text-center relative group @(day.IsBlocked ? "bg-slate-50/50" : "")">
+                                <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">@day.DayName</div>
+                                <div class="text-3xl font-black text-slate-900 mb-4">@day.DayNumber</div>
+                                <div class="flex justify-center">
+                                    <div class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" checked="@(!day.IsBlocked)" @onchange="() => day.IsBlocked = !day.IsBlocked" class="sr-only peer">
+                                        <div class="w-12 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                                    </div>
+                                </div>
+                                @if (day.DayName == "Jue")
+                                {
+                                    <div class="absolute inset-x-0 bottom-0 h-1.5 bg-primary"></div>
+                                }
+                            </div>
+                        }
+                    </div>
+
+                    <div class="divide-y divide-slate-100">
+                        @foreach (var hour in Hours)
+                        {
+                            <div class="grid grid-cols-[120px_1fr_1fr_1fr_1fr_1fr]">
+                                <div class="p-8 flex items-start justify-center font-black text-slate-900 text-xl border-r border-slate-100">@hour:00 AM</div>
+                                @foreach (var day in WeekDays)
+                                {
+                                    <div class="p-6 border-r border-slate-100 last:border-0 @(day.IsBlocked ? "bg-slate-50/50 flex items-center justify-center italic text-slate-400 font-bold text-sm" : "")">
+                                        @if (day.IsBlocked)
+                                        {
+                                            <span>Bloqueado</span>
+                                        }
+                                        else
+                                        {
+                                            <div class="grid grid-cols-1 gap-3">
+                                                @foreach (var slot in GetSlotsForHour(day, hour))
+                                                {
+                                                    <button @onclick="() => slot.IsActive = !slot.IsActive"
+                                                            class="w-full py-3.5 px-6 rounded-2xl text-[11px] font-black transition-all border flex items-center justify-between group
+                                                                   @(slot.IsActive ? "bg-primary text-white border-primary shadow-xl shadow-primary/20" : "bg-white text-slate-300 border-slate-100 hover:border-slate-300")">
+                                                        <span>@slot.StartTime.ToString("HH:mm")</span>
+                                                        @if (!slot.IsActive)
+                                                        {
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="opacity-50"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                                                        }
+                                                    </button>
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+
             </div>
         </div>
     </main>
 </div>
 
 @code {
-   private int Intervalo { get; set; } = 10;
-   private bool showConfigPopover = false;
+    private int Intervalo { get; set; } = 10;
+    private bool showConfigPopover = false;
+    private List<DaySchedule> WeekDays = new();
+    private List<int> Hours = new() { 9, 10, 11, 12 };
+
+    protected override void OnInitialized()
+    {
+        InitializeSchedule();
+    }
+
+    private void InitializeSchedule()
+    {
+        WeekDays = new List<DaySchedule>
+        {
+            new() { DayName = "Lun", DayNumber = 9 },
+            new() { DayName = "Mar", DayNumber = 10 },
+            new() { DayName = "Mier", DayNumber = 11, IsBlocked = true },
+            new() { DayName = "Jue", DayNumber = 12 },
+            new() { DayName = "Vie", DayNumber = 13 }
+        };
+
+        foreach (var day in WeekDays)
+        {
+            GenerateSlotsForDay(day);
+        }
+    }
+
+    private void GenerateSlotsForDay(DaySchedule day)
+    {
+        day.Slots.Clear();
+        foreach (var hour in Hours)
+        {
+            for (int min = 0; min < 60; min += Intervalo)
+            {
+                var time = DateTime.Today.AddHours(hour).AddMinutes(min);
+                day.Slots.Add(new TimeSlot { StartTime = time, IsActive = true });
+            }
+        }
+    }
+
+    private IEnumerable<TimeSlot> GetSlotsForHour(DaySchedule day, int hour)
+    {
+        return day.Slots.Where(s => s.StartTime.Hour == hour);
+    }
+
+    public class DaySchedule
+    {
+        public string DayName { get; set; } = "";
+        public int DayNumber { get; set; }
+        public bool IsBlocked { get; set; }
+        public List<TimeSlot> Slots { get; set; } = new();
+    }
+
+    public class TimeSlot
+    {
+        public DateTime StartTime { get; set; }
+        public bool IsActive { get; set; }
+    }
 }
 
 <style>
