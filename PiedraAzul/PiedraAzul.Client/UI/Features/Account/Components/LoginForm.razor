@@ -66,9 +66,10 @@
         <div class="mt-6 space-y-3">
 
             <button type="submit"
+                    disabled="@_loading"
                     class="w-full rounded-lg bg-[#257D8D] py-3 font-semibold text-white shadow-md
-                transition duration-200 hover:bg-[#1E5F6F]">
-                Iniciar sesión
+                transition duration-200 hover:bg-[#1E5F6F] disabled:opacity-60">
+                @(_loading ? "Iniciando sesión..." : "Iniciar sesión")
             </button>
 
             @if (_passkeySupported)
@@ -107,6 +108,7 @@
     public string? ReturnUrl { get; set; } = string.Empty;
 
     private string? _errorMessage;
+    private bool _loading;
     private bool _passkeySupported;
     private bool _passkeyLoading;
 
@@ -120,20 +122,30 @@
 
     private async Task HandleLogin()
     {
-        var result = await AuthService.LoginAsync(loginModel);
+        _loading = true;
+        _errorMessage = null;
+        StateHasChanged();
 
-        if (!result.IsSuccess)
+        try
         {
-            _errorMessage = result.Error!.Type == "Auth"
-                ? "Credenciales inválidas. Por favor, verifica tu información."
-                : "Ocurrió un error al intentar iniciar sesión. Por favor, intenta nuevamente.";
-            return;
-        }
+            var result = await AuthService.LoginAsync(loginModel);
 
-        // Force a full page reload so the server re-renders with the new auth cookie
-        // and PersistentAuthenticationStateProvider picks up the authenticated state.
-        var destination = string.IsNullOrEmpty(ReturnUrl) ? "/" : ReturnUrl;
-        NavigationManager.NavigateTo(destination, forceLoad: true);
+            if (!result.IsSuccess)
+            {
+                _errorMessage = result.Error?.Message ?? "Ocurrió un error al intentar iniciar sesión.";
+                return;
+            }
+
+            // Force a full page reload so the server re-renders with the new auth cookie
+            // and PersistentAuthenticationStateProvider picks up the authenticated state.
+            var destination = string.IsNullOrEmpty(ReturnUrl) ? "/" : ReturnUrl;
+            NavigationManager.NavigateTo(destination, forceLoad: true);
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
     }
 
     private async Task HandlePasskeyLogin()

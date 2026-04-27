@@ -23,17 +23,23 @@ public class Mutation
         LoginInput input,
         [Service] IMediator mediator,
         [Service] UserManager<ApplicationUser> userManager,
-        [Service] SignInManager<ApplicationUser> signInManager)
+        [Service] SignInManager<ApplicationUser> signInManager,
+        [Service] ILogger<Mutation> logger)
     {
         var result = await mediator.Send(new LoginCommand(input.Email, input.Password));
 
         if (result.User is null)
+        {
+            logger.LogWarning("Failed login attempt for email: {Email}", input.Email);
             throw new GraphQLException("Credenciales incorrectas");
+        }
 
         var user = await userManager.FindByIdAsync(result.User.Id)
             ?? throw new GraphQLException("Usuario no encontrado");
 
         await signInManager.SignInAsync(user, isPersistent: true);
+
+        logger.LogInformation("Successful login for user: {UserId} ({Email})", user.Id, user.Email);
 
         return new UserType
         {
@@ -49,8 +55,11 @@ public class Mutation
         RegisterInput input,
         [Service] IMediator mediator,
         [Service] UserManager<ApplicationUser> userManager,
-        [Service] SignInManager<ApplicationUser> signInManager)
+        [Service] SignInManager<ApplicationUser> signInManager,
+        [Service] ILogger<Mutation> logger)
     {
+        logger.LogInformation("Registration attempt for email: {Email}", input.Email);
+
         var result = await mediator.Send(new RegisterCommand(
             new RegisterUserDto(input.Email, input.Name, input.Phone, input.IdentificationNumber),
             input.Password,
@@ -58,7 +67,10 @@ public class Mutation
         ));
 
         if (result.User is null)
+        {
+            logger.LogWarning("Registration failed for email: {Email}", input.Email);
             throw new GraphQLException("No se pudo registrar");
+        }
 
         foreach (var role in input.Roles)
             await mediator.Send(new CreateProfileForRoleCommand(result.User.Id, role));
@@ -67,6 +79,8 @@ public class Mutation
             ?? throw new GraphQLException("Usuario no encontrado");
 
         await signInManager.SignInAsync(user, isPersistent: true);
+
+        logger.LogInformation("Successful registration for user: {UserId} ({Email})", user.Id, user.Email);
 
         return new UserType
         {
@@ -132,15 +146,23 @@ public class Mutation
 
     public async Task<bool> CompletePasskeyRegistrationAsync(
         CompletePasskeyRegistrationInput input,
-        [Service] IPasskeyService passkeys)
+        [Service] IPasskeyService passkeys,
+        [Service] ILogger<Mutation> logger)
     {
         try
         {
-            return await passkeys.CompleteRegistrationAsync(
+            var result = await passkeys.CompleteRegistrationAsync(
                 input.UserId, input.AttestationResponse, input.FriendlyName);
+
+            logger.LogInformation("Passkey registered successfully for user: {UserId} (Name: {FriendlyName})",
+                input.UserId, input.FriendlyName);
+
+            return result;
         }
         catch (InvalidOperationException ex)
         {
+            logger.LogWarning("Passkey registration failed for user: {UserId} - {Error}",
+                input.UserId, ex.Message);
             throw new GraphQLException(ex.Message);
         }
     }
@@ -185,15 +207,24 @@ public class Mutation
     public async Task<bool> DeletePasskeyAsync(
         string passkeyId,
         [Service] IPasskeyService passkeys,
-        [Service] IHttpContextAccessor httpContextAccessor)
+        [Service] IHttpContextAccessor httpContextAccessor,
+        [Service] ILogger<Mutation> logger)
     {
         var userId = httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)
             ?? throw new GraphQLException("No autenticado");
 
         if (!Guid.TryParse(passkeyId, out var id))
+        {
+            logger.LogWarning("Invalid passkey ID format attempted for user: {UserId}", userId);
             throw new GraphQLException("ID de passkey inválido");
+        }
 
-        return await passkeys.DeletePasskeyAsync(userId, id);
+        var result = await passkeys.DeletePasskeyAsync(userId, id);
+
+        if (result)
+            logger.LogInformation("Passkey deleted for user: {UserId} (PasskeyId: {PasskeyId})", userId, passkeyId);
+
+        return result;
     }
 
     [Authorize]
