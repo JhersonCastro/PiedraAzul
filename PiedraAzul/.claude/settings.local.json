@@ -19,7 +19,9 @@
       "Bash(Select-String -Pattern \"Build succeeded|Error|failed\")",
       "Bash(rm -r PiedraAzul/bin/Release)",
       "Bash(rm -r PiedraAzul/obj/Release)",
-      "Bash(web\")"
+      "Bash(web\")",
+      "Bash(grep -E \"\\\\.\\(cs|razor\\)$\")",
+      "Bash(xargs rm *)"
     ]
   }
 }
