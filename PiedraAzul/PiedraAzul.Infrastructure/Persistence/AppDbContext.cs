@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using PiedraAzul.Domain.Entities;
 using PiedraAzul.Domain.Entities.Config;
 using PiedraAzul.Domain.Entities.Operations;
 using PiedraAzul.Domain.Entities.Profiles.Doctor;
@@ -19,6 +20,7 @@ namespace PiedraAzul.Infrastructure.Persistence
         public DbSet<Patient> Patients => Set<Patient>();
         public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
         public DbSet<PasskeyCredential> PasskeyCredentials => Set<PasskeyCredential>();
+        public DbSet<UserMFAConfiguration> UserMFAConfigurations => Set<UserMFAConfiguration>();
         public AppDbContext(DbContextOptions<AppDbContext> options)
             : base(options) { }
 

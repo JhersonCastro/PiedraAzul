@@ -8,6 +8,7 @@ using PiedraAzul.Application.Common.Models.Auth;
 using PiedraAzul.Application.Common.Models.Patients;
 using PiedraAzul.Application.Features.Appointments.CreateAppointment;
 using PiedraAzul.Application.Features.Auth.Commands.Login;
+using PiedraAzul.Application.Features.Auth.Commands.PasswordReset;
 using PiedraAzul.Application.Features.Auth.Commands.Register;
 using PiedraAzul.Application.Features.Users.Commands.CreateProfileForRole;
 using PiedraAzul.GraphQL.Inputs;
@@ -26,6 +27,16 @@ public class Mutation
         [Service] SignInManager<ApplicationUser> signInManager,
         [Service] ILogger<Mutation> logger)
     {
+        // Check for account lockout before attempting login
+        var potentialUser = await userManager.FindByEmailAsync(input.Email)
+            ?? await userManager.FindByNameAsync(input.Email);
+
+        if (potentialUser is not null && await userManager.IsLockedOutAsync(potentialUser))
+        {
+            logger.LogWarning("Login attempt on locked account: {Email}", input.Email);
+            throw new GraphQLException("Tu cuenta ha sido bloqueada por demasiados intentos fallidos. Intenta de nuevo en 15 minutos.");
+        }
+
         var result = await mediator.Send(new LoginCommand(input.Email, input.Password));
 
         if (result.User is null)
@@ -99,6 +110,145 @@ public class Mutation
         return true;
     }
 
+    public async Task<bool> RequestPasswordResetAsync(
+        RequestPasswordResetInput input,
+        [Service] IMediator mediator,
+        [Service] ILogger<Mutation> logger)
+    {
+        logger.LogInformation("Password reset requested for email: {Email}", input.Email);
+
+        var result = await mediator.Send(new RequestPasswordResetCommand(input.Email));
+
+        if (!result)
+        {
+            logger.LogWarning("Password reset request failed for email: {Email}", input.Email);
+            throw new GraphQLException("No se pudo procesar la solicitud de restablecimiento de contraseña");
+        }
+
+        return true;
+    }
+
+    public async Task<bool> ResetPasswordAsync(
+        ResetPasswordInput input,
+        [Service] IMediator mediator,
+        [Service] ILogger<Mutation> logger)
+    {
+        logger.LogInformation("Password reset attempt for email: {Email}", input.Email);
+
+        var result = await mediator.Send(new ResetPasswordCommand(input.Email, input.Token, input.NewPassword));
+
+        if (!result)
+        {
+            logger.LogWarning("Password reset failed for email: {Email}", input.Email);
+            throw new GraphQLException("No se pudo restablecer la contraseña. El enlace puede haber expirado.");
+        }
+
+        logger.LogInformation("Password successfully reset for email: {Email}", input.Email);
+        return true;
+    }
+
+    [Authorize]
+    public async Task<bool> EnableMFAAsync(
+        EnableMFAInput input,
+        [Service] IMFAService mfaService,
+        [Service] IEmailService emailService,
+        [Service] IHttpContextAccessor httpContextAccessor,
+        [Service] ILogger<Mutation> logger)
+    {
+        var userId = httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? throw new GraphQLException("No autenticado");
+
+        var result = await mfaService.EnableMFAAsync(userId, input.Method);
+        if (!result)
+        {
+            logger.LogWarning("Failed to enable MFA for user: {UserId}", userId);
+            throw new GraphQLException("No se pudo activar la autenticación de dos factores");
+        }
+
+        logger.LogInformation("MFA enabled for user: {UserId} with method: {Method}", userId, input.Method);
+        return true;
+    }
+
+    [Authorize]
+    public async Task<bool> DisableMFAAsync(
+        DisableMFAInput input,
+        [Service] IMFAService mfaService,
+        [Service] IHttpContextAccessor httpContextAccessor,
+        [Service] ILogger<Mutation> logger)
+    {
+        if (!input.Confirm)
+            throw new GraphQLException("Debe confirmar para deshabilitar la autenticación de dos factores");
+
+        var userId = httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? throw new GraphQLException("No autenticado");
+
+        var result = await mfaService.DisableMFAAsync(userId);
+        if (!result)
+        {
+            logger.LogWarning("Failed to disable MFA for user: {UserId}", userId);
+            throw new GraphQLException("No se pudo deshabilitar la autenticación de dos factores");
+        }
+
+        logger.LogInformation("MFA disabled for user: {UserId}", userId);
+        return true;
+    }
+
+    [Authorize]
+    public async Task<bool> InitiateMFAVerificationAsync(
+        [Service] IMFAService mfaService,
+        [Service] IEmailService emailService,
+        [Service] UserManager<ApplicationUser> userManager,
+        [Service] IHttpContextAccessor httpContextAccessor,
+        [Service] ILogger<Mutation> logger)
+    {
+        var userId = httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? throw new GraphQLException("No autenticado");
+
+        var isMFAEnabled = await mfaService.IsEnabledAsync(userId);
+        if (!isMFAEnabled)
+            throw new GraphQLException("La autenticación de dos factores no está habilitada");
+
+        var otp = await mfaService.GenerateOTPAsync(userId);
+        var user = await userManager.FindByIdAsync(userId);
+
+        if (user?.Email is null)
+        {
+            logger.LogWarning("Email not found for user: {UserId}", userId);
+            throw new GraphQLException("No se pudo enviar el código de verificación");
+        }
+
+        var emailSent = await emailService.SendMFAEmailAsync(user.Email, user.Name ?? user.Email, otp, 10);
+        if (!emailSent)
+        {
+            logger.LogWarning("Failed to send MFA email to user: {UserId}", userId);
+            throw new GraphQLException("No se pudo enviar el código de verificación");
+        }
+
+        logger.LogInformation("MFA verification initiated for user: {UserId}", userId);
+        return true;
+    }
+
+    public async Task<bool> VerifyMFAAsync(
+        VerifyMFAInput input,
+        [Service] IMFAService mfaService,
+        [Service] IHttpContextAccessor httpContextAccessor,
+        [Service] ILogger<Mutation> logger)
+    {
+        var userId = httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+            throw new GraphQLException("No autenticado");
+
+        var isValid = await mfaService.VerifyOTPAsync(userId, input.OTP);
+        if (!isValid)
+        {
+            logger.LogWarning("Invalid MFA verification attempt for user: {UserId}", userId);
+            throw new GraphQLException("Código de verificación inválido");
+        }
+
+        logger.LogInformation("MFA verification successful for user: {UserId}", userId);
+        return true;
+    }
+
     public async Task<AppointmentType> CreateAppointmentAsync(
         CreateAppointmentInput input,
         [Service] IMediator mediator)
@@ -137,18 +287,40 @@ public class Mutation
         return AppointmentType.FromDomain(appointment);
     }
 
+    [Authorize]
     public async Task<string> BeginPasskeyRegistrationAsync(
         BeginPasskeyRegistrationInput input,
-        [Service] IPasskeyService passkeys)
+        [Service] IPasskeyService passkeys,
+        [Service] IHttpContextAccessor httpContextAccessor)
     {
+        var userId = httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? throw new GraphQLException("No autenticado");
+
+        var isAdmin = httpContextAccessor.HttpContext!.User.IsInRole("Admin");
+
+        // Admin puede registrar passkeys para cualquiera, o el usuario dueño
+        if (userId != input.UserId && !isAdmin)
+            throw new GraphQLException("No tienes permiso para registrar una passkey en otra cuenta");
+
         return await passkeys.BeginRegistrationAsync(input.UserId, input.Email, input.DisplayName);
     }
 
+    [Authorize]
     public async Task<bool> CompletePasskeyRegistrationAsync(
         CompletePasskeyRegistrationInput input,
         [Service] IPasskeyService passkeys,
-        [Service] ILogger<Mutation> logger)
+        [Service] ILogger<Mutation> logger,
+        [Service] IHttpContextAccessor httpContextAccessor)
     {
+        var userId = httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? throw new GraphQLException("No autenticado");
+
+        var isAdmin = httpContextAccessor.HttpContext!.User.IsInRole("Admin");
+
+        // Admin puede completar passkeys para cualquiera, o el usuario dueño
+        if (userId != input.UserId && !isAdmin)
+            throw new GraphQLException("No tienes permiso para completar una passkey en otra cuenta");
+
         try
         {
             var result = await passkeys.CompleteRegistrationAsync(

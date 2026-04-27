@@ -21,7 +21,9 @@
       "Bash(rm -r PiedraAzul/obj/Release)",
       "Bash(web\")",
       "Bash(grep -E \"\\\\.\\(cs|razor\\)$\")",
-      "Bash(xargs rm *)"
+      "Bash(xargs rm *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }

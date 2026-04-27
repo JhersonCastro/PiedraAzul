@@ -13,6 +13,10 @@ public static class AuthExtensions
                 options.AccessDeniedPath = "/account/denied";
                 options.SlidingExpiration = true;
                 options.ExpireTimeSpan = TimeSpan.FromDays(14);
+
+                options.Cookie.SameSite = SameSiteMode.Lax;
+                options.Cookie.HttpOnly = true;
+                options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
             });
 
         services.AddAuthorization();

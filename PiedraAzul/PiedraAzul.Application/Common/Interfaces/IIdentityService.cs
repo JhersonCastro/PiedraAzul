@@ -13,5 +13,7 @@ namespace PiedraAzul.Application.Common.Interfaces
         Task<List<UserDto>> GetByIds(List<string> userIds);
         Task CreateProfileForRoleAsync(string userId, string role);
         Task<UserDto?> UpdateProfileAsync(string userId, string name, string? avatarUrl);
+        Task<string?> GeneratePasswordResetTokenAsync(string email);
+        Task<bool> ResetPasswordAsync(string email, string token, string newPassword);
     }
 }

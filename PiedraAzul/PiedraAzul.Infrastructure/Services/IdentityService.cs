@@ -26,9 +26,19 @@ public class IdentityService(
         if (user is null)
             return new LoginResult(null, []);
 
+        // Check if account is locked out
+        if (await userManager.IsLockedOutAsync(user))
+            return new LoginResult(null, []);
+
         var isValid = await userManager.CheckPasswordAsync(user, password);
         if (!isValid)
+        {
+            await userManager.AccessFailedAsync(user);
             return new LoginResult(null, []);
+        }
+
+        // Reset failed attempts on successful login
+        await userManager.ResetAccessFailedCountAsync(user);
 
         var roles = await userManager.GetRolesAsync(user);
         return new LoginResult(ToDto(user), roles.ToList());
@@ -154,6 +164,25 @@ public class IdentityService(
 
         await userManager.UpdateAsync(user);
         return ToDto(user);
+    }
+
+    public async Task<string?> GeneratePasswordResetTokenAsync(string email)
+    {
+        var user = await userManager.FindByEmailAsync(email);
+        if (user is null)
+            return null;
+
+        return await userManager.GeneratePasswordResetTokenAsync(user);
+    }
+
+    public async Task<bool> ResetPasswordAsync(string email, string token, string newPassword)
+    {
+        var user = await userManager.FindByEmailAsync(email);
+        if (user is null)
+            return false;
+
+        var result = await userManager.ResetPasswordAsync(user, token, newPassword);
+        return result.Succeeded;
     }
 
     private static UserDto ToDto(ApplicationUser user)

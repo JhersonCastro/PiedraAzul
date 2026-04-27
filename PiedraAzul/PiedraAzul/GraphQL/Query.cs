@@ -52,25 +52,48 @@ public class Query
         }).ToList();
     }
 
+    [Authorize]
     public async Task<List<AppointmentType>> GetDoctorAppointmentsAsync(
         string doctorId,
         DateTime? date,
-        [Service] IMediator mediator)
+        [Service] IMediator mediator,
+        [Service] IHttpContextAccessor httpContextAccessor)
     {
+        var userId = httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? throw new GraphQLException("No autenticado");
+
+        var isAdmin = httpContextAccessor.HttpContext!.User.IsInRole("Admin");
+
+        // Admin puede ver citas de cualquiera, o el doctor dueño
+        if (userId != doctorId && !isAdmin)
+            throw new GraphQLException("No tienes permiso para ver estas citas");
+
         DateOnly? dateOnly = date.HasValue ? DateOnly.FromDateTime(date.Value) : null;
         var result = await mediator.Send(new GetDoctorAppointmentsQuery(doctorId, dateOnly));
         return result.Select(AppointmentType.FromDto).ToList();
     }
 
+    [Authorize]
     public async Task<List<AppointmentType>> GetPatientAppointmentsAsync(
         string? patientUserId,
         string? patientGuestId,
-        [Service] IMediator mediator)
+        [Service] IMediator mediator,
+        [Service] IHttpContextAccessor httpContextAccessor)
     {
+        var userId = httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? throw new GraphQLException("No autenticado");
+
+        var isAdmin = httpContextAccessor.HttpContext!.User.IsInRole("Admin");
+
+        // Admin puede ver cualquier paciente, o el paciente dueño
+        if (!string.IsNullOrEmpty(patientUserId) && userId != patientUserId && !isAdmin)
+            throw new GraphQLException("No tienes permiso para ver estas citas");
+
         var result = await mediator.Send(new GetPatientAppointmentsQuery(patientUserId, patientGuestId));
         return result.Select(AppointmentType.FromDto).ToList();
     }
 
+    [Authorize(Roles = new[] { "Doctor" })]
     public async Task<List<PatientSearchResultType>> SearchPatientsAsync(
         string query,
         int? limit,
@@ -93,6 +116,7 @@ public class Query
             .ToList();
     }
 
+    [Authorize(Roles = new[] { "Doctor" })]
     public async Task<List<PatientSearchResultType>> SearchAutoCompletePatientsAsync(
         string query,
         [Service] IMediator mediator)

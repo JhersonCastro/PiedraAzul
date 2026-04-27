@@ -77,6 +77,9 @@ app.UseAuthorization();
 
 app.UseAntiforgery();
 
+// 🔹 CSRF Protection Middleware - Validates origin for GraphQL
+app.UseMiddleware<PiedraAzul.Middleware.GraphQLCSRFMiddleware>();
+
 // 🔹 Rate Limiting Middleware - Auth operations only
 app.UseMiddleware<PiedraAzul.Middleware.AuthRateLimitMiddleware>();
 

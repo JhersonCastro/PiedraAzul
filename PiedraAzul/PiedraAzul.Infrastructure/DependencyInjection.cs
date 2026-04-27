@@ -10,7 +10,6 @@ using PiedraAzul.Infrastructure.Identity;
 using PiedraAzul.Infrastructure.Persistence;
 using PiedraAzul.Infrastructure.Persistence.Repositories;
 using PiedraAzul.Infrastructure.Services;
-using Microsoft.AspNetCore.Identity;
 
 namespace PiedraAzul.Infrastructure;
 
@@ -42,6 +41,14 @@ public static class DependencyInjection
             options.Password.RequireLowercase = false;
             options.Password.RequiredLength = 6;
             options.Password.RequiredUniqueChars = 1;
+
+            var lockoutConfig = configuration.GetSection("Security:Lockout");
+            var maxFailedAttempts = lockoutConfig.GetValue<int>("MaxFailedAttempts", 5);
+            var lockoutDurationMinutes = lockoutConfig.GetValue<int>("LockoutDurationMinutes", 15);
+
+            options.Lockout.MaxFailedAccessAttempts = maxFailedAttempts;
+            options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(lockoutDurationMinutes);
+            options.Lockout.AllowedForNewUsers = true;
         });
 
         // Repositories 
@@ -80,6 +87,12 @@ public static class DependencyInjection
 
         // Unit of Work
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+        // Email Service
+        services.AddScoped<IEmailService, EmailService>();
+
+        // MFA Service
+        services.AddScoped<IMFAService, MFAService>();
 
         return services;
     }
