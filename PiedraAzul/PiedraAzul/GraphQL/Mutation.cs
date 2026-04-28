@@ -3,6 +3,7 @@ using HotChocolate.Authorization;
 using Mediator;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Caching.Memory;
 using PiedraAzul.Application.Common.Interfaces;
 using PiedraAzul.Application.Common.Models.Auth;
 using PiedraAzul.Application.Common.Models.Patients;
@@ -688,6 +689,62 @@ public class Mutation
         }
 
         logger.LogInformation("Email verified for user: {UserId}", userId);
+        return true;
+    }
+
+    public async Task<bool> ResendMFACodeAsync(
+        string mfaToken,
+        [Service] IMFAService mfaService,
+        [Service] IEmailService emailService,
+        [Service] IMemoryCache cache,
+        [Service] UserManager<ApplicationUser> userManager,
+        [Service] ILogger<Mutation> logger)
+    {
+        // RATE LIMITING: Máx 3 reintentos por mfaToken
+        var attemptsKey = $"resend_attempts:{mfaToken}";
+        var attempts = cache.TryGetValue(attemptsKey, out int currentAttempts) ? currentAttempts : 0;
+
+        if (attempts >= 3)
+        {
+            logger.LogWarning($"[MFA] Rate limit: Excedidos 3 reintentos para token {mfaToken}");
+            throw new GraphQLException("Demasiados intentos de reenvío. Intenta de nuevo más tarde.");
+        }
+
+        // Verificar que el mfaToken es válido (existe en cache)
+        // El mfaToken vincula al usuario, buscamos en cache
+        var tokenUserPrefix = $"mfa_user:{mfaToken}";
+        var tokenExists = cache.TryGetValue(tokenUserPrefix, out string? userId);
+
+        if (!tokenExists || string.IsNullOrEmpty(userId))
+        {
+            logger.LogWarning($"[MFA] Token expirado o inválido: {mfaToken}");
+            throw new GraphQLException("Tu sesión de verificación ha expirado. Por favor inicia sesión nuevamente.");
+        }
+
+        var user = await userManager.FindByIdAsync(userId)
+            ?? throw new GraphQLException("Usuario no encontrado");
+
+        // Generar nuevo código OTP
+        var otp = await mfaService.GenerateOTPAsync(userId);
+
+        // Guardar en cache con el MISMO token (sobrescribe el anterior, mantiene 10 minutos)
+        cache.Set($"mfa:{mfaToken}", otp, TimeSpan.FromMinutes(10));
+        cache.Set(tokenUserPrefix, userId, TimeSpan.FromMinutes(10));
+
+        // Enviar por email
+        var emailSent = await emailService.SendMFAEmailAsync(user.Email, user.Name ?? user.Email, otp, 10);
+        if (!emailSent)
+        {
+            logger.LogWarning($"[MFA] Fallo al enviar email a {user.Email}");
+            throw new GraphQLException("No se pudo enviar el código. Intenta de nuevo.");
+        }
+
+        // Incrementar contador de reintentos
+        attempts++;
+        cache.Set(attemptsKey, attempts, TimeSpan.FromHours(1)); // Resetea después de 1 hora
+
+        logger.LogInformation($"[MFA] Código reenviado para usuario {userId}. Intento {attempts}/3");
+
         return true;
     }
 }
