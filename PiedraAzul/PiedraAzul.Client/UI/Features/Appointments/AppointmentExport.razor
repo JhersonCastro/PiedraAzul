@@ -252,7 +252,7 @@
                     list.AddRange(res.Value.Select(a => new AppointmentVM 
                     {
                         Patient = a.PatientName,
-                        Time = a.Start.ToLocalTime().ToString("hh:mm tt"),
+                        Time = a.Start.ToString("hh:mm tt"),
                         Specialty = doc.Specialty,
                         Status = "Confirmada"
                     }));
@@ -268,7 +268,7 @@
                 list.AddRange(res.Value.Select(a => new AppointmentVM 
                 {
                     Patient = a.PatientName,
-                    Time = a.Start.ToLocalTime().ToString("hh:mm tt"),
+                    Time = a.Start.ToString("hh:mm tt"),
                     Specialty = doc?.Specialty ?? "General",
                     Status = "Confirmada"
                 }));
