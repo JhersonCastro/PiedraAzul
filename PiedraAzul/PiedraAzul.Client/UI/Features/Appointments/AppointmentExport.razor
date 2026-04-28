@@ -2,9 +2,12 @@
 @layout PiedraAzul.Client.UI.Shared.Layout.EmptyLayout
 @using PiedraAzul.Client.Models.GraphQL
 @using PiedraAzul.Client.States
+@using PiedraAzul.Client.Services.GraphQLServices
 @inject UserState UserState
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JS
+@inject GraphQLDoctorService DoctorService
+@inject GraphQLAppointmentService AppointmentService
 
 <div class="min-h-screen bg-slate-50 pb-12">
     
@@ -40,10 +43,10 @@
 
                 <div class="flex items-center gap-3 pl-6 border-l">
                     <div class="text-right hidden sm:block">
-                        <div class="text-sm font-bold text-slate-900">Dr. Roberto Gómez</div>
+                        <div class="text-sm font-bold text-slate-900">@UserState?.User?.Name</div>
                         <div class="text-xs text-slate-400">@UserState?.User?.Roles.FirstOrDefault()</div>
                     </div>
-                    <img src="https://ui-avatars.com/api/?name=Roberto+Gomez&background=257D8D&color=fff" alt="User" class="w-10 h-10 rounded-full border-2 border-slate-100 shadow-sm" />
+                    <img src="@(string.IsNullOrEmpty(UserState?.User?.AvatarUrl) || UserState?.User?.AvatarUrl == "default.png" ? $"https://ui-avatars.com/api/?name={UserState?.User?.Name}&background=257D8D&color=fff" : UserState.User.AvatarUrl)" alt="User" class="w-10 h-10 rounded-full border-2 border-slate-100 shadow-sm" />
                 </div>
             </div>
         </div>
@@ -75,11 +78,12 @@
                 <div>
                     <label class="block text-slate-500 font-bold uppercase tracking-wider text-xs mb-3 ml-1">MÉDICO / TERAPISTA</label>
                     <div class="relative">
-                        <select @bind="SelectedDoctor" disabled="@(!IsAdmin)" 
-                                class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-6 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all text-slate-700 font-medium appearance-none disabled:opacity-50 disabled:cursor-not-allowed">
-                            @foreach (var spec in specialists)
+                        <select value="@SelectedDoctor" @onchange="OnDoctorChanged" 
+                                class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-6 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all text-slate-700 font-medium appearance-none">
+                            <option value="all">Todos los profesionales</option>
+                            @foreach (var doc in allDoctors)
                             {
-                                <option value="@spec.Id">@spec.Name</option>
+                                <option value="@doc.DoctorId">@doc.Name (@doc.Specialty)</option>
                             }
                         </select>
                         <div class="absolute inset-y-0 right-6 flex items-center pointer-events-none text-slate-400">
@@ -90,7 +94,7 @@
 
                 <div>
                     <label class="block text-slate-500 font-bold uppercase tracking-wider text-xs mb-3 ml-1">FECHA DE CITAS</label>
-                    <input type="date" @bind="SelectedDate" 
+                    <input type="date" value="@SelectedDate.ToString("yyyy-MM-dd")" @onchange="OnDateChanged"
                            class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-6 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all text-slate-700 font-medium" />
                 </div>
             </div>
@@ -100,7 +104,7 @@
         <div class="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden mb-8">
             <div class="px-8 py-6 bg-slate-50/30 flex items-center justify-between border-b border-slate-100">
                 <h3 class="text-xl font-bold text-slate-900">Vista Previa de Exportación</h3>
-                <span class="bg-primary/10 text-primary px-4 py-1.5 rounded-full text-xs font-bold tracking-tight">8 citas encontradas</span>
+                <span class="bg-primary/10 text-primary px-4 py-1.5 rounded-full text-xs font-bold tracking-tight">@appointments.Count citas encontradas</span>
             </div>
 
             <div class="overflow-x-auto">
@@ -114,19 +118,30 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-50">
-                        @foreach (var app in dummyAppointments)
+                        @if (isLoading)
                         {
-                            <tr class="text-slate-700 font-medium">
-                                <td class="px-8 py-5 font-bold text-slate-900">@app.Patient</td>
-                                <td class="px-8 py-5 text-slate-500 font-mono">@app.Time</td>
-                                <td class="px-8 py-5 text-slate-500">@app.Specialty</td>
-                                <td class="px-8 py-5">
-                                    <span class="inline-flex items-center gap-2">
-                                        <span class="w-2 h-2 rounded-full @(app.Status == "Confirmada" ? "bg-emerald-500" : "bg-amber-500")"></span>
-                                        @app.Status
-                                    </span>
-                                </td>
-                            </tr>
+                            <tr><td colspan="4" class="px-8 py-10 text-center text-slate-400 italic">Cargando citas...</td></tr>
+                        }
+                        else if (!appointments.Any())
+                        {
+                            <tr><td colspan="4" class="px-8 py-10 text-center text-slate-400 italic">No se encontraron citas para los filtros seleccionados</td></tr>
+                        }
+                        else
+                        {
+                            @foreach (var app in appointments)
+                            {
+                                <tr class="text-slate-700 font-medium">
+                                    <td class="px-8 py-5 font-bold text-slate-900">@app.Patient</td>
+                                    <td class="px-8 py-5 text-slate-500 font-mono">@app.Time</td>
+                                    <td class="px-8 py-5 text-slate-500">@app.Specialty</td>
+                                    <td class="px-8 py-5">
+                                        <span class="inline-flex items-center gap-2">
+                                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                            Confirmada
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
                         }
                     </tbody>
                 </table>
@@ -134,7 +149,7 @@
 
             <div class="p-6 text-center border-t border-slate-50">
                 <button class="text-primary font-bold hover:underline transition-all">
-                    Ver lista completa (8 resultados)
+                    Ver lista completa (@appointments.Count resultados)
                 </button>
             </div>
         </div>
@@ -170,10 +185,94 @@
 
 @code {
     private string SelectedDoctor { get; set; } = "all";
-    private DateTime SelectedDate { get; set; } = new DateTime(2026, 3, 10);
+    private DateTime SelectedDate { get; set; } = DateTime.Today;
+    private bool isLoading = true;
+
+    private List<DoctorGQL> allDoctors = new();
+    private List<AppointmentVM> appointments = new();
 
     private bool IsAdmin => UserState?.User?.Roles.Contains("Admin") == true;
     private bool IsDoctor => UserState?.User?.Roles.Contains("Doctor") == true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        
+        // Cargar todos los doctores de todas las especialidades (formato GraphQL esperado)
+        var specialties = new[] { "NATURAL_MEDICINE", "CHIROPRACTIC", "OPTOMETRY", "PHYSIOTHERAPY" };
+        var tasks = specialties.Select(s => DoctorService.GetDoctorsByTypeAsync(s));
+        var results = await Task.WhenAll(tasks);
+        allDoctors = results.SelectMany(r => r).ToList();
+
+        // Si es doctor, pre-seleccionar su ID si está en la lista
+        if (IsDoctor && UserState.User != null)
+        {
+            var myDoctor = allDoctors.FirstOrDefault(d => d.UserId == UserState.User.Id);
+            if (myDoctor != null) SelectedDoctor = myDoctor.DoctorId;
+        }
+
+        await LoadAppointmentsAsync();
+    }
+
+    private async Task OnDoctorChanged(ChangeEventArgs e)
+    {
+        SelectedDoctor = e.Value?.ToString() ?? "all";
+        await LoadAppointmentsAsync();
+    }
+
+    private async Task OnDateChanged(ChangeEventArgs e)
+    {
+        if (DateTime.TryParse(e.Value?.ToString(), out var date))
+        {
+            SelectedDate = date;
+            await LoadAppointmentsAsync();
+        }
+    }
+
+    private async Task LoadAppointmentsAsync()
+    {
+        isLoading = true;
+        StateHasChanged();
+
+        var list = new List<AppointmentVM>();
+
+        if (SelectedDoctor == "all")
+        {
+            foreach (var doc in allDoctors)
+            {
+                var res = await AppointmentService.GetDoctorAppointments(doc.DoctorId, SelectedDate);
+                if (res.IsSuccess)
+                {
+                    list.AddRange(res.Value.Select(a => new AppointmentVM 
+                    {
+                        Patient = a.PatientName,
+                        Time = a.Start.ToLocalTime().ToString("hh:mm tt"),
+                        Specialty = doc.Specialty,
+                        Status = "Confirmada"
+                    }));
+                }
+            }
+        }
+        else
+        {
+            var doc = allDoctors.FirstOrDefault(d => d.DoctorId == SelectedDoctor);
+            var res = await AppointmentService.GetDoctorAppointments(SelectedDoctor, SelectedDate);
+            if (res.IsSuccess)
+            {
+                list.AddRange(res.Value.Select(a => new AppointmentVM 
+                {
+                    Patient = a.PatientName,
+                    Time = a.Start.ToLocalTime().ToString("hh:mm tt"),
+                    Specialty = doc?.Specialty ?? "General",
+                    Status = "Confirmada"
+                }));
+            }
+        }
+
+        appointments = list.OrderBy(a => a.Time).ToList();
+        isLoading = false;
+        StateHasChanged();
+    }
 
     private void GoBack()
     {
@@ -183,7 +282,7 @@
 
     private async Task PrintList()
     {
-        var doctorName = specialists.FirstOrDefault(s => s.Id == SelectedDoctor)?.Name ?? "Todos";
+        var doctorName = SelectedDoctor == "all" ? "Todos los profesionales" : allDoctors.FirstOrDefault(d => d.DoctorId == SelectedDoctor)?.Name ?? "Desconocido";
         var dateStr = SelectedDate.ToString("dd/MM/yyyy");
         
         var html = $@"
@@ -206,7 +305,7 @@
                         <th>Paciente</th><th>Horario</th><th>Especialidad</th><th>Estado</th><th>Asistencia</th>
                     </tr>";
         
-        foreach (var app in dummyAppointments)
+        foreach (var app in appointments)
         {
             html += $"<tr><td><b>{app.Patient}</b></td><td>{app.Time}</td><td>{app.Specialty}</td><td>{app.Status}</td><td></td></tr>";
         }
@@ -222,61 +321,34 @@
 
     private async Task ExportToCsv()
     {
-        var doctorName = specialists.FirstOrDefault(s => s.Id == SelectedDoctor)?.Name ?? "Todos";
+        var doctorName = SelectedDoctor == "all" ? "Todos los profesionales" : allDoctors.FirstOrDefault(d => d.DoctorId == SelectedDoctor)?.Name ?? "Desconocido";
         var dateStr = SelectedDate.ToString("dd/MM/yyyy");
         
-        // Generamos un HTML compatible con Excel para mantener los bordes (cuadros)
-        var html = $@"
-            <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:x='urn:schemas-microsoft-com:office:excel' xmlns='http://www.w3.org/TR/REC-html40'>
-            <head><meta charset='utf-8'/></head>
-            <body>
-                <table border='1' style='border-collapse:collapse; font-family: Calibri, sans-serif;'>
-                    <tr style='background-color:#f1f5f9; font-weight:bold; height:40px;'>
-                        <th colspan='5' style='text-align:center; font-size:16px;'>Registro Piedra Azul {dateStr}</th>
-                    </tr>
-                    <tr style='height:30px;'>
-                        <th colspan='5' style='text-align:left; font-size:12px; padding-left:10px;'>Especialista: {doctorName}</th>
-                    </tr>
-                    <tr style='background-color:#f8fafc; font-weight:bold; text-transform:uppercase; font-size:10px;'>
-                        <th style='width:250px;'>PACIENTE</th>
-                        <th style='width:100px;'>HORARIO</th>
-                        <th style='width:150px;'>ESPECIALIDAD</th>
-                        <th style='width:120px;'>ESTADO</th>
-                        <th style='width:100px;'>ASISTENCIA</th>
-                    </tr>";
+        // Usamos CSV real con BOM para que Excel lo reconozca sin advertencias
+        var csv = $"\"Registro Piedra Azul {dateStr}\",,,,\n";
+        csv += $"\"Especialista: {doctorName}\",,,,\n\n";
+        csv += "Paciente,Horario,Especialidad,Estado,Asistencia\n";
         
-        foreach (var app in dummyAppointments)
+        foreach (var app in appointments)
         {
-            html += $@"
-                <tr>
-                    <td style='font-weight:bold;'>{app.Patient}</td>
-                    <td style='text-align:center;'>{app.Time}</td>
-                    <td>{app.Specialty}</td>
-                    <td style='text-align:center;'>{app.Status}</td>
-                    <td></td>
-                </tr>";
+            csv += $"\"{app.Patient}\",\"{app.Time}\",\"{app.Specialty}\",\"{app.Status}\",\"\"\n";
         }
 
-        html += "</table></body></html>";
-
-        var fileName = $"Listado_Citas_{SelectedDate:yyyyMMdd}.xls";
-        var bytes = System.Text.Encoding.UTF8.GetBytes(html);
+        var fileName = $"Listado_Citas_{SelectedDate:yyyyMMdd}.csv";
+        
+        // Añadimos el BOM (Byte Order Mark) para UTF-8 para que Excel detecte los caracteres especiales
+        var utf8WithBom = new System.Text.UTF8Encoding(true);
+        var bytes = utf8WithBom.GetBytes(csv);
         var base64 = Convert.ToBase64String(bytes);
         
         await JS.InvokeVoidAsync("eval", $@"
             var link = document.createElement('a');
             link.download = '{fileName}';
-            link.href = 'data:application/vnd.ms-excel;base64,{base64}';
+            link.href = 'data:text/csv;base64,{base64}';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
         ");
-    }
-
-    private class SpecialistVM
-    {
-        public string Id { get; set; } = "";
-        public string Name { get; set; } = "";
     }
 
     private class AppointmentVM
@@ -286,24 +358,4 @@
         public string Specialty { get; set; } = "";
         public string Status { get; set; } = "";
     }
-
-    private List<SpecialistVM> specialists = new()
-    {
-        new() { Id = "all", Name = "Todos los profesionales" },
-        new() { Id = "1", Name = "Dr. Roberto Gómez" },
-        new() { Id = "2", Name = "Dra. Marta Lucía" },
-        new() { Id = "3", Name = "Dr. Samuel Mendez" }
-    };
-
-    private List<AppointmentVM> dummyAppointments = new()
-    {
-        new() { Patient = "Carlos Alberto Ruiz", Time = "08:30 AM", Specialty = "Terapia General", Status = "Confirmada" },
-        new() { Patient = "Maria Fernanda Lopez Mocada", Time = "09:15 AM", Specialty = "Quiropraxia", Status = "Confirmada" },
-        new() { Patient = "Juan Pablo Duarte", Time = "10:00 AM", Specialty = "Fisioterapia", Status = "Pendiente" },
-        new() { Patient = "Lucía Torres", Time = "11:30 AM", Specialty = "Nutrición", Status = "Confirmada" },
-        new() { Patient = "Andrés Felipe", Time = "12:00 PM", Specialty = "Psicología", Status = "Confirmada" },
-        new() { Patient = "Camila Rivas", Time = "01:30 PM", Specialty = "Odontología", Status = "Pendiente" },
-        new() { Patient = "Juliana Castro", Time = "02:15 PM", Specialty = "Dermatología", Status = "Confirmada" },
-        new() { Patient = "Elena Blanco", Time = "03:00 PM", Specialty = "Cardiología", Status = "Confirmada" }
-    };
 }
