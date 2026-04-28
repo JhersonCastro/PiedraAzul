@@ -1,0 +1,256 @@
+@using PiedraAzul.Client.Models
+@using PiedraAzul.Client.Models.GraphQL
+@using PiedraAzul.Client.Models.UserProfiles
+@using PiedraAzul.Client.Services.AuthServices
+@using PiedraAzul.Client.States
+@inject NavigationManager NavigationManager
+@inject AuthenticationService AuthService
+@inject UserState UserState
+@inject IJSRuntime JSRuntime
+
+<EditForm Model="@mfaModel" OnValidSubmit="HandleVerifyMFA" class="mx-auto w-full max-w-lg">
+    <DataAnnotationsValidator />
+    <div class="rounded-2xl border border-gray-100 bg-white p-6 shadow-xl md:p-8">
+
+        <!-- Header -->
+        <h2 class="text-center text-2xl font-bold text-gray-800 md:text-left md:text-3xl">
+            Verifica tu identidad
+        </h2>
+
+        <p class="mb-6 mt-2 text-center text-gray-500 md:text-left">
+            @GetMFAMethodText()
+        </p>
+
+        <!-- Validation -->
+        <ValidationSummary class="mb-4 text-sm text-red-500" />
+
+        <!-- OTP Input -->
+        <div class="mb-4">
+            <label class="mb-2 block text-sm font-semibold text-gray-700">
+                @GetInputLabel()
+            </label>
+
+            <input type="text"
+                   @bind="mfaModel.OTP"
+                   placeholder="000000"
+                   maxlength="8"
+                   class="w-full rounded-lg border border-gray-300 px-4 py-3 text-center text-2xl tracking-widest text-gray-700
+                   transition focus:border-teal-400 focus:outline-none focus:ring-2
+                   focus:ring-teal-400"
+                   autocomplete="off"
+                   disabled="@_loading" />
+        </div>
+
+        <!-- Error/Success Message -->
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <div class="mb-4 rounded-lg @(_errorMessage.StartsWith("✅") ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700") p-3 text-sm">
+                @_errorMessage
+            </div>
+        }
+
+        <!-- Reintentos Counter -->
+        @if (_resendAttempts > 0 && _resendAttempts < 3)
+        {
+            <p class="mb-3 text-center text-xs text-gray-500">
+                Reintentos: @_resendAttempts / 3
+            </p>
+        }
+
+        <!-- Actions -->
+        <div class="mt-6 space-y-3">
+            <button type="submit"
+                    disabled="@_loading"
+                    class="w-full rounded-lg bg-[#257D8D] py-3 font-semibold text-white shadow-md
+                    transition duration-200 hover:bg-[#1E5F6F] disabled:opacity-60">
+                @(_loading ? "Verificando..." : "Verificar código")
+            </button>
+
+            @if (MFARequired?.MFAMethod == "Email" && MFARequired?.HasEmail == true)
+            {
+                @if (_resendCountdown > 0)
+                {
+                    <button type="button" disabled
+                            class="w-full rounded-lg border border-gray-300 bg-gray-100 py-3 font-semibold text-gray-500">
+                        ⏱️ Reenviar en @_resendCountdown segundos
+                    </button>
+                }
+                else
+                {
+                    <button type="button"
+                            @onclick="HandleResendOTP"
+                            disabled="@(_resendLoading || _resendAttempts >= 3)"
+                            class="w-full rounded-lg border border-gray-300 bg-white py-3 font-semibold text-gray-700
+                            shadow-sm transition duration-200 hover:bg-gray-50 disabled:opacity-60">
+                        @(_resendLoading ? "Reenviando..." : "¿No recibiste el código? Reenviar")
+                    </button>
+                }
+            }
+
+            <button type="button"
+                    @onclick="HandleBack"
+                    class="w-full rounded-lg border border-gray-300 bg-gray-100 py-3 font-semibold text-gray-700
+                    shadow-sm transition duration-200 hover:bg-gray-200">
+                Volver
+            </button>
+        </div>
+
+    </div>
+</EditForm>
+
+@code {
+    private MFAVerificationModel mfaModel = new();
+    private bool _loading;
+    private bool _resendLoading;
+    private string? _errorMessage;
+
+    // Rate limiting & Timer
+    private int _resendAttempts;
+    private int _resendCountdown;
+    private const int MaxResendAttempts = 3;
+
+    [Parameter]
+    public MFARequired? MFARequired { get; set; }
+
+    [Parameter]
+    public EventCallback OnBack { get; set; }
+
+    [Parameter]
+    public EventCallback<UserGQL> OnVerified { get; set; }
+
+    private string GetMFAMethodText() => MFARequired?.MFAMethod switch
+    {
+        "Email" => "Te enviamos un código a tu correo. Ingrésalo abajo.",
+        "TOTP" => "Abre tu aplicación de autenticación y copia el código.",
+        _ => "Ingresa tu código de recuperación."
+    };
+
+    private string GetInputLabel() => MFARequired?.MFAMethod switch
+    {
+        "Email" => "Código de 6 dígitos",
+        "TOTP" => "Código de 6 dígitos",
+        _ => "Código de recuperación"
+    };
+
+    private async Task HandleVerifyMFA()
+    {
+        if (string.IsNullOrEmpty(MFARequired?.MFAToken) || string.IsNullOrEmpty(mfaModel.OTP))
+        {
+            _errorMessage = "Token o código faltante.";
+            return;
+        }
+
+        _loading = true;
+        _errorMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            var result = await AuthService.VerifyMFALoginAsync(MFARequired.MFAToken, mfaModel.OTP);
+
+            if (!result.IsSuccess)
+            {
+                _errorMessage = "❌ " + (result.Error?.Message ?? "Código inválido. Intenta de nuevo.");
+                return;
+            }
+
+            var user = result.Value;
+            if (user is not null)
+            {
+                // Sonido de éxito
+                await PlaySuccessSound();
+
+                _errorMessage = "✅ ¡Login exitoso!";
+                await Task.Delay(500);
+                await OnVerified.InvokeAsync(user);
+                NavigationManager.NavigateTo("/", forceLoad: true);
+            }
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleResendOTP()
+    {
+        if (string.IsNullOrEmpty(MFARequired?.MFAToken))
+            return;
+
+        _resendLoading = true;
+        _errorMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            var result = await AuthService.ResendMFACodeAsync(MFARequired.MFAToken);
+
+            if (result.IsSuccess)
+            {
+                // Sonido de notificación
+                await PlayNotificationSound();
+
+                _errorMessage = "✅ Código reenviado. Revisa tu correo.";
+                _resendAttempts++;
+
+                // Iniciar countdown de 30 segundos
+                await StartResendCountdown();
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = "❌ " + ex.Message;
+
+            // Si alcanzó límite, no permitir más reintentos
+            if (ex.Message.Contains("Demasiados"))
+            {
+                _resendAttempts = MaxResendAttempts;
+            }
+        }
+        finally
+        {
+            _resendLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task StartResendCountdown()
+    {
+        _resendCountdown = 30;
+        StateHasChanged();
+
+        for (int i = 30; i > 0; i--)
+        {
+            await Task.Delay(1000);
+            _resendCountdown = i - 1;
+            StateHasChanged();
+        }
+
+        _resendCountdown = 0;
+        StateHasChanged();
+    }
+
+    private async Task PlaySuccessSound()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("playSuccessSound");
+        }
+        catch { /* Silent fail if JS not available */ }
+    }
+
+    private async Task PlayNotificationSound()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("playNotificationSound");
+        }
+        catch { /* Silent fail if JS not available */ }
+    }
+
+    private async Task HandleBack()
+    {
+        await OnBack.InvokeAsync();
+    }
+}

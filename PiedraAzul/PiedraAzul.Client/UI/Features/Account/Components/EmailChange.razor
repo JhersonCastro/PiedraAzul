@@ -1,0 +1,187 @@
+@using PiedraAzul.Client.Models.GraphQL
+@using PiedraAzul.Client.Services.GraphQLServices
+
+<div class="rounded-lg border border-gray-200 bg-white p-4">
+    <div class="mb-4">
+        <label class="mb-2 block text-sm font-semibold text-gray-700">Correo actual</label>
+        <input value="@CurrentEmail" readonly
+               class="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-500 cursor-not-allowed" />
+    </div>
+
+    @if (!_showVerification)
+    {
+        <div class="mb-4">
+            <label class="mb-2 block text-sm font-semibold text-gray-700">Nuevo correo</label>
+            <div class="flex gap-2">
+                <input type="email"
+                       @bind="_newEmail"
+                       placeholder="nuevo@email.com"
+                       class="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700
+                              transition focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-400" />
+                <button @onclick="RequestEmailChangeAsync"
+                        disabled="@(_loading || string.IsNullOrWhiteSpace(_newEmail) || _newEmail == CurrentEmail)"
+                        class="rounded-lg bg-[#257D8D] px-4 py-2 text-sm font-semibold text-white
+                               transition hover:bg-[#1E5F6F] disabled:opacity-50">
+                    @(_loading ? "..." : "Verificar")
+                </button>
+            </div>
+            @if (!string.IsNullOrEmpty(_errorMessage))
+            {
+                <p class="mt-2 text-sm text-red-500">@_errorMessage</p>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="rounded-lg border border-blue-200 bg-blue-50 p-4">
+            <p class="mb-4 font-semibold text-gray-800">Verifica tu nuevo correo</p>
+            <p class="mb-4 text-sm text-gray-600">
+                Hemos enviado un código de verificación a <strong>@_newEmail</strong>
+            </p>
+
+            <div class="mb-4">
+                <label class="mb-2 block text-sm font-semibold text-gray-700">Código de verificación</label>
+                <input type="text"
+                       @bind="_verificationCode"
+                       maxlength="6"
+                       placeholder="000000"
+                       class="w-full rounded-lg border border-gray-300 px-4 py-2 text-center text-2xl tracking-widest
+                              focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                       autocomplete="off" />
+            </div>
+
+            <div class="flex gap-2">
+                <button @onclick="ConfirmEmailChangeAsync"
+                        disabled="@(_verifyingCode || _verificationCode?.Length != 6)"
+                        class="flex-1 rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white
+                               transition hover:bg-blue-700 disabled:opacity-50">
+                    @(_verifyingCode ? "Confirmando..." : "Confirmar")
+                </button>
+                <button @onclick="CancelEmailChange"
+                        class="flex-1 rounded-lg border border-gray-300 px-4 py-2 font-semibold text-gray-700
+                               transition hover:bg-gray-50">
+                    Cancelar
+                </button>
+            </div>
+
+            @if (!string.IsNullOrEmpty(_verificationError))
+            {
+                <p class="mt-2 text-sm text-red-500">@_verificationError</p>
+            }
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(_successMessage))
+    {
+        <div class="mt-4 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-600">
+            @_successMessage
+        </div>
+    }
+</div>
+
+@code {
+    private string _newEmail = "";
+    private string _verificationCode = "";
+    private bool _loading;
+    private bool _verifyingCode;
+    private bool _showVerification;
+    private string? _errorMessage;
+    private string? _verificationError;
+    private string? _successMessage;
+
+    [Parameter]
+    public string CurrentEmail { get; set; } = "";
+
+    [Parameter]
+    public GraphQLHttpClient? GraphQL { get; set; }
+
+    [Parameter]
+    public EventCallback OnEmailChanged { get; set; }
+
+    private async Task RequestEmailChangeAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_newEmail) || _newEmail == CurrentEmail)
+            return;
+
+        _loading = true;
+        _errorMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            const string mutation = """
+                mutation RequestEmailChange($input: RequestEmailChangeInput!) {
+                    requestEmailChange(input: $input)
+                }
+                """;
+
+            var result = await GraphQL!.ExecuteAsync<bool>(
+                mutation,
+                new { input = new { newEmail = _newEmail } },
+                "requestEmailChange");
+
+            _showVerification = true;
+            _verificationCode = "";
+            _verificationError = null;
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ConfirmEmailChangeAsync()
+    {
+        if (string.IsNullOrEmpty(_verificationCode) || _verificationCode.Length != 6)
+            return;
+
+        _verifyingCode = true;
+        _verificationError = null;
+        StateHasChanged();
+
+        try
+        {
+            const string mutation = """
+                mutation ConfirmEmailChange($input: ConfirmEmailChangeInput!) {
+                    confirmEmailChange(input: $input)
+                }
+                """;
+
+            var result = await GraphQL!.ExecuteAsync<bool>(
+                mutation,
+                new { input = new { newEmail = _newEmail, code = _verificationCode } },
+                "confirmEmailChange");
+
+            _successMessage = "Correo actualizado exitosamente.";
+            _showVerification = false;
+            _newEmail = "";
+            _verificationCode = "";
+
+            await OnEmailChanged.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            _verificationError = ex.Message;
+        }
+        finally
+        {
+            _verifyingCode = false;
+            StateHasChanged();
+        }
+    }
+
+    private void CancelEmailChange()
+    {
+        _showVerification = false;
+        _newEmail = "";
+        _verificationCode = "";
+        _errorMessage = null;
+        _verificationError = null;
+        StateHasChanged();
+    }
+}

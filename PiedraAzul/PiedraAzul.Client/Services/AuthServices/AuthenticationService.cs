@@ -132,4 +132,34 @@ public class AuthenticationService(GraphQLHttpClient graphQL, NavigationManager 
 
         nav.NavigateTo("/", forceLoad: true);
     }
+
+    public async Task<Result<bool>> ResendMFACodeAsync(string mfaToken)
+    {
+        const string mutation = """
+            mutation ResendMFACode($mfaToken: String!) {
+                resendMFACode(mfaToken: $mfaToken)
+            }
+            """;
+
+        return await GraphQLExecutor.Execute(async () =>
+        {
+            try
+            {
+                var result = await graphQL.ExecuteAsync<bool>(
+                    mutation,
+                    new { mfaToken },
+                    "resendMFACode");
+
+                return result;
+            }
+            catch (GraphQLClientException ex) when (ex.Message.Contains("Demasiados"))
+            {
+                throw new GraphQLClientException("Demasiados reintentos. Espera 1 hora e intenta nuevamente.");
+            }
+            catch (GraphQLClientException ex) when (ex.Message.Contains("expirado"))
+            {
+                throw new GraphQLClientException("Tu sesión ha expirado. Inicia sesión nuevamente.");
+            }
+        });
+    }
 }

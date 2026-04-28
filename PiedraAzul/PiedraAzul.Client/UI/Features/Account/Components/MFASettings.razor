@@ -1,0 +1,530 @@
+@using PiedraAzul.Client.Models.UserProfiles
+@using PiedraAzul.Client.Services.GraphQLServices
+@inject IJSRuntime JS
+
+<div class="rounded-2xl border border-gray-100 bg-white p-6 shadow-xl">
+    <h2 class="mb-4 text-xl font-bold text-gray-800">Autenticación de dos factores</h2>
+
+    <p class="mb-6 text-sm text-gray-500">
+        Protege tu cuenta con una segunda capa de seguridad. Puedes usar códigos por email, aplicación de autenticación, o códigos de recuperación.
+    </p>
+
+    @if (_loading)
+    {
+        <div class="flex justify-center py-6"><div class="spinner"></div></div>
+    }
+    else
+    {
+        <!-- Email OTP Section -->
+        <div class="mb-6 rounded-lg border @(_emailOTPEnabled == true ? "border-green-200 bg-green-50" : "border-gray-100 bg-gray-50") p-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="font-semibold text-gray-800">Código por correo</p>
+                    <p class="text-xs @(_emailOTPEnabled == true ? "text-green-600" : "text-gray-500")">
+                        @(_emailOTPEnabled == true ? "✓ Activado" : "Recibe un código de 6 dígitos por email")
+                    </p>
+                </div>
+                <button @onclick="@(() => _emailOTPEnabled == true ? HandleDisableMFA("Email") : HandleEnableEmailOTP())"
+                        disabled="@_saving"
+                        class="rounded-lg @(_emailOTPEnabled == true ? "bg-red-500 hover:bg-red-600" : "bg-[#257D8D] hover:bg-[#1E5F6F]") px-4 py-2 text-sm font-semibold text-white
+                               transition disabled:opacity-50">
+                    @(_saving ? "..." : (_emailOTPEnabled == true ? "Desactivar" : "Habilitar"))
+                </button>
+            </div>
+        </div>
+
+        <!-- TOTP Section -->
+        <div class="mb-6 rounded-lg border @(_totpEnabled == true ? "border-green-200 bg-green-50" : "border-gray-100 bg-gray-50") p-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="font-semibold text-gray-800">Aplicación de autenticación</p>
+                    <p class="text-xs @(_totpEnabled == true ? "text-green-600" : "text-gray-500")">
+                        @(_totpEnabled == true ? "✓ Activado" : "Google Authenticator, Authy, Microsoft Authenticator, etc.")
+                    </p>
+                </div>
+                <button @onclick="@(() => _totpEnabled == true ? HandleDisableMFA("TOTP") : HandleEnableTOTP())"
+                        disabled="@_saving"
+                        class="rounded-lg @(_totpEnabled == true ? "bg-red-500 hover:bg-red-600" : "bg-[#257D8D] hover:bg-[#1E5F6F]") px-4 py-2 text-sm font-semibold text-white
+                               transition disabled:opacity-50">
+                    @(_saving ? "..." : (_totpEnabled == true ? "Desactivar" : "Habilitar"))
+                </button>
+            </div>
+        </div>
+
+        <!-- TOTP Setup Modal -->
+        @if (_showTOTPSetup)
+        {
+            <div class="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4">
+                <p class="mb-4 font-semibold text-gray-800">Escanea con tu app de autenticación</p>
+                @if (!string.IsNullOrEmpty(_totpQR))
+                {
+                    <div class="mb-4 text-center">
+                        <!-- QR Code here - placeholder -->
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=@Uri.EscapeDataString(_totpQR)"
+                             alt="QR Code" class="mx-auto" />
+                        <p class="mt-2 text-xs text-gray-500">O ingresa manualmente: <code class="bg-white px-2 py-1">@_totpSecret</code></p>
+                    </div>
+                }
+
+                <div class="mb-4">
+                    <label class="mb-1 block text-sm font-semibold text-gray-700">Código de 6 dígitos</label>
+                    <input type="text"
+                           @bind="_totpCode"
+                           maxlength="6"
+                           placeholder="000000"
+                           class="w-full rounded-lg border border-gray-300 px-4 py-2 text-center text-2xl tracking-widest
+                                  focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                           autocomplete="off" />
+                </div>
+
+                <div class="flex gap-2">
+                    <button @onclick="ConfirmTOTPSetup"
+                            disabled="@(_totpCode?.Length != 6 || _savingTotp)"
+                            class="flex-1 rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white
+                                   transition hover:bg-blue-700 disabled:opacity-50">
+                        @(_savingTotp ? "Verificando..." : "Confirmar")
+                    </button>
+                    <button @onclick="CancelTOTPSetup"
+                            class="flex-1 rounded-lg border border-gray-300 px-4 py-2 font-semibold text-gray-700
+                                   transition hover:bg-gray-50">
+                        Cancelar
+                    </button>
+                </div>
+
+                @if (!string.IsNullOrEmpty(_totpError))
+                {
+                    <p class="mt-2 text-sm text-red-500">@_totpError</p>
+                }
+            </div>
+        }
+
+        <!-- Confirmation Dialog -->
+        @if (_showConfirmDialog)
+        {
+            <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                <div class="rounded-lg bg-white p-6 shadow-lg max-w-sm">
+                    <h3 class="mb-3 text-lg font-bold text-gray-800">Cambiar método de autenticación</h3>
+                    <p class="mb-5 text-sm text-gray-600">
+                        Si activas <strong>@_pendingMethodToEnable</strong>, se desactivará <strong>@_activeMethodName</strong>. ¿Deseas continuar?
+                    </p>
+                    <div class="flex gap-2">
+                        <button @onclick="ConfirmMethodChange"
+                                class="flex-1 rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white
+                                       transition hover:bg-blue-700">
+                            Continuar
+                        </button>
+                        <button @onclick="CancelConfirmDialog"
+                                class="flex-1 rounded-lg border border-gray-300 px-4 py-2 font-semibold text-gray-700
+                                       transition hover:bg-gray-50">
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Backup Codes -->
+        @if (_backupCodes.Count > 0)
+        {
+            <div class="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+                <p class="mb-3 font-semibold text-gray-800">📋 Códigos de recuperación</p>
+                <p class="mb-3 text-xs text-gray-600">Guarda estos códigos en un lugar seguro. Puedes usarlos si pierdes acceso a tus dispositivos de autenticación.</p>
+                <div class="mb-4 space-y-2">
+                    @foreach (var code in _backupCodes)
+                    {
+                        <code class="block rounded bg-white px-3 py-2 font-mono text-sm">@(code)</code>
+                    }
+                </div>
+                <button @onclick="() => CopyBackupCodes()" class="text-sm font-semibold text-yellow-700 hover:text-yellow-800">
+                    📋 Copiar códigos
+                </button>
+            </div>
+        }
+        else
+        {
+            <button @onclick="GenerateBackupCodes"
+                    disabled="@_saving"
+                    class="w-full rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm font-semibold
+                           text-yellow-700 transition hover:bg-yellow-100 disabled:opacity-50">
+                Generar códigos de recuperación
+            </button>
+        }
+    }
+
+    @if (!string.IsNullOrEmpty(_message))
+    {
+        <div class="mt-4 rounded-lg @(_messageError ? "bg-red-50 text-red-600" : "bg-green-50 text-green-600") px-4 py-3 text-sm">
+            @_message
+        </div>
+    }
+</div>
+
+@code {
+    private bool _loading = false;
+    private bool _saving;
+    private bool _savingTotp;
+    private string? _message;
+    private bool _messageError;
+
+    private bool _showTOTPSetup;
+    private string? _totpSecret;
+    private string? _totpQR;
+    private string? _totpCode;
+    private string? _totpError;
+
+    // Track state locally - starts as unknown until user tries to enable/disable
+    private bool? _emailOTPEnabled;
+    private bool? _totpEnabled;
+    private bool _hasBackupCodes;
+
+    private List<string> _backupCodes = [];
+
+    // Confirmación para cambiar método
+    private bool _showConfirmDialog;
+    private string? _pendingMethodToEnable;
+    private string? _activeMethodName;
+
+    [Parameter]
+    public GraphQLHttpClient? GraphQL { get; set; }
+
+    [Parameter]
+    public string? CurrentEmail { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMFAStatus();
+    }
+
+    private async Task LoadMFAStatus()
+    {
+        try
+        {
+            // Query para Email OTP
+            var emailOTPQuery = """
+                query {
+                    isEmailOTPEnabled
+                }
+                """;
+
+            // Query para TOTP
+            var totpQuery = """
+                query {
+                    isTOTPEnabled
+                }
+                """;
+
+            var emailResult = await GraphQL!.ExecuteAsync<bool>(emailOTPQuery, null, "isEmailOTPEnabled");
+            var totpResult = await GraphQL!.ExecuteAsync<bool>(totpQuery, null, "isTOTPEnabled");
+
+            _emailOTPEnabled = emailResult;
+            _totpEnabled = totpResult;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"MFA Load Error: {ex}");
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleEnableEmailOTP()
+    {
+        if (string.IsNullOrEmpty(CurrentEmail))
+        {
+            _message = "Debes configurar un correo electrónico primero para usar Email OTP.";
+            _messageError = true;
+            StateHasChanged();
+            return;
+        }
+
+        if (_totpEnabled == true)
+        {
+            _pendingMethodToEnable = "Email";
+            _activeMethodName = "Aplicación de autenticación";
+            _showConfirmDialog = true;
+            StateHasChanged();
+            return;
+        }
+
+        await ProceedEnableEmailOTP();
+    }
+
+    private async Task ProceedEnableEmailOTP()
+    {
+        _saving = true;
+        _message = null;
+        _showConfirmDialog = false;
+        StateHasChanged();
+
+        try
+        {
+            const string mutation = """
+                mutation EnableMFA($input: EnableMFAInput!) {
+                    enableMFA(input: $input)
+                }
+                """;
+
+            var result = await GraphQL!.ExecuteAsync<bool>(
+                mutation,
+                new { input = new { method = "Email" } },
+                "enableMFA");
+
+            if (result)
+            {
+                _emailOTPEnabled = true;
+                _totpEnabled = false;
+                _message = "✓ Email OTP habilitado.";
+                _messageError = false;
+            }
+            else
+            {
+                _message = "No se pudo habilitar Email OTP.";
+                _messageError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            _message = $"Error: {ex.Message}";
+            _messageError = true;
+        }
+        finally
+        {
+            _saving = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleEnableTOTP()
+    {
+        if (_emailOTPEnabled == true)
+        {
+            _pendingMethodToEnable = "TOTP";
+            _activeMethodName = "Código por correo";
+            _showConfirmDialog = true;
+            StateHasChanged();
+            return;
+        }
+
+        await ProceedEnableTOTP();
+    }
+
+    private async Task ProceedEnableTOTP()
+    {
+        _saving = true;
+        _message = null;
+        _showConfirmDialog = false;
+        StateHasChanged();
+
+        try
+        {
+            const string mutation = """
+                mutation BeginTOTPSetup($input: BeginTOTPSetupInput!) {
+                    beginTOTPSetup(input: $input)
+                }
+                """;
+
+            var qrCode = await GraphQL!.ExecuteAsync<string>(
+                mutation,
+                new { input = new { email = "" } },
+                "beginTOTPSetup");
+
+            _totpQR = qrCode;
+            _totpSecret = qrCode?.Split("secret=").LastOrDefault()?.Split("&").FirstOrDefault();
+            _showTOTPSetup = true;
+            _totpCode = "";
+            _totpError = null;
+            _emailOTPEnabled = false;
+        }
+        catch (Exception ex)
+        {
+            _message = $"Error: {ex.Message}";
+            _messageError = true;
+        }
+        finally
+        {
+            _saving = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ConfirmTOTPSetup()
+    {
+        if (string.IsNullOrEmpty(_totpCode) || _totpCode.Length != 6)
+            return;
+
+        _savingTotp = true;
+        _totpError = null;
+        StateHasChanged();
+
+        try
+        {
+            const string mutation = """
+                mutation ConfirmTOTPSetup($input: ConfirmTOTPSetupInput!) {
+                    confirmTOTPSetup(input: $input)
+                }
+                """;
+
+            var result = await GraphQL!.ExecuteAsync<bool>(
+                mutation,
+                new { input = new { totp = _totpCode } },
+                "confirmTOTPSetup");
+
+            if (result)
+            {
+                _totpEnabled = true;
+                _emailOTPEnabled = false;
+                _showTOTPSetup = false;
+                _message = "✓ TOTP habilitado. Genera tus códigos de recuperación.";
+                _messageError = false;
+                await GenerateBackupCodes();
+            }
+            else
+            {
+                _totpError = "Código TOTP inválido. Intenta de nuevo.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _totpError = ex.Message;
+        }
+        finally
+        {
+            _savingTotp = false;
+            StateHasChanged();
+        }
+    }
+
+    private void CancelTOTPSetup()
+    {
+        _showTOTPSetup = false;
+        _totpSecret = null;
+        _totpQR = null;
+        _totpCode = null;
+        _totpError = null;
+        StateHasChanged();
+    }
+
+    private void CancelConfirmDialog()
+    {
+        _showConfirmDialog = false;
+        _pendingMethodToEnable = null;
+        _activeMethodName = null;
+        StateHasChanged();
+    }
+
+    private async Task ConfirmMethodChange()
+    {
+        if (_pendingMethodToEnable == "Email")
+            await ProceedEnableEmailOTP();
+        else if (_pendingMethodToEnable == "TOTP")
+            await ProceedEnableTOTP();
+    }
+
+    private async Task GenerateBackupCodes()
+    {
+        _saving = true;
+        _message = null;
+        StateHasChanged();
+
+        try
+        {
+            const string mutation = """
+                mutation GenerateBackupCodes {
+                    generateBackupCodes
+                }
+                """;
+
+            var codes = await GraphQL!.ExecuteAsync<List<string>>(
+                mutation,
+                null,
+                "generateBackupCodes");
+
+            _backupCodes = codes ?? [];
+            _message = "Códigos de recuperación generados. ¡Guárdalos en un lugar seguro!";
+            _messageError = false;
+        }
+        catch (Exception ex)
+        {
+            _message = $"Error: {ex.Message}";
+            _messageError = true;
+        }
+        finally
+        {
+            _saving = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CopyBackupCodes()
+    {
+        try
+        {
+            var codesText = string.Join("\n", _backupCodes);
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", codesText);
+            _message = "✓ Códigos copiados al portapapeles.";
+            _messageError = false;
+            StateHasChanged();
+            await Task.Delay(3000);
+            _message = null;
+            StateHasChanged();
+        }
+        catch
+        {
+            _message = "Error al copiar códigos.";
+            _messageError = true;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleDisableMFA(string method)
+    {
+        _saving = true;
+        _message = null;
+        StateHasChanged();
+
+        try
+        {
+            const string mutation = """
+                mutation DisableMFA($input: DisableMFAInput!) {
+                    disableMFA(input: $input)
+                }
+                """;
+
+            var result = await GraphQL!.ExecuteAsync<bool>(
+                mutation,
+                new { input = new { method = method, confirm = true } },
+                "disableMFA");
+
+            if (result)
+            {
+                if (method == "Email")
+                    _emailOTPEnabled = false;
+                else if (method == "TOTP")
+                    _totpEnabled = false;
+
+                _message = "✓ MFA desactivado.";
+                _messageError = false;
+                _backupCodes.Clear();
+                _showTOTPSetup = false;
+            }
+            else
+            {
+                _message = "No se pudo desactivar MFA.";
+                _messageError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            _message = $"Error: {ex.Message}";
+            _messageError = true;
+        }
+        finally
+        {
+            _saving = false;
+            StateHasChanged();
+        }
+    }
+}

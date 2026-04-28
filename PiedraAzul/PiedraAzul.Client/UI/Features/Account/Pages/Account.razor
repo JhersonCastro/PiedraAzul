@@ -1,12 +1,15 @@
 @page "/account"
 @using PiedraAzul.Client.Models.GraphQL
 @using PiedraAzul.Client.Services.AuthServices
+@using PiedraAzul.Client.Services.GraphQLServices
 @using PiedraAzul.Client.States
+@using PiedraAzul.Client.UI.Features.Account.Components
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @inject NavigationManager Nav
 @inject UserState UserState
 @inject AuthenticationService AuthService
 @inject PasskeyService PasskeyService
+@inject GraphQLHttpClient GraphQL
 @inject HttpClient Http
 
 <PageTitle>Mi cuenta | Piedra Azul</PageTitle>
@@ -23,6 +26,25 @@
     }
     else
     {
+        <!-- Email Verification Banner -->
+        @if (!string.IsNullOrEmpty(_user.Email) && !_user.EmailConfirmed)
+        {
+            <div class="rounded-lg border border-yellow-300 bg-yellow-50 p-4 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <span class="text-2xl">📧</span>
+                    <div>
+                        <p class="font-semibold text-gray-800">Email no verificado</p>
+                        <p class="text-sm text-gray-600">Verifica tu email para completar tu cuenta</p>
+                    </div>
+                </div>
+                <button @onclick="() => _showEmailVerification = true"
+                        class="rounded-lg bg-yellow-600 px-4 py-2 text-sm font-semibold text-white
+                               transition hover:bg-yellow-700">
+                    Verificar ahora
+                </button>
+            </div>
+        }
+
         <!-- Profile card -->
         <div class="rounded-2xl border border-gray-100 bg-white p-6 shadow-xl">
             <h2 class="mb-5 text-xl font-bold text-gray-800">Mi perfil</h2>
@@ -86,11 +108,10 @@
                 }
             </div>
 
-            <!-- Email (readonly) -->
+            @* Email change *@
             <div class="mb-5">
-                <label class="mb-1 block text-sm font-semibold text-gray-700">Correo</label>
-                <input value="@_user.Email" readonly
-                       class="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-500 cursor-not-allowed" />
+                <label class="mb-2 block text-sm font-semibold text-gray-700">Correo electrónico</label>
+                <EmailChange CurrentEmail="@(_user.Email ?? "")" GraphQL="@GraphQL" OnEmailChanged="ReloadUserAsync" />
             </div>
 
             <!-- Logout -->
@@ -152,7 +173,88 @@
                     }
                 </ul>
             }
+
+            @* MFA Settings *@
+            <div class="mt-6 pt-6 border-t border-gray-200">
+                <MFASettings GraphQL="@GraphQL" CurrentEmail="@(_user?.Email ?? "")" />
+            </div>
         </div>
+
+        <!-- Email Verification Modal -->
+        @if (_showEmailVerification)
+        {
+            <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                <div class="rounded-lg bg-white p-6 shadow-lg max-w-sm w-full">
+                    @if (!_emailVerificationStep2)
+                    {
+                        <!-- Step 1: Send Code -->
+                        <h3 class="mb-3 text-lg font-bold text-gray-800">Verificar email</h3>
+                        <p class="mb-5 text-sm text-gray-600">
+                            Enviaremos un código de verificación a <strong>@_user.Email</strong>
+                        </p>
+                        <div class="flex gap-2">
+                            <button @onclick="SendEmailVerificationCode"
+                                    disabled="@_emailVerificationLoading"
+                                    class="flex-1 rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white
+                                           transition hover:bg-blue-700 disabled:opacity-50">
+                                @(_emailVerificationLoading ? "Enviando..." : "Enviar código")
+                            </button>
+                            <button @onclick="() => _showEmailVerification = false"
+                                    class="flex-1 rounded-lg border border-gray-300 px-4 py-2 font-semibold text-gray-700
+                                           transition hover:bg-gray-50">
+                                Cancelar
+                            </button>
+                        </div>
+                        @if (!string.IsNullOrEmpty(_emailVerificationError))
+                        {
+                            <p class="mt-3 text-sm text-red-500">@_emailVerificationError</p>
+                        }
+                    }
+                    else
+                    {
+                        <!-- Step 2: Verify Code -->
+                        <h3 class="mb-3 text-lg font-bold text-gray-800">Ingresar código</h3>
+                        <p class="mb-4 text-sm text-gray-600">
+                            Ingresa el código de 6 dígitos que recibiste en tu email
+                        </p>
+                        <input type="text"
+                               @bind="_emailVerificationCode"
+                               maxlength="6"
+                               placeholder="000000"
+                               class="w-full mb-4 rounded-lg border border-gray-300 px-4 py-2 text-center text-2xl tracking-widest
+                                      focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                               autocomplete="off" />
+                        <div class="flex gap-2 mb-3">
+                            <button @onclick="VerifyEmailCode"
+                                    disabled="@(_emailVerificationCode?.Length != 6 || _emailVerificationLoading)"
+                                    class="flex-1 rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white
+                                           transition hover:bg-blue-700 disabled:opacity-50">
+                                @(_emailVerificationLoading ? "Verificando..." : "Verificar")
+                            </button>
+                            <button @onclick="CloseEmailVerification"
+                                    class="flex-1 rounded-lg border border-gray-300 px-4 py-2 font-semibold text-gray-700
+                                           transition hover:bg-gray-50">
+                                Cancelar
+                            </button>
+                        </div>
+                        <div class="space-y-2">
+                            <button @onclick="() => _emailVerificationStep2 = false"
+                                    class="w-full text-sm font-semibold text-blue-600 hover:text-blue-700">
+                                ← Cambiar email
+                            </button>
+                            <button @onclick="CloseEmailVerification"
+                                    class="w-full text-sm font-semibold text-gray-600 hover:text-gray-700">
+                                Continuar sin verificar
+                            </button>
+                        </div>
+                        @if (!string.IsNullOrEmpty(_emailVerificationError))
+                        {
+                            <p class="mt-3 text-sm text-red-500">@_emailVerificationError</p>
+                        }
+                    }
+                </div>
+            </div>
+        }
     }
 
 </div>
@@ -172,6 +274,13 @@
 
     private List<PasskeyGQL> _passkeys = [];
     private bool _deletingPasskey;
+
+    // Email verification
+    private bool _showEmailVerification;
+    private bool _emailVerificationStep2;
+    private bool _emailVerificationLoading;
+    private string? _emailVerificationCode;
+    private string? _emailVerificationError;
 
     protected override async Task OnInitializedAsync()
     {
@@ -236,27 +345,62 @@
         _avatarSuccess = false;
 
         var file = e.File;
-        if (file.Size > 5 * 1024 * 1024)
+        const long maxSize = 5 * 1024 * 1024; // 5 MB
+        if (file.Size > maxSize)
         {
             _avatarError = "La imagen no puede superar 5 MB.";
             return;
         }
 
-        using var content = new MultipartFormDataContent();
-        var stream = file.OpenReadStream(5 * 1024 * 1024);
-        content.Add(new StreamContent(stream), "file", file.Name);
-
         try
         {
+            // Dynamic buffer size based on file size (como en PostHive)
+            var bufferSize = file.Size > 50 * 1024 * 1024 ? 2 * 1024 * 1024 :
+                             file.Size > 10 * 1024 * 1024 ? 1 * 1024 * 1024 :
+                             524288; // Default 512 KB
+
+            using var content = new MultipartFormDataContent();
+            using var memoryStream = new MemoryStream();
+
+            // Open stream - use file.Size since we already validated it
+            await using var readStream = file.OpenReadStream(file.Size);
+
+            // Manual read loop with dynamic buffer
+            Memory<byte> buffer = new byte[bufferSize];
+            int readBytes = 0;
+            long totalBytes = file.Size;
+            long uploadedBytes = 0;
+
+            while ((readBytes = await readStream.ReadAsync(buffer)) > 0)
+            {
+                memoryStream.Write(buffer.Span[..readBytes]);
+                uploadedBytes += readBytes;
+                StateHasChanged(); // Mantener componente actualizado en cada chunk
+            }
+
+            if (uploadedBytes != totalBytes)
+            {
+                _avatarError = $"Lectura incompleta: {uploadedBytes} de {totalBytes} bytes";
+                return;
+            }
+
+            memoryStream.Position = 0;
+            content.Add(new StreamContent(memoryStream), "file", file.Name);
+
             var response = await Http.PostAsync("/api/avatar", content);
             if (!response.IsSuccessStatusCode)
             {
-                _avatarError = "Error al subir la imagen.";
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _avatarError = $"Error al subir (HTTP {response.StatusCode}): {errorContent}";
                 return;
             }
 
             var json = await response.Content.ReadFromJsonAsync<AvatarResponse>();
-            if (json?.Url is null) { _avatarError = "Respuesta inválida."; return; }
+            if (json?.Url is null)
+            {
+                _avatarError = "Respuesta del servidor inválida.";
+                return;
+            }
 
             var updateResult = await AuthService.UpdateProfileAsync(_user!.Name, json.Url);
             if (updateResult.IsSuccess)
@@ -267,12 +411,12 @@
             }
             else
             {
-                _avatarError = "Foto subida pero no se pudo guardar.";
+                _avatarError = "Foto subida pero no se pudo guardar en la base de datos.";
             }
         }
-        catch
+        catch (Exception ex)
         {
-            _avatarError = "Ocurrió un error al subir la imagen.";
+            _avatarError = $"Error: {ex.Message}";
         }
     }
 
@@ -287,6 +431,115 @@
 
     private async Task LogoutAsync()
         => await AuthService.Logout();
+
+    private async Task ReloadUserAsync()
+    {
+        var result = await AuthService.GetCurrentUserAsync();
+        if (result.IsSuccess && result.Value is not null)
+        {
+            _user = result.Value;
+            UserState.User = _user;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SendEmailVerificationCode()
+    {
+        _emailVerificationLoading = true;
+        _emailVerificationError = null;
+        StateHasChanged();
+
+        try
+        {
+            const string mutation = """
+                mutation {
+                    sendEmailVerificationCode
+                }
+                """;
+
+            var result = await GraphQL.ExecuteAsync<bool>(
+                mutation,
+                null,
+                "sendEmailVerificationCode");
+
+            if (result)
+            {
+                _emailVerificationStep2 = true;
+                _emailVerificationCode = "";
+            }
+            else
+            {
+                _emailVerificationError = "No se pudo enviar el código";
+            }
+        }
+        catch (Exception ex)
+        {
+            _emailVerificationError = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            _emailVerificationLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task VerifyEmailCode()
+    {
+        if (string.IsNullOrEmpty(_emailVerificationCode) || _emailVerificationCode.Length != 6)
+            return;
+
+        _emailVerificationLoading = true;
+        _emailVerificationError = null;
+        StateHasChanged();
+
+        try
+        {
+            const string mutation = """
+                mutation VerifyEmailCode($code: String!) {
+                    verifyEmailCode(code: $code)
+                }
+                """;
+
+            var result = await GraphQL.ExecuteAsync<bool>(
+                mutation,
+                new { code = _emailVerificationCode },
+                "verifyEmailCode");
+
+            if (result)
+            {
+                // Recargar usuario desde la API para sincronizar EmailConfirmed
+                var userResult = await AuthService.GetCurrentUserAsync();
+                if (userResult.IsSuccess && userResult.Value is not null)
+                {
+                    _user = userResult.Value;
+                    UserState.User = _user;
+                }
+                CloseEmailVerification();
+            }
+            else
+            {
+                _emailVerificationError = "Código inválido. Intenta de nuevo.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _emailVerificationError = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            _emailVerificationLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void CloseEmailVerification()
+    {
+        _showEmailVerification = false;
+        _emailVerificationStep2 = false;
+        _emailVerificationCode = null;
+        _emailVerificationError = null;
+        StateHasChanged();
+    }
 
     private record AvatarResponse(string Url);
 }
