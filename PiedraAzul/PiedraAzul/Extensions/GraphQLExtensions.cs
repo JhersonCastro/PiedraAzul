@@ -1,4 +1,5 @@
 using PiedraAzul.GraphQL;
+using PiedraAzul.GraphQL.Types;
 using HotChocolate.AspNetCore.Authorization;
 
 namespace PiedraAzul.Extensions;
@@ -12,6 +13,7 @@ public static class GraphQLExtensions
         services.AddGraphQLServer()
             .AddQueryType<Query>()
             .AddMutationType<Mutation>()
+            .AddType<MFAStatusType>()
             .AddAuthorization();
 
         return services;

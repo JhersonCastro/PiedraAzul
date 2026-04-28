@@ -1,6 +1,7 @@
 #region NameSpaces
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server;
+using Microsoft.AspNetCore.Http.Features;
 using PiedraAzul.Client.Services.GraphQLServices;
 using PiedraAzul.Components;
 using PiedraAzul.Extensions;
@@ -10,6 +11,12 @@ using PiedraAzul.Client.Extensions;
 #endregion
 
 var builder = WebApplication.CreateBuilder(args);
+
+// 🔹 Kestrel - Allow larger file uploads
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = 10 * 1024 * 1024; // 10 MB
+});
 
 // 🔹 Logging
 builder.Logging.ClearProviders();
@@ -37,7 +44,14 @@ builder.Services.AddSignalR();
 builder.Services.AddPiedraAzulGraphQL();
 builder.Services.AddHttpContextAccessor();
 
+// 🔹 Form Options - Allow larger file uploads
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 10 * 1024 * 1024; // 10 MB
+});
+
 // InteractivityAuto – registers shared client services + PersistentAuthenticationStateProvider
+
 var graphqlUrl = builder.Configuration["GraphQLUrl"] ?? "https://localhost:7128";
 var hubUrl = builder.Configuration["hubUrl"] ?? "https://localhost:7128";
 builder.Services.AddClientServer(graphqlUrl, hubUrl);

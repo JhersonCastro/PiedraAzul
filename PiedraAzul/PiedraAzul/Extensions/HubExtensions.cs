@@ -49,21 +49,56 @@ public static class HubExtensions
 
                 logger.LogInformation($"Avatar directory path: {avatarsPath}");
 
-                var fileName = $"{userId}{ext}";
+                // Use unique filename with UserId + Guid to identify user's avatars
+                var fileName = $"{userId}-{Guid.NewGuid()}{ext}";
                 var filePath = IOPath.Combine(avatarsPath, fileName);
 
-                // Delete old avatar if exists
-                if (File.Exists(filePath))
+                // Delete old avatars for THIS user only (keep only latest 3)
+                var userAvatarPattern = $"{userId}-*{ext}";
+                var userAvatars = Directory.GetFiles(avatarsPath, userAvatarPattern)
+                    .OrderByDescending(f => File.GetLastWriteTime(f))
+                    .Skip(3)
+                    .ToList();
+
+                foreach (var oldFile in userAvatars)
                 {
-                    File.Delete(filePath);
-                    logger.LogInformation($"Deleted old avatar: {filePath}");
+                    try { File.Delete(oldFile); }
+                    catch { }
                 }
 
-                await using var stream = File.Create(filePath);
-                await file.CopyToAsync(stream);
-                logger.LogInformation($"Avatar saved successfully: {filePath}");
+                if (userAvatars.Count > 0)
+                    logger.LogInformation($"Cleaned up {userAvatars.Count} old avatars for user {userId}");
 
-                var url = $"/Avatars/{fileName}?t={DateTimeOffset.Now.ToUnixTimeSeconds()}";
+                var fileSize = file.Length;
+                logger.LogWarning($"[AVATAR] Receiving file: {file.FileName}, size: {fileSize} bytes");
+
+                // Write file in chunks to ensure complete transfer
+                const int bufferSize = 64 * 1024;
+                long bytesWritten = 0;
+
+                await using var fileStream = file.OpenReadStream();
+                await using var diskStream = File.Create(filePath);
+                var buffer = new byte[bufferSize];
+                int bytesRead;
+
+                while ((bytesRead = await fileStream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+                {
+                    await diskStream.WriteAsync(buffer, 0, bytesRead);
+                    bytesWritten += bytesRead;
+                }
+
+                logger.LogWarning($"[AVATAR] File written: {filePath}, wrote {bytesWritten} bytes, expected {fileSize} bytes");
+
+                if (bytesWritten != fileSize)
+                {
+                    File.Delete(filePath);
+                    logger.LogError($"[AVATAR] INCOMPLETE: got {bytesWritten} of {fileSize} bytes for {file.FileName}");
+                    return Results.BadRequest($"Error: transferencia incompleta ({bytesWritten} de {fileSize} bytes). Por favor intenta de nuevo.");
+                }
+
+                logger.LogInformation($"[AVATAR] Success: {filePath} ({bytesWritten} bytes)");
+
+                var url = $"/Avatars/{fileName}";
                 logger.LogInformation($"Returning avatar URL: {url}");
 
                 return Results.Ok(new { url = url });
