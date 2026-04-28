@@ -4,6 +4,7 @@
         string Id,
         string Email,
         string Name,
-        string AvatarUrl
+        string AvatarUrl,
+        bool EmailConfirmed = false
     );
 }
