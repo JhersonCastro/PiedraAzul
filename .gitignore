@@ -362,3 +362,5 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 /PiedraAzul/PiedraAzul/lucene_index
+/PiedraAzul/.claude/launch.json
+/PiedraAzul/.claude/settings.local.json
