@@ -17,6 +17,9 @@ public class VerifyMFAInput
 
 public class DisableMFAInput
 {
+    [Required(ErrorMessage = "El método de MFA es requerido")]
+    public required string Method { get; set; }
+
     [Required(ErrorMessage = "La confirmación es requerida")]
     public required bool Confirm { get; set; }
 }

@@ -11,6 +11,8 @@ using PiedraAzul.Application.Features.Auth.Commands.Login;
 using PiedraAzul.Application.Features.Auth.Commands.MFA;
 using PiedraAzul.Application.Features.Auth.Commands.PasswordReset;
 using PiedraAzul.Application.Features.Auth.Commands.Register;
+using PiedraAzul.Application.Features.Account.Commands.RequestEmailChange;
+using PiedraAzul.Application.Features.Account.Commands.ConfirmEmailChange;
 using PiedraAzul.Application.Features.Users.Commands.CreateProfileForRole;
 using PiedraAzul.GraphQL.Inputs;
 using PiedraAzul.GraphQL.Types;
@@ -93,7 +95,8 @@ public class Mutation
                 Name = user.Name,
                 Email = user.Email ?? "",
                 AvatarUrl = user.AvatarUrl,
-                Roles = result.Roles
+                Roles = result.Roles,
+                EmailConfirmed = user.EmailConfirmed
             }
         };
     }
@@ -115,8 +118,8 @@ public class Mutation
 
         if (result.User is null)
         {
-            logger.LogWarning("Registration failed for email: {Email}", input.Email);
-            throw new GraphQLException("No se pudo registrar");
+            logger.LogWarning("Registration failed for email: {Email}. Error: {Error}", input.Email, result.Error);
+            throw new GraphQLException(result.Error ?? "No se pudo registrar");
         }
 
         foreach (var role in input.Roles)
@@ -135,7 +138,8 @@ public class Mutation
             Name = user.Name,
             Email = user.Email ?? "",
             AvatarUrl = user.AvatarUrl,
-            Roles = input.Roles
+            Roles = input.Roles,
+            EmailConfirmed = user.EmailConfirmed
         };
     }
 
@@ -211,7 +215,8 @@ public class Mutation
             Name = user.Name,
             Email = user.Email ?? "",
             AvatarUrl = user.AvatarUrl,
-            Roles = result.Roles
+            Roles = result.Roles,
+            EmailConfirmed = user.EmailConfirmed
         };
     }
 
@@ -250,14 +255,14 @@ public class Mutation
         var userId = httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)
             ?? throw new GraphQLException("No autenticado");
 
-        var result = await mfaService.DisableMFAAsync(userId);
+        var result = await mfaService.DisableMFAAsync(userId, input.Method);
         if (!result)
         {
             logger.LogWarning("Failed to disable MFA for user: {UserId}", userId);
             throw new GraphQLException("No se pudo deshabilitar la autenticación de dos factores");
         }
 
-        logger.LogInformation("MFA disabled for user: {UserId}", userId);
+        logger.LogInformation("MFA disabled for user: {UserId} with method: {Method}", userId, input.Method);
         return true;
     }
 
@@ -434,7 +439,8 @@ public class Mutation
                 Name = user.Name,
                 Email = user.Email ?? "",
                 AvatarUrl = user.AvatarUrl,
-                Roles = roles
+                Roles = roles,
+                EmailConfirmed = user.EmailConfirmed
             };
         }
         catch (InvalidOperationException ex)
@@ -485,7 +491,8 @@ public class Mutation
             Name = user.Name,
             Email = user.Email,
             AvatarUrl = user.AvatarUrl,
-            Roles = []
+            Roles = [],
+            EmailConfirmed = user.EmailConfirmed
         };
     }
 
@@ -583,6 +590,104 @@ public class Mutation
         }
 
         logger.LogInformation("TOTP verification successful for user: {UserId}", userId);
+        return true;
+    }
+
+    [Authorize]
+    public async Task<bool> RequestEmailChangeAsync(
+        RequestEmailChangeInput input,
+        [Service] IMediator mediator,
+        [Service] IIdentityService identityService,
+        [Service] IHttpContextAccessor httpContextAccessor,
+        [Service] ILogger<Mutation> logger)
+    {
+        var userId = httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? throw new GraphQLException("No autenticado");
+
+        var (success, error) = await identityService.RequestEmailChangeAsync(userId, input.NewEmail);
+
+        if (!success)
+        {
+            logger.LogWarning("Email change request failed for user: {UserId}. Error: {Error}", userId, error);
+            throw new GraphQLException(error ?? "No se pudo procesar la solicitud de cambio de correo");
+        }
+
+        var result = await mediator.Send(new RequestEmailChangeCommand(userId, input.NewEmail));
+
+        if (!result)
+        {
+            logger.LogWarning("Email sending failed for user: {UserId}", userId);
+            throw new GraphQLException("Error al enviar el código de verificación");
+        }
+
+        logger.LogInformation("Email change requested for user: {UserId} to new email: {NewEmail}", userId, input.NewEmail);
+        return true;
+    }
+
+    [Authorize]
+    public async Task<bool> ConfirmEmailChangeAsync(
+        ConfirmEmailChangeInput input,
+        [Service] IMediator mediator,
+        [Service] IHttpContextAccessor httpContextAccessor,
+        [Service] ILogger<Mutation> logger)
+    {
+        var userId = httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? throw new GraphQLException("No autenticado");
+
+        var result = await mediator.Send(new ConfirmEmailChangeCommand(userId, input.NewEmail, input.Code));
+
+        if (!result)
+        {
+            logger.LogWarning("Email change confirmation failed for user: {UserId}", userId);
+            throw new GraphQLException("No se pudo confirmar el cambio de correo. Verifica el código e intenta de nuevo.");
+        }
+
+        logger.LogInformation("Email successfully changed for user: {UserId} to: {NewEmail}", userId, input.NewEmail);
+        return true;
+    }
+
+    [Authorize]
+    public async Task<bool> SendEmailVerificationCodeAsync(
+        [Service] IIdentityService identityService,
+        [Service] IHttpContextAccessor httpContextAccessor,
+        [Service] ILogger<Mutation> logger)
+    {
+        var userId = httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? throw new GraphQLException("No autenticado");
+
+        var user = await identityService.GetById(userId);
+        if (user is null || string.IsNullOrEmpty(user.Email))
+            throw new GraphQLException("Usuario o email no encontrado");
+
+        var emailResult = await identityService.SendEmailVerificationCodeAsync(userId, user.Email);
+        if (!emailResult)
+        {
+            logger.LogWarning("Failed to send email verification code for user: {UserId}", userId);
+            throw new GraphQLException("No se pudo enviar el código de verificación");
+        }
+
+        logger.LogInformation("Email verification code sent for user: {UserId}", userId);
+        return true;
+    }
+
+    [Authorize]
+    public async Task<bool> VerifyEmailCodeAsync(
+        string code,
+        [Service] IIdentityService identityService,
+        [Service] IHttpContextAccessor httpContextAccessor,
+        [Service] ILogger<Mutation> logger)
+    {
+        var userId = httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? throw new GraphQLException("No autenticado");
+
+        var result = await identityService.VerifyEmailCodeAsync(userId, code);
+        if (!result)
+        {
+            logger.LogWarning("Invalid email verification code for user: {UserId}", userId);
+            throw new GraphQLException("Código de verificación inválido");
+        }
+
+        logger.LogInformation("Email verified for user: {UserId}", userId);
         return true;
     }
 }
