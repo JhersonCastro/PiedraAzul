@@ -1,12 +1,18 @@
 @page "/admin/configurar-horario"
 @layout PiedraAzul.Client.UI.Shared.Layout.EmptyLayout
-@using System.Globalization
+@using PiedraAzul.Client.Models.Schedule
+@using PiedraAzul.Client.Models.GraphQL
+@using PiedraAzul.Client.Services.Schedule
+@using PiedraAzul.Client.Services.GraphQLServices
+@using PiedraAzul.Contracts.Enums
 @using PiedraAzul.Client.States
 @inject UserState UserState
 @inject IJSRuntime JS
+@inject GraphQLDoctorService DoctorService
+@inject IScheduleConfigService ScheduleConfigService
 
 <div class="min-h-screen bg-slate-50 pb-12">
-    
+
     <!-- HEADER / NAV -->
     <header class="bg-white border-b sticky top-0 z-30">
         <div class="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
@@ -29,257 +35,511 @@
     </header>
 
     <main class="max-w-7xl mx-auto px-4 mt-8">
-        <!-- Specialist Search Header -->
-        <div class="flex flex-col md:flex-row items-end justify-between gap-6 mb-12">
-            <div class="flex items-center gap-6">
-                <button @onclick="GoBack" class="p-4 bg-white border border-slate-200 rounded-2xl text-slate-400 hover:text-primary transition-all shadow-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-                </button>
-                <div>
-                    <h1 class="text-5xl font-black text-slate-900 mb-2">Configurar Horario</h1>
-                    <p class="text-slate-500 text-lg font-medium">Gestiona tu disponibilidad semanal para citas con pacientes.</p>
-                </div>
-            </div>
+        <EditForm Model="EditModel" OnValidSubmit="HandleValidSubmit">
+            <DataAnnotationsValidator />
 
-            <div class="flex flex-col gap-2">
-                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Especialista</label>
-                <div class="bg-white p-2 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 min-w-[400px]">
-                    <div class="pl-4 text-slate-400">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-                    </div>
-                    <input type="text" placeholder="Selecciona un especialista" class="flex-1 bg-transparent border-none focus:outline-none text-slate-700 font-bold" />
-                    <button class="bg-primary text-white px-8 py-3 rounded-xl font-bold hover:opacity-90 transition-all shadow-lg shadow-primary/20">
-                        BUSCAR
+            <div class="flex flex-col md:flex-row items-end justify-between gap-6 mb-12">
+                <div class="flex items-center gap-6">
+                    <button @onclick="GoBack" type="button" class="p-4 bg-white border border-slate-200 rounded-2xl text-slate-400 hover:text-primary transition-all shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
                     </button>
-                </div>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-10">
-            <!-- Sidebar -->
-            <aside class="space-y-8">
-                <!-- Mini Calendar Card -->
-                <div class="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
-                    <div class="flex items-center justify-between mb-8">
-                        <h3 class="font-black text-slate-900 text-xl">Marzo 2026</h3>
-                        <div class="text-primary">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-tighter mb-6">
-                        <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span>
-                    </div>
-                    <div class="grid grid-cols-5 text-center gap-y-3">
-                        @for (int i = 1; i <= 31; i++)
-                        {
-                            var date = new DateTime(2026, 3, i);
-                            if (date.DayOfWeek == DayOfWeek.Saturday || date.DayOfWeek == DayOfWeek.Sunday) continue;
-                            
-                            var isSelectedWeek = i >= 9 && i <= 13;
-                            <div class="py-1 text-sm font-black @(isSelectedWeek ? "bg-primary text-white rounded-full w-8 h-8 flex items-center justify-center mx-auto shadow-lg shadow-primary/30" : "text-slate-400")">
-                                @i
-                            </div>
-                        }
-                    </div>
-                </div>
-
-                <!-- Status Legend -->
-                <div class="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
-                    <h3 class="font-black text-slate-900 mb-6">Estado</h3>
-                    <div class="space-y-5">
-                        <div class="flex items-center gap-3">
-                            <div class="w-5 h-5 rounded-lg bg-primary"></div>
-                            <span class="text-sm font-bold text-slate-600">Disponible</span>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <div class="w-5 h-5 rounded-lg bg-slate-200"></div>
-                            <span class="text-sm font-bold text-slate-600">Bloqueado</span>
-                        </div>
-                    </div>
-                    <div class="mt-8 pt-8 border-t border-slate-50">
-                        <div class="flex gap-4 text-slate-400">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-                            <p class="text-xs font-bold leading-relaxed">Haz clic en cualquier franja horaria de @Intervalo min para cambiar su disponibilidad.</p>
-                        </div>
-                    </div>
-                </div>
-            </aside>
-
-            <!-- Main Content -->
-            <div class="space-y-8">
-                <!-- Interval Selection Card -->
-                <div class="bg-white rounded-[2.5rem] p-10 shadow-sm border border-slate-100 flex flex-col md:flex-row items-center justify-between gap-8">
                     <div>
-                        <h2 class="text-4xl font-black text-slate-900 mb-3">Configuración de intervalo de atención</h2>
-                        <p class="text-slate-500 font-medium">Ajusta la configuración detallada del cronograma para la semana seleccionada.</p>
+                        <h1 class="text-5xl font-black text-slate-900 mb-2">Configurar Horario</h1>
+                        <p class="text-slate-500 text-lg font-medium">Gestiona tu disponibilidad semanal para citas con pacientes.</p>
                     </div>
-                    
-                    <div class="relative">
-                        <div class="flex items-center gap-3">
-                            <div class="bg-slate-50 p-4 rounded-3xl border border-slate-100 flex items-center gap-4 min-w-[200px]">
-                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Intervalo de atención</span>
-                                <select @bind="Intervalo" class="flex-1 bg-transparent border-none font-black text-slate-700 focus:outline-none">
-                                    <option value="5">5 min</option>
-                                    <option value="10">10 min</option>
-                                    <option value="15">15 min</option>
-                                    <option value="20">20 min</option>
-                                </select>
-                            </div>
-                            <button @onclick="() => showConfigPopover = !showConfigPopover" class="p-4 bg-slate-100 rounded-2xl text-slate-500 hover:bg-slate-200 transition-all">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-                            </button>
+                </div>
+
+                <div class="flex flex-col gap-2">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Especialista</label>
+                    <div class="bg-white p-2 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 min-w-[400px]">
+                        <div class="pl-4 text-slate-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
                         </div>
-
-                        @if (showConfigPopover)
-                        {
-                            <div class="absolute right-0 mt-6 w-[350px] bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-slate-100 p-10 z-50 transition-all transform scale-100 origin-top-right">
-                                <h3 class="text-2xl font-black text-slate-900 mb-8">Configuración</h3>
-                                <div class="space-y-8">
-                                    <div>
-                                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Hora de Apertura</label>
-                                        <input type="text" value="08:00 AM" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 font-black text-slate-700 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all" />
-                                    </div>
-                                    <div>
-                                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Hora de Cierre</label>
-                                        <input type="text" value="08:00 PM" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 font-black text-slate-700 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all" />
-                                    </div>
-                                    <button @onclick="() => showConfigPopover = false" class="w-full bg-primary text-white py-5 rounded-2xl font-black text-sm shadow-xl shadow-primary/20 hover:opacity-90 transition-all mt-4">
-                                        Guardar Cambios
-                                    </button>
-                                </div>
-                            </div>
-                        }
+                        <select class="flex-1 bg-transparent border-none focus:outline-none text-slate-700 font-bold"
+                                value="@EditModel.DoctorId"
+                                @onchange="OnDoctorChangedAsync">
+                            <option value="">Selecciona un especialista</option>
+                            @foreach (var doctor in Doctors)
+                            {
+                                <option value="@doctor.UserId">@doctor.Name (@doctor.Specialty)</option>
+                            }
+                        </select>
+                        <button type="button" @onclick="LoadSelectedSpecialistConfigAsync" class="bg-primary text-white px-8 py-3 rounded-xl font-bold hover:opacity-90 transition-all shadow-lg shadow-primary/20">
+                            CARGAR
+                        </button>
                     </div>
-                </div>
-
-                <!-- Schedule Grid -->
-                <div class="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/40 border border-slate-100 overflow-hidden">
-                    <div class="grid grid-cols-[120px_1fr_1fr_1fr_1fr_1fr] border-b border-slate-100 bg-slate-50/20">
-                        <div class="p-8 flex items-center justify-center text-[10px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-100">Horario</div>
-                        @foreach (var day in WeekDays)
-                        {
-                            <div class="p-8 border-r border-slate-100 last:border-0 text-center relative group @(day.IsBlocked ? "bg-slate-50/50" : "")">
-                                <button @onclick="() => ToggleDay(day)" class="block w-full text-center hover:opacity-70 transition-all">
-                                    <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">@day.DayName</div>
-                                    <div class="text-3xl font-black text-slate-900 mb-4">@day.DayNumber</div>
-                                </button>
-                                <div class="flex justify-center">
-                                    <label class="relative inline-flex items-center cursor-pointer group">
-                                        <input type="checkbox" checked="@(!day.IsBlocked)" @onchange="() => ToggleDay(day)" class="sr-only peer">
-                                        <div class="w-12 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
-                                    </label>
-                                </div>
-                                @if (!day.IsBlocked)
-                                {
-                                    <div class="absolute inset-x-0 bottom-0 h-1.5 bg-primary"></div>
-                                }
-                            </div>
-                        }
-                    </div>
-
-                    <div class="divide-y divide-slate-100">
-                        @foreach (var hour in Hours)
-                        {
-                            <div class="grid grid-cols-[120px_1fr_1fr_1fr_1fr_1fr]">
-                                <div class="p-8 flex items-start justify-center font-black text-slate-900 text-xl border-r border-slate-100">@hour:00 AM</div>
-                                @foreach (var day in WeekDays)
-                                {
-                                    <div class="p-6 border-r border-slate-100 last:border-0 @(day.IsBlocked ? "bg-slate-50/50 flex items-center justify-center italic text-slate-400 font-bold text-sm" : "")">
-                                        @if (day.IsBlocked)
-                                        {
-                                            <span>Bloqueado</span>
-                                        }
-                                        else
-                                        {
-                                            <div class="grid grid-cols-1 gap-3">
-                                                @foreach (var slot in GetSlotsForHour(day, hour))
-                                                {
-                                                    <button @onclick="() => slot.IsActive = !slot.IsActive"
-                                                            class="w-full py-3.5 px-6 rounded-2xl text-[11px] font-black transition-all border flex items-center justify-between group
-                                                                   @(slot.IsActive ? "bg-primary text-white border-primary shadow-xl shadow-primary/20" : "bg-white text-slate-300 border-slate-100 hover:border-slate-300")">
-                                                        <span>@slot.StartTime.ToString("HH:mm")</span>
-                                                        @if (!slot.IsActive)
-                                                        {
-                                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="opacity-50"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
-                                                        }
-                                                    </button>
-                                                }
-                                            </div>
-                                        }
-                                    </div>
-                                }
-                            </div>
-                        }
-                    </div>
-                </div>
-
-                <!-- Footer Actions -->
-                <div class="flex items-center justify-end gap-6 pt-10">
-                    <a href="/servicios/exportar-citas" class="bg-white border-2 border-slate-100 px-12 py-5 rounded-[2rem] font-black text-slate-600 hover:bg-slate-50 transition-all uppercase tracking-widest text-xs">
-                        Exportar datos
-                    </a>
-                    <button class="flex items-center gap-4 bg-primary text-white px-16 py-5 rounded-[2rem] font-black text-sm hover:opacity-90 transition-all shadow-2xl shadow-primary/40">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                        GUARDAR
-                    </button>
+                    <ValidationMessage For="() => EditModel.DoctorId" class="text-red-500 text-xs ml-1" />
                 </div>
             </div>
-        </div>
+
+            @if (!string.IsNullOrWhiteSpace(FeedbackMessage))
+            {
+                <div class="mb-6 rounded-2xl px-5 py-4 font-bold text-sm @(IsErrorFeedback ? "bg-red-50 text-red-700 border border-red-100" : "bg-emerald-50 text-emerald-700 border border-emerald-100")">
+                    @FeedbackMessage
+                </div>
+            }
+
+            <div class="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-10">
+                <aside class="space-y-8">
+                    <div class="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
+                        <div class="flex items-center justify-between mb-8">
+                            <h3 class="font-black text-slate-900 text-xl">@SelectedMonthLabel</h3>
+                            <div class="text-primary">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-tighter mb-6">
+                            <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span>
+                        </div>
+                        <div class="grid grid-cols-5 text-center gap-y-3">
+                            @foreach (var day in WeekDays)
+                            {
+                                <div class="py-1 text-sm font-black bg-primary text-white rounded-full w-8 h-8 flex items-center justify-center mx-auto shadow-lg shadow-primary/30">
+                                    @day.DayNumber
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
+                        <h3 class="font-black text-slate-900 mb-6">Estado</h3>
+                        <div class="space-y-5">
+                            <div class="flex items-center gap-3">
+                                <div class="w-5 h-5 rounded-lg bg-primary"></div>
+                                <span class="text-sm font-bold text-slate-600">Disponible</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div class="w-5 h-5 rounded-lg bg-slate-200"></div>
+                                <span class="text-sm font-bold text-slate-600">Bloqueado</span>
+                            </div>
+                        </div>
+                        <div class="mt-8 pt-8 border-t border-slate-50">
+                            <div class="flex gap-4 text-slate-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                                <p class="text-xs font-bold leading-relaxed">Haz clic en cualquier franja horaria de @EditModel.IntervalMinutes min para cambiar su disponibilidad.</p>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+
+                <div class="space-y-8">
+                    <div class="bg-white rounded-[2.5rem] p-10 shadow-sm border border-slate-100 flex flex-col md:flex-row items-center justify-between gap-8">
+                        <div>
+                            <h2 class="text-4xl font-black text-slate-900 mb-3">Configuración de intervalo de atención</h2>
+                            <p class="text-slate-500 font-medium">Ajusta la configuración detallada del cronograma para la semana seleccionada.</p>
+                        </div>
+
+                        <div class="relative">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-slate-50 p-4 rounded-3xl border border-slate-100 flex items-center gap-4 min-w-[200px]">
+                                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Intervalo de atención</span>
+                                    <select value="@EditModel.IntervalMinutes" @onchange="OnIntervalChanged" class="flex-1 bg-transparent border-none font-black text-slate-700 focus:outline-none">
+                                        <option value="5">5 min</option>
+                                        <option value="10">10 min</option>
+                                        <option value="15">15 min</option>
+                                        <option value="20">20 min</option>
+                                        <option value="30">30 min</option>
+                                    </select>
+                                </div>
+                                <button type="button" @onclick="() => showConfigPopover = !showConfigPopover" class="p-4 bg-slate-100 rounded-2xl text-slate-500 hover:bg-slate-200 transition-all">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                                </button>
+                            </div>
+
+                            @if (showConfigPopover)
+                            {
+                                <div class="absolute right-0 mt-6 w-[350px] bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-slate-100 p-10 z-50 transition-all transform scale-100 origin-top-right">
+                                    <h3 class="text-2xl font-black text-slate-900 mb-8">Configuración</h3>
+                                    <div class="space-y-8">
+                                        <div>
+                                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Ventana de semanas</label>
+                                            <select @bind="EditModel.BookingWindowWeeks" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 font-black text-slate-700 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all">
+                                                @for (var week = 1; week <= 8; week++)
+                                                {
+                                                    <option value="@week">@week semana(s)</option>
+                                                }
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Hora de Apertura</label>
+                                            <input type="time" value="@StartTimeText" @onchange="OnStartTimeChanged" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 font-black text-slate-700 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all" />
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Hora de Cierre</label>
+                                            <input type="time" value="@EndTimeText" @onchange="OnEndTimeChanged" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 font-black text-slate-700 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all" />
+                                        </div>
+                                        <button type="button" @onclick="() => showConfigPopover = false" class="w-full bg-primary text-white py-5 rounded-2xl font-black text-sm shadow-xl shadow-primary/20 hover:opacity-90 transition-all mt-4">
+                                            Aplicar
+                                        </button>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/40 border border-slate-100 overflow-hidden">
+                        <div class="grid grid-cols-[120px_1fr_1fr_1fr_1fr_1fr] border-b border-slate-100 bg-slate-50/20">
+                            <div class="p-8 flex items-center justify-center text-[10px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-100">Horario</div>
+                            @foreach (var day in WeekDays)
+                            {
+                                <div class="p-8 border-r border-slate-100 last:border-0 text-center relative group @(day.IsBlocked ? "bg-slate-50/50" : "")">
+                                    <button type="button" @onclick="() => ToggleDay(day.DayName)" class="block w-full text-center hover:opacity-70 transition-all">
+                                        <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">@day.DayName</div>
+                                        <div class="text-3xl font-black text-slate-900 mb-4">@day.DayNumber</div>
+                                    </button>
+                                    <div class="flex justify-center">
+                                        <label class="relative inline-flex items-center cursor-pointer group">
+                                            <input type="checkbox" checked="@(!day.IsBlocked)" @onchange="() => ToggleDay(day.DayName)" class="sr-only peer">
+                                            <div class="w-12 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                                        </label>
+                                    </div>
+                                    @if (!day.IsBlocked)
+                                    {
+                                        <div class="absolute inset-x-0 bottom-0 h-1.5 bg-primary"></div>
+                                    }
+                                </div>
+                            }
+                        </div>
+
+                        <div class="divide-y divide-slate-100">
+                            @foreach (var hour in Hours)
+                            {
+                                <div class="grid grid-cols-[120px_1fr_1fr_1fr_1fr_1fr]">
+                                    <div class="p-8 flex items-start justify-center font-black text-slate-900 text-xl border-r border-slate-100">@hour</div>
+                                    @foreach (var day in WeekDays)
+                                    {
+                                        <div class="p-6 border-r border-slate-100 last:border-0 @(day.IsBlocked ? "bg-slate-50/50 flex items-center justify-center italic text-slate-400 font-bold text-sm" : "")">
+                                            @if (day.IsBlocked)
+                                            {
+                                                <span>Bloqueado</span>
+                                            }
+                                            else
+                                            {
+                                                <div class="grid grid-cols-1 gap-3">
+                                                    @foreach (var slot in GetSlotsForHour(day, hour))
+                                                    {
+                                                        <button type="button" @onclick="() => slot.IsActive = !slot.IsActive"
+                                                                class="w-full py-3.5 px-6 rounded-2xl text-[11px] font-black transition-all border flex items-center justify-between group
+                                                                       @(slot.IsActive ? "bg-primary text-white border-primary shadow-xl shadow-primary/20" : "bg-white text-slate-300 border-slate-100 hover:border-slate-300")">
+                                                            <span>@slot.StartTime</span>
+                                                            @if (!slot.IsActive)
+                                                            {
+                                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="opacity-50"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                                                            }
+                                                        </button>
+                                                    }
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-end gap-6 pt-10">
+                        <button type="button" @onclick="CancelChanges" class="bg-white border-2 border-slate-100 px-12 py-5 rounded-[2rem] font-black text-slate-600 hover:bg-slate-50 transition-all uppercase tracking-widest text-xs">
+                            Cancelar
+                        </button>
+                        <button type="submit" disabled="@IsSaving" class="flex items-center gap-4 bg-primary text-white px-16 py-5 rounded-[2rem] font-black text-sm hover:opacity-90 transition-all shadow-2xl shadow-primary/40 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                            @(IsSaving ? "GUARDANDO..." : "GUARDAR")
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </EditForm>
     </main>
 </div>
 
 @code {
+    private readonly List<DayScheduleModel> WeekDays = new();
+    private readonly List<string> Hours = new();
+    private List<DoctorGQL> Doctors = new();
+    private ScheduleConfigEditModel EditModel { get; set; } = new();
+    private bool showConfigPopover;
+    private bool IsSaving;
+    private string? FeedbackMessage;
+    private bool IsErrorFeedback;
+    private string StartTimeText { get; set; } = "08:00";
+    private string EndTimeText { get; set; } = "17:00";
+
+    private string SelectedMonthLabel => DateTime.Today.ToString("MMMM yyyy");
+
     private async Task GoBack() => await JS.InvokeVoidAsync("history.back");
 
-    private int Intervalo { get; set; } = 10;
-    private bool showConfigPopover = false;
-    private List<DaySchedule> WeekDays = new();
-    private List<int> Hours = new() { 9, 10, 11, 12 };
-
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        InitializeSchedule();
+        await LoadDoctorsAsync();
+        EnsureAvailabilityDays();
+        SyncTimeRangeInputs();
+        RebuildSlots();
     }
 
-    private void InitializeSchedule()
+    private async Task LoadDoctorsAsync()
     {
-        WeekDays = new List<DaySchedule>
-        {
-            new() { DayName = "Lun", DayNumber = 9 },
-            new() { DayName = "Mar", DayNumber = 10 },
-            new() { DayName = "Mier", DayNumber = 11, IsBlocked = true },
-            new() { DayName = "Jue", DayNumber = 12 },
-            new() { DayName = "Vie", DayNumber = 13 }
-        };
+        Doctors = new();
 
-        foreach (var day in WeekDays)
+        for (var i = 0; i <= 3; i++)
         {
-            GenerateSlotsForDay(day);
+            var type = (DoctorType)i;
+            var result = await DoctorService.GetDoctorsByTypeAsync(type.ToGraphQL());
+            if (result.Any())
+            {
+                Doctors.AddRange(result);
+            }
+        }
+
+        Doctors = Doctors
+            .GroupBy(x => x.UserId)
+            .Select(x => x.First())
+            .OrderBy(x => x.Name)
+            .ToList();
+    }
+
+    private async Task OnDoctorChangedAsync(ChangeEventArgs args)
+    {
+        EditModel.DoctorId = args.Value?.ToString() ?? string.Empty;
+        await OnSpecialistSelectedAsync();
+    }
+
+    private void OnIntervalChanged(ChangeEventArgs args)
+    {
+        if (int.TryParse(args.Value?.ToString(), out var interval))
+        {
+            EditModel.IntervalMinutes = Math.Clamp(interval, 5, 60);
+            RebuildSlots();
         }
     }
 
-    private void GenerateSlotsForDay(DaySchedule day)
+    private void OnStartTimeChanged(ChangeEventArgs args)
     {
-        day.Slots.Clear();
-        foreach (var hour in Hours)
+        StartTimeText = args.Value?.ToString() ?? StartTimeText;
+        ApplyTimeRangeToAvailability();
+    }
+
+    private void OnEndTimeChanged(ChangeEventArgs args)
+    {
+        EndTimeText = args.Value?.ToString() ?? EndTimeText;
+        ApplyTimeRangeToAvailability();
+    }
+
+    private async Task OnSpecialistSelectedAsync()
+    {
+        if (string.IsNullOrWhiteSpace(EditModel.DoctorId))
         {
-            for (int min = 0; min < 60; min += Intervalo)
+            return;
+        }
+
+        await LoadSelectedSpecialistConfigAsync();
+    }
+
+    private async Task LoadSelectedSpecialistConfigAsync()
+    {
+        if (string.IsNullOrWhiteSpace(EditModel.DoctorId))
+        {
+            return;
+        }
+
+        var doctorId = EditModel.SpecialistId;
+        var loaded = await ScheduleConfigService.GetByDoctorIdAsync(doctorId);
+        if (loaded is null)
+        {
+            return;
+        }
+
+        EditModel = ToEditModel(loaded);
+        FeedbackMessage = null;
+        RebuildSlots();
+    }
+
+    private void EnsureAvailabilityDays()
+    {
+        EditModel.Availability ??= [];
+        foreach (var day in new[] { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday })
+        {
+            if (EditModel.Availability.All(x => x.DayOfWeek != day))
             {
-                var time = DateTime.Today.AddHours(hour).AddMinutes(min);
-                day.Slots.Add(new TimeSlot { StartTime = time, IsActive = true });
+                EditModel.Availability.Add(new AvailabilityDayModel { DayOfWeek = day, IsEnabled = true, StartTime = new(8, 0, 0), EndTime = new(17, 0, 0) });
             }
         }
     }
 
-    private IEnumerable<TimeSlot> GetSlotsForHour(DaySchedule day, int hour)
+    private void SyncTimeRangeInputs()
     {
-        return day.Slots.Where(s => s.StartTime.Hour == hour);
+        var sample = EditModel.Availability.FirstOrDefault(x => x.IsEnabled) ?? EditModel.Availability.First();
+        StartTimeText = $"{sample.StartTime.Hours:00}:{sample.StartTime.Minutes:00}";
+        EndTimeText = $"{sample.EndTime.Hours:00}:{sample.EndTime.Minutes:00}";
     }
 
-    private void ToggleDay(DaySchedule day)
+    private void ApplyTimeRangeToAvailability()
     {
-        day.IsBlocked = !day.IsBlocked;
+        if (!TryParseTime(StartTimeText, out var start) || !TryParseTime(EndTimeText, out var end))
+        {
+            return;
+        }
+
+        foreach (var day in EditModel.Availability)
+        {
+            day.StartTime = start;
+            day.EndTime = end;
+        }
+
+        RebuildSlots();
     }
+
+    private void RebuildSlots()
+    {
+        EnsureAvailabilityDays();
+        var weekStart = GetMonday(DateTime.Today);
+        WeekDays.Clear();
+
+        var labels = new Dictionary<DayOfWeek, string>
+        {
+            [DayOfWeek.Monday] = "Lun",
+            [DayOfWeek.Tuesday] = "Mar",
+            [DayOfWeek.Wednesday] = "Mier",
+            [DayOfWeek.Thursday] = "Jue",
+            [DayOfWeek.Friday] = "Vie"
+        };
+
+        foreach (var day in EditModel.Availability.Where(x => labels.ContainsKey(x.DayOfWeek)).OrderBy(x => x.DayOfWeek))
+        {
+            var offset = (int)day.DayOfWeek - (int)DayOfWeek.Monday;
+            var date = weekStart.AddDays(offset);
+            var daySchedule = new DayScheduleModel
+            {
+                DayName = labels[day.DayOfWeek],
+                DayNumber = date.Day,
+                DayOfWeek = day.DayOfWeek,
+                IsBlocked = !day.IsEnabled
+            };
+
+            GenerateSlotsForDay(daySchedule);
+            WeekDays.Add(daySchedule);
+        }
+
+        BuildHourLabels();
+    }
+
+    private void BuildHourLabels()
+    {
+        Hours.Clear();
+        var firstEnabledDay = EditModel.Availability.FirstOrDefault(x => x.IsEnabled);
+
+        if (firstEnabledDay is null || firstEnabledDay.EndTime <= firstEnabledDay.StartTime)
+        {
+            Hours.Add("08:00");
+            Hours.Add("09:00");
+            Hours.Add("10:00");
+            return;
+        }
+
+        for (var time = firstEnabledDay.StartTime; time < firstEnabledDay.EndTime; time = time.Add(TimeSpan.FromHours(1)))
+        {
+            Hours.Add($"{time.Hours:00}:00");
+        }
+    }
+
+    private void GenerateSlotsForDay(DayScheduleModel day)
+    {
+        day.Slots.Clear();
+        var dayConfig = EditModel.Availability.First(x => x.DayOfWeek == day.DayOfWeek);
+
+        if (dayConfig.EndTime <= dayConfig.StartTime)
+        {
+            return;
+        }
+
+        var interval = Math.Clamp(EditModel.IntervalMinutes, 5, 60);
+        for (var time = dayConfig.StartTime; time < dayConfig.EndTime; time = time.Add(TimeSpan.FromMinutes(interval)))
+        {
+            day.Slots.Add(new TimeSlotModel { StartTime = $"{time.Hours:00}:{time.Minutes:00}", IsActive = true });
+        }
+    }
+
+    private static bool TryParseTime(string value, out TimeSpan result) => TimeSpan.TryParse(value, out result);
+
+    private IEnumerable<TimeSlotModel> GetSlotsForHour(DayScheduleModel day, string hour)
+    {
+        return day.Slots.Where(slot => slot.StartTime.StartsWith(hour[..2], StringComparison.Ordinal));
+    }
+
+    private void ToggleDay(string dayName)
+    {
+        var day = WeekDays.First(x => x.DayName == dayName);
+        day.IsBlocked = !day.IsBlocked;
+
+        var dayConfig = EditModel.Availability.First(x => x.DayOfWeek == day.DayOfWeek);
+        dayConfig.IsEnabled = !day.IsBlocked;
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        if (string.IsNullOrWhiteSpace(EditModel.DoctorId))
+        {
+            FeedbackMessage = "Selecciona un especialista para guardar.";
+            IsErrorFeedback = true;
+            return;
+        }
+
+        IsSaving = true;
+        FeedbackMessage = null;
+
+        var saveResult = await ScheduleConfigService.SaveAsync(ToScheduleConfigModel(EditModel));
+        if (saveResult.IsSuccess && saveResult.Value)
+        {
+            FeedbackMessage = "Configuración guardada correctamente.";
+            IsErrorFeedback = false;
+        }
+        else
+        {
+            FeedbackMessage = saveResult.Error?.Message ?? "No se pudo guardar la configuración. Intenta nuevamente.";
+            IsErrorFeedback = true;
+        }
+
+        IsSaving = false;
+    }
+
+    private async Task CancelChanges()
+    {
+        FeedbackMessage = null;
+        await LoadSelectedSpecialistConfigAsync();
+    }
+
+    private static DateTime GetMonday(DateTime date)
+    {
+        var diff = (7 + (date.DayOfWeek - DayOfWeek.Monday)) % 7;
+        return date.Date.AddDays(-diff);
+    }
+
+    private static ScheduleConfigEditModel ToEditModel(ScheduleConfigModel model) => new()
+    {
+        SpecialistId = model.DoctorId,
+        WeekWindowInWeeks = model.WeekWindowInWeeks,
+        StartTime = model.StartTime,
+        EndTime = model.EndTime,
+        IntervalMinutes = model.IntervalMinutes,
+        MondayEnabled = model.MondayEnabled,
+        TuesdayEnabled = model.TuesdayEnabled,
+        WednesdayEnabled = model.WednesdayEnabled,
+        ThursdayEnabled = model.ThursdayEnabled,
+        FridayEnabled = model.FridayEnabled
+    };
+
+    private static ScheduleConfigModel ToScheduleConfigModel(ScheduleConfigEditModel model) => new()
+    {
+        DoctorId = model.SpecialistId,
+        WeekWindowInWeeks = model.WeekWindowInWeeks,
+        StartTime = model.StartTime,
+        EndTime = model.EndTime,
+        IntervalMinutes = model.IntervalMinutes,
+        MondayEnabled = model.MondayEnabled,
+        TuesdayEnabled = model.TuesdayEnabled,
+        WednesdayEnabled = model.WednesdayEnabled,
+        ThursdayEnabled = model.ThursdayEnabled,
+        FridayEnabled = model.FridayEnabled
+    };
 
     public class DaySchedule
     {
@@ -291,7 +551,7 @@
 
     public class TimeSlot
     {
-        public DateTime StartTime { get; set; }
+        public string StartTime { get; set; } = "";
         public bool IsActive { get; set; }
     }
 }

@@ -13,6 +13,7 @@ using PiedraAzul.Application.Features.Auth.Commands.Login;
 using PiedraAzul.Application.Features.Auth.Commands.MFA;
 using PiedraAzul.Application.Features.Auth.Commands.PasswordReset;
 using PiedraAzul.Application.Features.Auth.Commands.Register;
+using PiedraAzul.Application.Features.ScheduleConfig.Commands.SaveScheduleConfig;
 using PiedraAzul.Application.Features.Account.Commands.RequestEmailChange;
 using PiedraAzul.Application.Features.Account.Commands.ConfirmEmailChange;
 using PiedraAzul.Application.Features.Users.Commands.CreateProfileForRole;
@@ -159,6 +160,27 @@ public class Mutation
         return true;
     }
 
+
+    public async Task<bool> SaveScheduleConfigAsync(
+        ScheduleConfigInput input,
+        [Service] IMediator mediator)
+    {
+        if (string.IsNullOrWhiteSpace(input.DoctorId))
+            throw new GraphQLException("DoctorId requerido");
+
+        var result = await mediator.Send(new SaveScheduleConfigCommand(
+            input.DoctorId,
+            input.BookingWindowWeeks,
+            input.IntervalMinutes,
+            input.Availability
+                .Select(day => new Application.Common.Models.Schedule.ScheduleDayDto(
+                    day.DayOfWeek,
+                    day.IsEnabled,
+                    day.StartTime,
+                    day.EndTime))
+                .ToList()));
+
+        return result;
     public async Task<bool> RequestPasswordResetAsync(
         RequestPasswordResetInput input,
         [Service] IMediator mediator,

@@ -1,3 +1,4 @@
+@using PiedraAzul.Client.Models.Schedule
 @page "/doctor/configurar-horario"
 @layout PiedraAzul.Client.UI.Shared.Layout.EmptyLayout
 @using System.Globalization
@@ -190,7 +191,7 @@
                                                     <button @onclick="() => slot.IsActive = !slot.IsActive"
                                                             class="w-full py-3.5 px-6 rounded-2xl text-[11px] font-black transition-all border flex items-center justify-between group
                                                                    @(slot.IsActive ? "bg-primary text-white border-primary shadow-xl shadow-primary/20" : "bg-white text-slate-300 border-slate-100 hover:border-slate-300")">
-                                                        <span>@slot.StartTime.ToString("HH:mm")</span>
+                                                        <span>@slot.StartTime</span>
                                                         @if (!slot.IsActive)
                                                         {
                                                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="opacity-50"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
@@ -236,7 +237,7 @@
     private async Task GoBack() => await JS.InvokeVoidAsync("history.back");
 
     private int Intervalo { get; set; } = 10;
-    private List<DaySchedule> WeekDays = new();
+    private List<DayScheduleModel> WeekDays = new();
     private List<int> Hours = new() { 9, 10, 11 };
 
     protected override void OnInitialized()
@@ -246,7 +247,7 @@
 
     private void InitializeSchedule()
     {
-        WeekDays = new List<DaySchedule>
+        WeekDays = new List<DayScheduleModel>
         {
             new() { DayName = "Lun", DayNumber = 9 },
             new() { DayName = "Mar", DayNumber = 10 },
@@ -261,7 +262,7 @@
         }
     }
 
-    private void GenerateSlotsForDay(DaySchedule day)
+    private void GenerateSlotsForDay(DayScheduleModel day)
     {
         day.Slots.Clear();
         foreach (var hour in Hours)
@@ -269,7 +270,7 @@
             for (int min = 0; min < 60; min += Intervalo)
             {
                 var time = DateTime.Today.AddHours(hour).AddMinutes(min);
-                day.Slots.Add(new TimeSlot { StartTime = time, IsActive = true });
+                day.Slots.Add(new TimeSlotModel { StartTime = $"{time:HH:mm}", IsActive = true });
             }
         }
         
@@ -297,29 +298,16 @@
         }
     }
 
-    private IEnumerable<TimeSlot> GetSlotsForHour(DaySchedule day, int hour)
+    private IEnumerable<TimeSlotModel> GetSlotsForHour(DayScheduleModel day, int hour)
     {
-        return day.Slots.Where(s => s.StartTime.Hour == hour);
+        return day.Slots.Where(s => int.TryParse(s.StartTime[..2], out var slotHour) && slotHour == hour);
     }
 
-    private void ToggleDay(DaySchedule day)
+    private void ToggleDay(DayScheduleModel day)
     {
         day.IsBlocked = !day.IsBlocked;
     }
 
-    public class DaySchedule
-    {
-        public string DayName { get; set; } = "";
-        public int DayNumber { get; set; }
-        public bool IsBlocked { get; set; }
-        public List<TimeSlot> Slots { get; set; } = new();
-    }
-
-    public class TimeSlot
-    {
-        public DateTime StartTime { get; set; }
-        public bool IsActive { get; set; }
-    }
 }
 
 <style>

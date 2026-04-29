@@ -1,23 +1,29 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿namespace PiedraAzul.Domain.Entities.Config;
 
-namespace PiedraAzul.Domain.Entities.Config
+public class SystemConfig
 {
-    public class SystemConfig
+    public int Id { get; private set; }
+    public int BookingWindowWeeks { get; private set; }
+
+    private SystemConfig() { }
+
+    public SystemConfig(int bookingWindowWeeks)
     {
-        public int BookingWindowWeeks { get; private set; }
+        UpdateBookingWindowWeeks(bookingWindowWeeks);
+    }
 
-        private SystemConfig() { }
-
-        public SystemConfig(int bookingWindowWeeks)
+    public void UpdateBookingWindowWeeks(int bookingWindowWeeks)
+    {
+        if (bookingWindowWeeks < 1)
         {
-            BookingWindowWeeks = bookingWindowWeeks;
+            throw new ArgumentOutOfRangeException(nameof(bookingWindowWeeks), "Booking window must be at least 1 week.");
         }
 
-        public bool CanBook(DateTime date)
-        {
-            return date <= DateTime.UtcNow.AddDays(BookingWindowWeeks * 7);
-        }
+        BookingWindowWeeks = bookingWindowWeeks;
+    }
+
+    public bool CanBook(DateTime date)
+    {
+        return date <= DateTime.UtcNow.AddDays(BookingWindowWeeks * 7);
     }
 }

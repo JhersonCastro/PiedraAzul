@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Components.Authorization;
+using PiedraAzul.Client.Services.AdminServices;
 using PiedraAzul.Client.Services.AuthServices;
 using PiedraAzul.Client.Services.GraphQLServices;
 using PiedraAzul.Client.Services.RealTimeServices;
+using PiedraAzul.Client.Services.Schedule;
 using PiedraAzul.Client.States;
 
 namespace PiedraAzul.Client.Extensions;
@@ -24,6 +26,8 @@ public static class SharedClientServicesExtensions
         services.AddScoped<GraphQLDoctorService>();
         services.AddScoped<GraphQLAppointmentService>();
         services.AddScoped<GraphQLPatientService>();
+        services.AddScoped<ScheduleConfigAdminService>();
+        services.AddScoped<IScheduleConfigService, ScheduleConfigService>();
         #endregion
 
         #region Auth
