@@ -341,7 +341,7 @@
             return;
         }
 
-        var doctorId = EditModel.SpecialistId;
+        var doctorId = EditModel.DoctorId;
         var loaded = await ScheduleConfigService.GetByDoctorIdAsync(doctorId);
         if (loaded is null)
         {
@@ -487,6 +487,8 @@
         FeedbackMessage = null;
 
         var saveResult = await ScheduleConfigService.SaveAsync(ToScheduleConfigModel(EditModel));
+        await LoadSelectedSpecialistConfigAsync();
+
         if (saveResult.IsSuccess && saveResult.Value)
         {
             FeedbackMessage = "Configuración guardada correctamente.";
@@ -515,30 +517,34 @@
 
     private static ScheduleConfigEditModel ToEditModel(ScheduleConfigModel model) => new()
     {
-        SpecialistId = model.DoctorId,
-        WeekWindowInWeeks = model.WeekWindowInWeeks,
-        StartTime = model.StartTime,
-        EndTime = model.EndTime,
+        DoctorId = model.DoctorId,
+        BookingWindowWeeks = model.BookingWindowWeeks,
         IntervalMinutes = model.IntervalMinutes,
-        MondayEnabled = model.MondayEnabled,
-        TuesdayEnabled = model.TuesdayEnabled,
-        WednesdayEnabled = model.WednesdayEnabled,
-        ThursdayEnabled = model.ThursdayEnabled,
-        FridayEnabled = model.FridayEnabled
+        Availability = model.Availability
+            .Select(day => new AvailabilityDayModel
+            {
+                DayOfWeek = day.DayOfWeek,
+                IsEnabled = day.IsEnabled,
+                StartTime = day.StartTime,
+                EndTime = day.EndTime
+            })
+            .ToList()
     };
 
     private static ScheduleConfigModel ToScheduleConfigModel(ScheduleConfigEditModel model) => new()
     {
-        DoctorId = model.SpecialistId,
-        WeekWindowInWeeks = model.WeekWindowInWeeks,
-        StartTime = model.StartTime,
-        EndTime = model.EndTime,
+        DoctorId = model.DoctorId,
+        BookingWindowWeeks = model.BookingWindowWeeks,
         IntervalMinutes = model.IntervalMinutes,
-        MondayEnabled = model.MondayEnabled,
-        TuesdayEnabled = model.TuesdayEnabled,
-        WednesdayEnabled = model.WednesdayEnabled,
-        ThursdayEnabled = model.ThursdayEnabled,
-        FridayEnabled = model.FridayEnabled
+        Availability = model.Availability
+            .Select(day => new AvailabilityDayModel
+            {
+                DayOfWeek = day.DayOfWeek,
+                IsEnabled = day.IsEnabled,
+                StartTime = day.StartTime,
+                EndTime = day.EndTime
+            })
+            .ToList()
     };
 
     public class DaySchedule

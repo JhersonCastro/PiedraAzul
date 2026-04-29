@@ -1,6 +1,8 @@
 ﻿using PiedraAzul.Client.Models;
 using PiedraAzul.Client.Models.Schedule;
+using Microsoft.JSInterop;
 using PiedraAzul.Client.Services.GraphQLServices;
+using System.Text.Json;
 
 namespace PiedraAzul.Client.Services.Schedule;
 
@@ -10,9 +12,10 @@ public interface IScheduleConfigService
     Task<Result<bool>> SaveAsync(ScheduleConfigModel config);
 }
 
-public class ScheduleConfigService(GraphQLHttpClient client) : IScheduleConfigService
+public class ScheduleConfigService(GraphQLHttpClient client, IJSRuntime jsRuntime) : IScheduleConfigService
 {
     private readonly Dictionary<string, ScheduleConfigModel> _fallbackStore = new();
+    private const string LocalStoragePrefix = "schedule-config:";
 
     public async Task<ScheduleConfigModel?> GetByDoctorIdAsync(string doctorId)
     {
@@ -26,6 +29,13 @@ public class ScheduleConfigService(GraphQLHttpClient client) : IScheduleConfigSe
         {
             _fallbackStore[doctorId] = Clone(fromBackend);
             return fromBackend;
+        }
+
+        var fromLocal = await TryGetFromLocalStorageAsync(doctorId);
+        if (fromLocal is not null)
+        {
+            _fallbackStore[doctorId] = Clone(fromLocal);
+            return fromLocal;
         }
 
         if (_fallbackStore.TryGetValue(doctorId, out var existing))
@@ -52,8 +62,14 @@ public class ScheduleConfigService(GraphQLHttpClient client) : IScheduleConfigSe
             return backendSave;
         }
 
-        _fallbackStore[config.DoctorId] = Clone(config);
-        return Result<bool>.Success(true);
+        var localPersisted = await TrySaveToLocalStorageAsync(config);
+        if (localPersisted)
+        {
+            _fallbackStore[config.DoctorId] = Clone(config);
+            return Result<bool>.Failure(new ErrorResult("Backend no disponible. Configuración guardada localmente en este navegador.", "ScheduleConfigLocalFallback"));
+        }
+
+        return backendSave;
     }
 
     private async Task<ScheduleConfigModel?> TryGetFromBackendAsync(string doctorId)
@@ -125,6 +141,41 @@ public class ScheduleConfigService(GraphQLHttpClient client) : IScheduleConfigSe
         }
     }
 
+
+
+    private async Task<ScheduleConfigModel?> TryGetFromLocalStorageAsync(string doctorId)
+    {
+        try
+        {
+            var key = LocalStoragePrefix + doctorId;
+            var raw = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", key);
+            if (string.IsNullOrWhiteSpace(raw))
+            {
+                return null;
+            }
+
+            return JsonSerializer.Deserialize<ScheduleConfigModel>(raw);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private async Task<bool> TrySaveToLocalStorageAsync(ScheduleConfigModel config)
+    {
+        try
+        {
+            var key = LocalStoragePrefix + config.DoctorId;
+            var payload = JsonSerializer.Serialize(config);
+            await jsRuntime.InvokeVoidAsync("localStorage.setItem", key, payload);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
     private static ScheduleConfigModel BuildDefaultConfig(string doctorId)
     {
         return new ScheduleConfigModel

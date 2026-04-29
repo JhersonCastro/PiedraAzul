@@ -7,6 +7,7 @@ public class ScheduleConfigModel
     [Required(ErrorMessage = "Selecciona un especialista.")]
     public string DoctorId { get; set; } = "";
 
+    [Obsolete("Use DoctorId instead. This alias will be removed in a future version.")]
     public string SpecialistId
     {
         get => DoctorId;
@@ -16,6 +17,7 @@ public class ScheduleConfigModel
     [Range(1, 52, ErrorMessage = "La ventana de semanas debe ser entre 1 y 52.")]
     public int BookingWindowWeeks { get; set; } = 4;
 
+    [Obsolete("Use BookingWindowWeeks instead. This alias will be removed in a future version.")]
     public int WeekWindowInWeeks
     {
         get => BookingWindowWeeks;
