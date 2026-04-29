@@ -1,22 +1,583 @@
-﻿@page "/account"
-@using PiedraAzul.Client.Services
+@page "/account"
+@using PiedraAzul.Client.Models.GraphQL
 @using PiedraAzul.Client.Services.AuthServices
+@using PiedraAzul.Client.Services.GraphQLServices
 @using PiedraAzul.Client.States
-@inject NavigationManager Navigation
+@using PiedraAzul.Client.UI.Features.Account.Components
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@inject NavigationManager Nav
 @inject UserState UserState
 @inject AuthenticationService AuthService
+@inject PasskeyService PasskeyService
+@inject GraphQLHttpClient GraphQL
+@inject HttpClient Http
 
+<PageTitle>Mi cuenta | Piedra Azul</PageTitle>
+
+@if (_loading)
+{
+    <div class="flex justify-center py-32"><div class="spinner"></div></div>
+}
+else if (_user is null)
+{
+    <p class="py-20 text-center text-gray-500">No se pudo cargar el perfil.</p>
+}
+else
+{
+    <div class="mx-auto flex max-w-4xl gap-7 px-4 py-8 pb-28 md:pb-10 items-start">
+
+        <!-- ══════════════════ SIDEBAR (desktop) ══════════════════ -->
+        <aside class="hidden md:flex w-56 flex-shrink-0 sticky top-20 flex-col gap-2">
+
+            <!-- User card -->
+            <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm text-center">
+                <div class="relative mx-auto mb-2.5 h-14 w-14">
+                    <img src="@AvatarSrc" alt="Avatar"
+                         class="h-14 w-14 rounded-full object-cover border-2 border-gray-200 shadow-sm" />
+                    <label class="absolute -bottom-0.5 -right-0.5 cursor-pointer rounded-full bg-[#2A9D8F]
+                                  p-1 shadow hover:bg-[#1e7168] transition" title="Cambiar foto">
+                        <svg class="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2">
+                            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                        <InputFile OnChange="OnAvatarSelected" accept="image/*" class="hidden" />
+                    </label>
+                </div>
+                <p class="text-sm font-semibold text-gray-900 leading-snug">@_user.Name</p>
+                <p class="mt-0.5 text-xs text-gray-500 break-all">@_user.Email</p>
+                <div class="mt-1.5 flex justify-center flex-wrap gap-1">
+                    @foreach (var role in _user.Roles)
+                    {
+                        <span class="rounded-full bg-[#e8f5f3] px-2 py-0.5 text-xs font-semibold text-[#1e7168] capitalize">
+                            @role
+                        </span>
+                    }
+                </div>
+            </div>
+
+            <!-- Nav -->
+            <nav class="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm">
+                <button @onclick='() => _tab = "profile"'
+                        class="flex w-full items-center gap-2.5 px-4 py-3 text-sm font-medium transition
+                               border-l-[3px] @(_tab == "profile" ? "border-[#2A9D8F] bg-[#e8f5f3] text-[#1e7168] font-semibold" : "border-transparent text-gray-700 hover:bg-gray-50")">
+                    <svg class="h-4 w-4 flex-shrink-0 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                        <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+                    </svg>
+                    Mi perfil
+                </button>
+                <button @onclick='() => _tab = "security"'
+                        class="flex w-full items-center gap-2.5 border-t border-gray-100 px-4 py-3 text-sm font-medium transition
+                               border-l-[3px] @(_tab == "security" ? "border-[#2A9D8F] bg-[#e8f5f3] text-[#1e7168] font-semibold" : "border-transparent text-gray-700 hover:bg-gray-50")">
+                    <svg class="h-4 w-4 flex-shrink-0 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                        <path d="M12 3l8 3.5v5c0 4.5-3.5 8.5-8 10-4.5-1.5-8-5.5-8-10v-5L12 3z"/>
+                    </svg>
+                    Seguridad
+                </button>
+                <button @onclick='() => _tab = "twofa"'
+                        class="flex w-full items-center gap-2.5 border-t border-gray-100 px-4 py-3 text-sm font-medium transition
+                               border-l-[3px] @(_tab == "twofa" ? "border-[#2A9D8F] bg-[#e8f5f3] text-[#1e7168] font-semibold" : "border-transparent text-gray-700 hover:bg-gray-50")">
+                    <svg class="h-4 w-4 flex-shrink-0 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                        <rect x="5" y="11" width="14" height="10" rx="2"/>
+                        <path d="M8 11V7a4 4 0 018 0v4"/>
+                    </svg>
+                    Autenticación
+                </button>
+            </nav>
+
+            <!-- Logout -->
+            <button @onclick="LogoutAsync"
+                    class="flex w-full items-center gap-2.5 rounded-xl border border-gray-200 bg-white px-4 py-3
+                           text-sm font-medium text-[#E76F51] shadow-sm transition hover:bg-orange-50">
+                <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                    <path d="M17 16l4-4m0 0l-4-4m4 4H7"/><path d="M9 20H6a2 2 0 01-2-2V6a2 2 0 012-2h3"/>
+                </svg>
+                Cerrar sesión
+            </button>
+        </aside>
+
+        <!-- ══════════════════ MAIN CONTENT ══════════════════ -->
+        <main class="min-w-0 flex-1">
+
+            <!-- Banners globales -->
+            @if (!string.IsNullOrEmpty(_user.Email) && !_user.EmailConfirmed)
+            {
+                <div class="mb-5 flex items-center justify-between rounded-xl border border-yellow-300 bg-yellow-50 p-4">
+                    <div class="flex items-center gap-3">
+                        <span class="text-lg">📧</span>
+                        <div>
+                            <p class="text-sm font-semibold text-gray-900">Email no verificado</p>
+                            <p class="text-xs text-gray-600">Verifica tu email para completar tu cuenta</p>
+                        </div>
+                    </div>
+                    <button @onclick="() => _showEmailVerification = true"
+                            class="flex-shrink-0 rounded-lg bg-yellow-600 px-3 py-1.5 text-xs font-semibold
+                                   text-white transition hover:bg-yellow-700">
+                        Verificar
+                    </button>
+                </div>
+            }
+            @if (!string.IsNullOrEmpty(_avatarError))
+            {
+                <div class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">@_avatarError</div>
+            }
+            @if (_avatarSuccess)
+            {
+                <div class="mb-4 rounded-xl border border-[#4CAF7D] bg-[#edf7f2] px-4 py-3 text-sm text-[#166534]">Foto actualizada correctamente.</div>
+            }
+
+            <!-- ══════ TAB: MI PERFIL ══════ -->
+            @if (_tab == "profile")
+            {
+                <div class="mb-4 flex items-center gap-3 md:hidden">
+                    <div class="relative flex-shrink-0">
+                        <img src="@AvatarSrc" alt="Avatar"
+                             class="h-10 w-10 rounded-full object-cover border-2 border-gray-200" />
+                        <label class="absolute -bottom-0.5 -right-0.5 cursor-pointer rounded-full bg-[#2A9D8F] p-1 shadow" title="Cambiar foto">
+                            <svg class="h-2 w-2 text-white" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2">
+                                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                            <InputFile OnChange="OnAvatarSelected" accept="image/*" class="hidden" />
+                        </label>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold text-gray-900">@_user.Name</p>
+                        <p class="text-xs text-gray-500">@_user.Email</p>
+                    </div>
+                </div>
+
+                <div class="mb-5">
+                    <h2 class="text-xl font-bold tracking-tight text-gray-900">Mi perfil</h2>
+                    <p class="text-sm text-gray-500">Gestiona tu información personal y datos de contacto.</p>
+                </div>
+
+                <div class="mb-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                    <p class="mb-4 text-sm font-semibold text-gray-900">Información personal</p>
+
+                    <div class="mb-5 flex items-center gap-4 rounded-lg border border-gray-200 bg-gray-50 p-3">
+                        <div class="relative flex-shrink-0">
+                            <img src="@AvatarSrc" alt="Avatar"
+                                 class="h-12 w-12 rounded-full object-cover border-2 border-gray-200" />
+                            <label class="absolute -bottom-0.5 -right-0.5 cursor-pointer rounded-full bg-[#2A9D8F] p-1 shadow hover:bg-[#1e7168] transition" title="Cambiar foto">
+                                <svg class="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2">
+                                    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                                    <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                </svg>
+                                <InputFile OnChange="OnAvatarSelected" accept="image/*" class="hidden" />
+                            </label>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-gray-900">@_user.Name</p>
+                            <p class="text-xs text-gray-500">@_user.Email</p>
+                            <div class="mt-1 flex flex-wrap gap-1">
+                                @foreach (var role in _user.Roles)
+                                {
+                                    <span class="rounded-full bg-[#e8f5f3] px-2 py-0.5 text-xs font-semibold text-[#1e7168] capitalize">@role</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="mb-1.5 block text-xs font-medium text-gray-700">Nombre completo</label>
+                        <div class="flex gap-2">
+                            <input @bind="_editName" @bind:event="oninput"
+                                   class="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900
+                                          focus:border-[#2A9D8F] focus:outline-none focus:ring-2 focus:ring-[#2A9D8F]/20 transition" />
+                            <button @onclick="SaveNameAsync"
+                                    disabled="@(_savingName || _editName == _user.Name)"
+                                    class="rounded-lg bg-[#2A9D8F] px-4 py-2 text-sm font-semibold text-white
+                                           transition hover:bg-[#1e7168] disabled:opacity-50">
+                                @(_savingName ? "Guardando…" : "Guardar")
+                            </button>
+                        </div>
+                        @if (!string.IsNullOrEmpty(_nameMsg))
+                        {
+                            <p class="mt-1 text-xs @(_nameError ? "text-red-500" : "text-[#4CAF7D]")">@_nameMsg</p>
+                        }
+                    </div>
+                </div>
+
+                <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                    <p class="mb-1 text-sm font-semibold text-gray-900">Correo electrónico</p>
+                    <p class="mb-4 text-xs text-gray-500">Para cambiar tu correo te enviaremos un código de verificación.</p>
+                    <EmailChange CurrentEmail="@(_user.Email ?? "")" GraphQL="@GraphQL" OnEmailChanged="ReloadUserAsync" />
+                </div>
+            }
+
+            <!-- ══════ TAB: SEGURIDAD ══════ -->
+            @if (_tab == "security")
+            {
+                <div class="mb-5">
+                    <h2 class="text-xl font-bold tracking-tight text-gray-900">Seguridad</h2>
+                    <p class="text-sm text-gray-500">Administra tus métodos de acceso y passkeys registradas.</p>
+                </div>
+
+                <div class="mb-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                    <div class="mb-4 flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                        <div>
+                            <p class="text-sm font-semibold text-gray-900">Passkeys</p>
+                            <p class="mt-0.5 text-xs text-gray-500">Ingresa con Face ID, huella dactilar o llave USB — sin contraseña.</p>
+                        </div>
+                        <button @onclick='() => Nav.NavigateTo("/account/passkeys")'
+                                class="flex flex-shrink-0 items-center gap-1.5 rounded-lg bg-[#2A9D8F] px-3 py-1.5
+                                       text-xs font-semibold text-white transition hover:bg-[#1e7168]">
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                            </svg>
+                            Registrar passkey
+                        </button>
+                    </div>
+
+                    @if (_loadingPasskeys)
+                    {
+                        <div class="flex justify-center py-4"><div class="spinner"></div></div>
+                    }
+                    else if (_passkeys.Count == 0)
+                    {
+                        <div class="rounded-lg border border-dashed border-gray-200 py-8 text-center text-sm text-gray-400">
+                            No tienes passkeys registradas. Agrega una para acceder sin contraseña.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="flex flex-col gap-2">
+                            @foreach (var pk in _passkeys)
+                            {
+                                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+                                    <div class="flex items-center gap-3">
+                                        <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[#e8f5f3]">
+                                            <svg class="h-4 w-4 text-[#2A9D8F]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                                <path d="M7 3H5a2 2 0 00-2 2v2"/><path d="M17 3h2a2 2 0 012 2v2"/>
+                                                <path d="M7 21H5a2 2 0 01-2-2v-2"/><path d="M17 21h2a2 2 0 002-2v-2"/>
+                                                <circle cx="9" cy="10" r="1" fill="currentColor"/>
+                                                <circle cx="15" cy="10" r="1" fill="currentColor"/>
+                                                <path d="M9 16s1 1.5 3 1.5 3-1.5 3-1.5"/>
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900">@pk.FriendlyName</p>
+                                            <p class="text-xs text-gray-400">@pk.CreatedAt.ToLocalTime().ToString("dd MMM yyyy, HH:mm")</p>
+                                        </div>
+                                    </div>
+                                    <button @onclick="() => DeletePasskeyAsync(pk.Id)" disabled="@_deletingPasskey"
+                                            class="rounded-lg border border-[#E76F51] px-3 py-1 text-xs font-semibold
+                                                   text-[#E76F51] transition hover:bg-orange-50 disabled:opacity-50">
+                                        Eliminar
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+
+                <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                    <p class="mb-1 text-sm font-semibold text-gray-900">Contraseña</p>
+                    <p class="mb-4 text-xs text-gray-500">Cambia tu contraseña actual por una nueva.</p>
+                    <PasswordChange GraphQL="@GraphQL" />
+                </div>
+            }
+
+            <!-- ══════ TAB: AUTENTICACIÓN ══════ -->
+            @if (_tab == "twofa")
+            {
+                <div class="mb-5">
+                    <h2 class="text-xl font-bold tracking-tight text-gray-900">Autenticación de dos factores</h2>
+                    <p class="text-sm text-gray-500">Protege tu cuenta con una segunda capa de seguridad.</p>
+                </div>
+                <MFASettings GraphQL="@GraphQL" CurrentEmail="@(_user?.Email ?? "")" />
+            }
+
+        </main>
+    </div>
+
+    <!-- ══════════════════ MOBILE BOTTOM NAV ══════════════════ -->
+    <nav class="fixed bottom-0 left-0 right-0 z-50 flex border-t border-gray-200 bg-white md:hidden">
+        <button @onclick='() => _tab = "profile"'
+                class="flex flex-1 flex-col items-center gap-1 py-2.5 text-xs font-medium transition
+                       @(_tab == "profile" ? "text-[#2A9D8F]" : "text-gray-500")">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+            </svg>
+            Perfil
+        </button>
+        <button @onclick='() => _tab = "security"'
+                class="flex flex-1 flex-col items-center gap-1 py-2.5 text-xs font-medium transition
+                       @(_tab == "security" ? "text-[#2A9D8F]" : "text-gray-500")">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path d="M12 3l8 3.5v5c0 4.5-3.5 8.5-8 10-4.5-1.5-8-5.5-8-10v-5L12 3z"/>
+            </svg>
+            Seguridad
+        </button>
+        <button @onclick='() => _tab = "twofa"'
+                class="flex flex-1 flex-col items-center gap-1 py-2.5 text-xs font-medium transition
+                       @(_tab == "twofa" ? "text-[#2A9D8F]" : "text-gray-500")">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/>
+            </svg>
+            Auth
+        </button>
+        <button @onclick="LogoutAsync"
+                class="flex flex-1 flex-col items-center gap-1 py-2.5 text-xs font-medium text-[#E76F51] transition">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path d="M17 16l4-4m0 0l-4-4m4 4H7"/><path d="M9 20H6a2 2 0 01-2-2V6a2 2 0 012-2h3"/>
+            </svg>
+            Salir
+        </button>
+    </nav>
+
+    <!-- ══════════════════ EMAIL VERIFICATION MODAL ══════════════════ -->
+    @if (_showEmailVerification)
+    {
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+            <div class="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl">
+                @if (!_emailVerificationStep2)
+                {
+                    <h3 class="mb-2 text-base font-bold text-gray-900">Verificar email</h3>
+                    <p class="mb-5 text-sm text-gray-600">
+                        Enviaremos un código de verificación a <strong>@_user.Email</strong>
+                    </p>
+                    <div class="flex gap-2">
+                        <button @onclick="SendEmailVerificationCode" disabled="@_emailVerificationLoading"
+                                class="flex-1 rounded-lg bg-[#2A9D8F] px-4 py-2 text-sm font-semibold text-white
+                                       transition hover:bg-[#1e7168] disabled:opacity-50">
+                            @(_emailVerificationLoading ? "Enviando..." : "Enviar código")
+                        </button>
+                        <button @onclick="() => _showEmailVerification = false"
+                                class="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold
+                                       text-gray-700 transition hover:bg-gray-50">
+                            Cancelar
+                        </button>
+                    </div>
+                    @if (!string.IsNullOrEmpty(_emailVerificationError))
+                    {
+                        <p class="mt-3 text-sm text-red-500">@_emailVerificationError</p>
+                    }
+                }
+                else
+                {
+                    <h3 class="mb-2 text-base font-bold text-gray-900">Ingresar código</h3>
+                    <p class="mb-4 text-sm text-gray-600">Ingresa el código de 6 dígitos que recibiste en tu email</p>
+                    <input type="text" @bind="_emailVerificationCode" maxlength="6" placeholder="000000"
+                           class="mb-4 w-full rounded-lg border border-gray-300 px-4 py-2 text-center text-2xl
+                                  tracking-widest focus:border-[#2A9D8F] focus:outline-none focus:ring-2 focus:ring-[#2A9D8F]/20"
+                           autocomplete="off" />
+                    <div class="flex gap-2 mb-3">
+                        <button @onclick="VerifyEmailCode"
+                                disabled="@(_emailVerificationCode?.Length != 6 || _emailVerificationLoading)"
+                                class="flex-1 rounded-lg bg-[#2A9D8F] px-4 py-2 text-sm font-semibold text-white
+                                       transition hover:bg-[#1e7168] disabled:opacity-50">
+                            @(_emailVerificationLoading ? "Verificando..." : "Verificar")
+                        </button>
+                        <button @onclick="CloseEmailVerification"
+                                class="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold
+                                       text-gray-700 transition hover:bg-gray-50">
+                            Cancelar
+                        </button>
+                    </div>
+                    <button @onclick="() => _emailVerificationStep2 = false"
+                            class="w-full text-xs font-medium text-[#2A9D8F] hover:underline">
+                        ← Cambiar email
+                    </button>
+                    @if (!string.IsNullOrEmpty(_emailVerificationError))
+                    {
+                        <p class="mt-3 text-sm text-red-500">@_emailVerificationError</p>
+                    }
+                }
+            </div>
+        </div>
+    }
+}
 
 @code {
+    private UserGQL? _user;
+    private bool _loading = true;
+    private bool _loadingPasskeys = true;
+    private string _tab = "profile";
+
+    private string _editName = "";
+    private bool _savingName;
+    private string? _nameMsg;
+    private bool _nameError;
+
+    private bool _avatarSuccess;
+    private string? _avatarError;
+
+    private List<PasskeyGQL> _passkeys = [];
+    private bool _deletingPasskey;
+
+    private bool _showEmailVerification;
+    private bool _emailVerificationStep2;
+    private bool _emailVerificationLoading;
+    private string? _emailVerificationCode;
+    private string? _emailVerificationError;
+
+    private string AvatarSrc => _user?.AvatarUrl is null or "default.png"
+        ? "/Avatars/default.png" : _user.AvatarUrl;
+
     protected override async Task OnInitializedAsync()
     {
-        await base.OnInitializedAsync();
-        if (UserState.UserResponse != null) return;
-
-        var response = await AuthService.GetCurrentUserAsync();
-        if (!response.IsSuccess)
-            Navigation.NavigateTo("/account/auth", forceLoad: false, replace: true);
-
-        UserState.UserResponse = response.Value;
+        if (UserState.User is not null)
+        {
+            _user = UserState.User;
+            _editName = _user.Name;
+            _loading = false;
+        }
+        else
+        {
+            var result = await AuthService.GetCurrentUserAsync();
+            if (result.IsSuccess)
+            {
+                _user = result.Value;
+                UserState.User = _user;
+                _editName = _user!.Name;
+            }
+            _loading = false;
+        }
+        await LoadPasskeysAsync();
     }
+
+    private async Task LoadPasskeysAsync()
+    {
+        _loadingPasskeys = true;
+        var result = await PasskeyService.GetMyPasskeysAsync();
+        _passkeys = result.IsSuccess ? result.Value! : [];
+        _loadingPasskeys = false;
+    }
+
+    private async Task SaveNameAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_editName) || _user is null) return;
+        _savingName = true; _nameMsg = null;
+        StateHasChanged();
+
+        var result = await AuthService.UpdateProfileAsync(_editName.Trim(), null);
+        if (result.IsSuccess)
+        {
+            _user.Name = _editName.Trim();
+            UserState.User = _user;
+            _nameMsg = "Nombre actualizado."; _nameError = false;
+        }
+        else { _nameMsg = "No se pudo guardar el nombre."; _nameError = true; }
+
+        _savingName = false;
+    }
+
+    private async Task OnAvatarSelected(InputFileChangeEventArgs e)
+    {
+        _avatarError = null; _avatarSuccess = false;
+        var file = e.File;
+        if (file.Size > 5 * 1024 * 1024) { _avatarError = "La imagen no puede superar 5 MB."; return; }
+
+        try
+        {
+            var bufferSize = file.Size > 50 * 1024 * 1024 ? 2 * 1024 * 1024 :
+                             file.Size > 10 * 1024 * 1024 ? 1 * 1024 * 1024 : 524288;
+
+            using var content = new MultipartFormDataContent();
+            using var memoryStream = new MemoryStream();
+            await using var readStream = file.OpenReadStream(file.Size);
+
+            Memory<byte> buffer = new byte[bufferSize];
+            int readBytes; long uploadedBytes = 0;
+            while ((readBytes = await readStream.ReadAsync(buffer)) > 0)
+            {
+                memoryStream.Write(buffer.Span[..readBytes]);
+                uploadedBytes += readBytes;
+                StateHasChanged();
+            }
+
+            if (uploadedBytes != file.Size) { _avatarError = "Lectura incompleta del archivo."; return; }
+
+            memoryStream.Position = 0;
+            content.Add(new StreamContent(memoryStream), "file", file.Name);
+
+            var response = await Http.PostAsync("/api/avatar", content);
+            if (!response.IsSuccessStatusCode)
+            {
+                _avatarError = $"Error al subir (HTTP {response.StatusCode})";
+                return;
+            }
+
+            var json = await response.Content.ReadFromJsonAsync<AvatarResponse>();
+            if (json?.Url is null) { _avatarError = "Respuesta del servidor inválida."; return; }
+
+            var updateResult = await AuthService.UpdateProfileAsync(_user!.Name, json.Url);
+            if (updateResult.IsSuccess)
+            {
+                _user!.AvatarUrl = json.Url;
+                UserState.User = _user;
+                _avatarSuccess = true;
+            }
+            else { _avatarError = "Foto subida pero no se pudo guardar."; }
+        }
+        catch (Exception ex) { _avatarError = $"Error: {ex.Message}"; }
+    }
+
+    private async Task DeletePasskeyAsync(string id)
+    {
+        _deletingPasskey = true;
+        var result = await PasskeyService.DeletePasskeyAsync(id);
+        if (result.IsSuccess) _passkeys.RemoveAll(p => p.Id == id);
+        _deletingPasskey = false;
+    }
+
+    private async Task LogoutAsync() => await AuthService.Logout();
+
+    private async Task ReloadUserAsync()
+    {
+        var result = await AuthService.GetCurrentUserAsync();
+        if (result.IsSuccess && result.Value is not null)
+        {
+            _user = result.Value;
+            UserState.User = _user;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SendEmailVerificationCode()
+    {
+        _emailVerificationLoading = true; _emailVerificationError = null;
+        StateHasChanged();
+        try
+        {
+            var result = await GraphQL.ExecuteAsync<bool>("mutation { sendEmailVerificationCode }", null, "sendEmailVerificationCode");
+            if (result) { _emailVerificationStep2 = true; _emailVerificationCode = ""; }
+            else { _emailVerificationError = "No se pudo enviar el código"; }
+        }
+        catch (Exception ex) { _emailVerificationError = $"Error: {ex.Message}"; }
+        finally { _emailVerificationLoading = false; StateHasChanged(); }
+    }
+
+    private async Task VerifyEmailCode()
+    {
+        if (string.IsNullOrEmpty(_emailVerificationCode) || _emailVerificationCode.Length != 6) return;
+        _emailVerificationLoading = true; _emailVerificationError = null;
+        StateHasChanged();
+        try
+        {
+            var result = await GraphQL.ExecuteAsync<bool>(
+                "mutation VerifyEmailCode($code: String!) { verifyEmailCode(code: $code) }",
+                new { code = _emailVerificationCode }, "verifyEmailCode");
+
+            if (result)
+            {
+                var userResult = await AuthService.GetCurrentUserAsync();
+                if (userResult.IsSuccess && userResult.Value is not null) { _user = userResult.Value; UserState.User = _user; }
+                CloseEmailVerification();
+            }
+            else { _emailVerificationError = "Código inválido. Intenta de nuevo."; }
+        }
+        catch (Exception ex) { _emailVerificationError = $"Error: {ex.Message}"; }
+        finally { _emailVerificationLoading = false; StateHasChanged(); }
+    }
+
+    private void CloseEmailVerification()
+    {
+        _showEmailVerification = false; _emailVerificationStep2 = false;
+        _emailVerificationCode = null; _emailVerificationError = null;
+        StateHasChanged();
+    }
+
+    private record AvatarResponse(string Url);
 }

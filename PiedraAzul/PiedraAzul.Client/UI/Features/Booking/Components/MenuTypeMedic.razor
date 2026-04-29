@@ -1,9 +1,7 @@
 ﻿@using PiedraAzul.Client.Models.UserProfiles
-@using PiedraAzul.Client.Services
-@using PiedraAzul.Client.Services.GrpcServices
-@using PiedraAzul.Shared
-@using PiedraAzul.Shared.Enums
-@inject GrpcDoctorService DoctorService
+@using PiedraAzul.Client.Services.GraphQLServices
+@using PiedraAzul.Contracts.Enums
+@inject GraphQLDoctorService DoctorService
 
 <div class="grid grid-cols-1 gap-8 lg:grid-cols-2">
 
@@ -186,7 +184,7 @@
     [Parameter]
     public EventCallback OnChange { get; set; }
 
-    PiedraAzul.Shared.Enums.DoctorType SelectedType = DoctorType.NaturalMedicine;
+    DoctorType SelectedType = DoctorType.NaturalMedicine;
     Dictionary<DoctorType, List<DoctorModel>> MedicsByType = new();
     List<DoctorModel> _currentDoctors = new();
 
@@ -211,12 +209,12 @@
         SelectedType = doctorType;
         if (!MedicsByType.TryGetValue(doctorType, out var medics))
         {
-            var response = await DoctorService.GetDoctorsByTypeAsync(doctorType);
+            var response = await DoctorService.GetDoctorsByTypeAsync(doctorType.ToGraphQL());
 
             medics = response.Select(ds => new DoctorModel()
             {
                 Id = ds.DoctorId,
-                Specialty = ds.Specialty.ToString(),
+                Specialty = ds.Specialty,
                 Name = ds.Name,
                 AvatarUrl = ds.AvatarUrl
             }).ToList();

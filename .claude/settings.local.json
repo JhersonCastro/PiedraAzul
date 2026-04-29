@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs grep *)",
+      "Bash(xargs cat *)",
+      "Bash(xargs ls *)",
+      "Bash(find . -type f -name \"*.csproj\" -exec echo \"=== {} ===\" \\\\; -exec cat {} \\\\;)",
+      "Bash(gh pr create --draft --title 'Migrate from gRPC to GraphQL \\(Hot Chocolate\\)' --body ' *)",
+      "Bash(command -v gh)",
+      "Read(//c/Users/imbuc/**)"
+    ]
+  }
+}

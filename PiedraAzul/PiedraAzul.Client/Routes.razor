@@ -1,33 +1,35 @@
-﻿@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
 
-<Router AppAssembly="@typeof(Program).Assembly"
-        NotFoundPage="typeof(PiedraAzul.Client.UI.Shared.Pages.NotFound)">
+<CascadingAuthenticationState>
+    <Router AppAssembly="@typeof(Program).Assembly"
+            NotFoundPage="typeof(PiedraAzul.Client.UI.Shared.Pages.NotFound)">
 
-    <Navigating>
-        <div class="flex h-screen items-center justify-center">
-            <div class="spinner"></div>
-        </div>
-    </Navigating>
+        <Navigating>
+            <div class="flex h-screen items-center justify-center">
+                <div class="spinner"></div>
+            </div>
+        </Navigating>
 
-    <Found Context="routeData">
-        <AuthorizeRouteView RouteData="routeData"
-                            DefaultLayout="typeof(PiedraAzul.Client.UI.Shared.Layout.MainLayout)">
+        <Found Context="routeData">
+            <AuthorizeRouteView RouteData="routeData"
+                                DefaultLayout="typeof(PiedraAzul.Client.UI.Shared.Layout.MainLayout)">
 
-            <Authorizing>
-                <div class="flex h-screen items-center justify-center">
-                    <div class="spinner"></div>
-                </div>
-            </Authorizing>
+                <Authorizing>
+                    <div class="flex h-screen items-center justify-center">
+                        <div class="spinner"></div>
+                    </div>
+                </Authorizing>
 
-            <NotAuthorized>
-                <div class="mt-10 text-center">
-                    <h3>No tienes permiso para ver esta página</h3>
-                </div>
-            </NotAuthorized>
+                <NotAuthorized>
+                    <div class="mt-10 text-center">
+                        <h3>No tienes permiso para ver esta página</h3>
+                    </div>
+                </NotAuthorized>
 
-        </AuthorizeRouteView>
+            </AuthorizeRouteView>
 
-        <FocusOnNavigate RouteData="routeData" Selector="h1" />
-    </Found>
+            <FocusOnNavigate RouteData="routeData" Selector="main" />
+        </Found>
 
-</Router>
+    </Router>
+</CascadingAuthenticationState>

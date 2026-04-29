@@ -1,17 +1,16 @@
 ﻿@page "/medical-booking"
 
-@using Google.Protobuf.WellKnownTypes
 @using Microsoft.AspNetCore.Components.Forms
 @using PiedraAzul.Client.Models
 @using PiedraAzul.Client.Models.Booking
 @using PiedraAzul.Client.Models.UserProfiles
 @using PiedraAzul.Client.Services.AuthServices
-@using PiedraAzul.Client.Services.GrpcServices
+@using PiedraAzul.Client.Services.GraphQLServices
 @using PiedraAzul.Client.States
 @using PiedraAzul.Client.UI.Features.Booking.Components
 @using PiedraAzul.Client.UI.Shared.Components.StepTag
 @inject NavigationManager Navigation
-@inject GrpcAppointmentService AppointmentService
+@inject GraphQLAppointmentService AppointmentService
 @inject AuthenticationService AuthService
 @inject UserState UserState
 
@@ -89,17 +88,20 @@ else
     {
         await base.OnInitializedAsync();
 
-        if (UserState.UserResponse != null) {
-            _patientId = UserState.UserResponse.Id;
-            return; 
+        if (UserState.User != null) {
+            _patientId = UserState.User.Id;
+            return;
         }
 
         var response = await AuthService.GetCurrentUserAsync();
 
-        if (!response.IsSuccess){}
-        Navigation.NavigateTo("/instant-medical-booking", forceLoad: false, replace: true);
+        if (!response.IsSuccess)
+        {
+            Navigation.NavigateTo("/instant-medical-booking", forceLoad: false, replace: true);
+            return;
+        }
 
-        UserState.UserResponse = response.Value!;
+        UserState.User = response.Value!;
         _patientId = response.Value!.Id;
 
     }
@@ -111,17 +113,13 @@ else
     }
     private async Task HandlerSubmit()
     {
-        var result = await AppointmentService.CreateAppointment(new()
-        {
-            PatientId = _patientId,
-            PatientIdentification = string.Empty,
-            PatientName = string.Empty,
-            PatientPhone = string.Empty,
-
-            DoctorId = Model.DoctorId,
-            DoctorAvailabilitySlotId = Model.SlotId,
-            Date = Timestamp.FromDateTime(Model.DayOfYear.ToUniversalTime()),
-        });
+        var result = await AppointmentService.CreateAppointment(new CreateAppointmentGqlInput(
+            Guest: null,
+            PatientUserId: _patientId,
+            DoctorId: Model.DoctorId,
+            DoctorAvailabilitySlotId: Model.SlotId,
+            Date: Model.DayOfYear.ToUniversalTime()
+        ));
         if (!result.IsSuccess)
         {
             _errorMessage = "Ocurrió un error al crear la cita. Por favor, inténtelo de nuevo.";

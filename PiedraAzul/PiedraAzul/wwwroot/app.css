@@ -6,6 +6,10 @@ a {
     text-decoration: none;
 }
 
+main:focus {
+    outline: none;
+}
+
 .bg-primary {
     background-color: #257D8D;
 }

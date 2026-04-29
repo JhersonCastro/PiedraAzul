@@ -8,13 +8,11 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<PackageReference Include="HotChocolate.AspNetCore.Authorization" Version="15.1.14" />
 		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
 		<PackageReference Include="Riok.Mapperly" Version="4.3.1" />
-		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.16.0" />
-
-		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.4" />
-		<PackageReference Include="Grpc.AspNetCore" Version="2.76.0" />
-		<PackageReference Include="Grpc.AspNetCore.Web" Version="2.76.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.5" />
+		<PackageReference Include="HotChocolate.AspNetCore" Version="14.*" />
 
 		<PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.5" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.5" />
@@ -23,20 +21,17 @@
 		  <PrivateAssets>all</PrivateAssets>
 		</PackageReference>
 
-		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.3" />
-
-		<PackageReference Include="Lucene.Net" Version="4.8.0-beta00017" />
+<PackageReference Include="Lucene.Net" Version="4.8.0-beta00017" />
 		<PackageReference Include="Lucene.Net.Analysis.Common" Version="4.8.0-beta00017" />
 		<PackageReference Include="Lucene.Net.QueryParser" Version="4.8.0-beta00017" />
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\PiedraAzul.Application\PiedraAzul.Application.csproj" />
 		<ProjectReference Include="..\PiedraAzul.Client\PiedraAzul.Client.csproj" />
-		<ProjectReference Include="..\PiedraAzul.Shared\PiedraAzul.Shared.csproj" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<Folder Include="ApplicationServices\Common\Mapping\" />
+		<ProjectReference Include="..\PiedraAzul.Contracts\PiedraAzul.Contracts.csproj" />
+		<ProjectReference Include="..\PiedraAzul.Domain\PiedraAzul.Domain.csproj" />
+		<ProjectReference Include="..\PiedraAzul.Infrastructure\PiedraAzul.Infrastructure.csproj" />
 	</ItemGroup>
 
 </Project>

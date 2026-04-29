@@ -1,100 +1,131 @@
-using PiedraAzul.ApplicationServices.Services;
-using PiedraAzul.Data;
-using PiedraAzul.Data.Models;
+using Moq;
+using PiedraAzul.Application.Common.Interfaces;
+using PiedraAzul.Application.Common.Models.User;
+using PiedraAzul.Application.Features.Doctors.Queries.GetDoctorAppointments;
+using PiedraAzul.Domain.Entities.Operations;
+using PiedraAzul.Domain.Entities.Profiles.Doctor;
+using PiedraAzul.Domain.Entities.Profiles.Patients;
+using PiedraAzul.Domain.Repositories;
 
-namespace PiedraAzul.Test.Tests
+namespace PiedraAzul.Test.Tests;
+
+public class RefreshTokenServiceTests
 {
-    public class RefreshTokenServiceTests : IClassFixture<PostgresFixture>
+    [Fact]
+    public async Task GetDoctorAppointments_ReturnsEmpty_WhenNoAppointments()
     {
-        private readonly PostgresFixture _fixture;
-        private readonly RefreshTokenService _sut;
+        var appointmentRepo = new Mock<IAppointmentRepository>();
+        var slotRepo = new Mock<IDoctorAvailabilitySlotRepository>();
+        var identity = new Mock<IIdentityService>();
+        var guestRepo = new Mock<IPatientGuestRepository>();
 
-        public RefreshTokenServiceTests(PostgresFixture fixture)
-        {
-            _fixture = fixture;
-            _sut = new RefreshTokenService(fixture.DbContextFactory);
-        }
+        appointmentRepo.Setup(x => x.ListByDoctorAsync("doc", null, It.IsAny<CancellationToken>())).ReturnsAsync([]);
 
-        private async Task<ApplicationUser> SeedUserAsync(string name)
-        {
-            await using var ctx = _fixture.DbContextFactory.CreateDbContext();
+        var sut = new GetDoctorAppointmentsHandler(appointmentRepo.Object, slotRepo.Object, identity.Object, guestRepo.Object);
 
-            var user = new ApplicationUser
-            {
-                Id = Guid.NewGuid().ToString(),
-                UserName = $"{name.ToLower().Replace(" ", "")}@test.com",
-                Name = name
-            };
+        var result = await sut.Handle(new GetDoctorAppointmentsQuery("doc"), CancellationToken.None);
 
-            ctx.Users.Add(user);
-            await ctx.SaveChangesAsync();
+        Assert.Empty(result);
+    }
 
-            return user;
-        }
+    [Fact]
+    public async Task GetDoctorAppointments_MapsRegisteredPatient()
+    {
+        var date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1));
+        var slot = new DoctorAvailabilitySlot("doc", date.DayOfWeek, TimeSpan.FromHours(8), TimeSpan.FromHours(9));
+        var appointment = Appointment.Create(slot, date, "doc", "user-1", null);
 
-        [Fact]
-        public async Task GenerateRefreshToken_ReturnsTokenAndSaves()
-        {
-            var user = await SeedUserAsync("Refresh User");
+        var appointmentRepo = new Mock<IAppointmentRepository>();
+        var slotRepo = new Mock<IDoctorAvailabilitySlotRepository>();
+        var identity = new Mock<IIdentityService>();
+        var guestRepo = new Mock<IPatientGuestRepository>();
 
-            var tokenValue = await _sut.GenerateRefreshTokenAsync(user.Id);
+        appointmentRepo.Setup(x => x.ListByDoctorAsync("doc", date, It.IsAny<CancellationToken>())).ReturnsAsync([appointment]);
+        slotRepo.Setup(x => x.GetByIdsAsync(It.IsAny<List<Guid>>(), It.IsAny<CancellationToken>())).ReturnsAsync([slot]);
+        identity.Setup(x => x.GetByIds(It.IsAny<List<string>>())).ReturnsAsync([new UserDto("user-1", "u@test.com", "User Uno", "")]);
+        guestRepo.Setup(x => x.GetByIdsAsync(It.IsAny<List<string>>(), It.IsAny<CancellationToken>())).ReturnsAsync([]);
 
-            Assert.NotNull(tokenValue);
-            
-            await using var ctx = _fixture.DbContextFactory.CreateDbContext();
-            var exists = ctx.RefreshTokens.Any(rt => rt.Token == tokenValue && rt.UserId == user.Id);
-            Assert.True(exists);
-        }
+        var sut = new GetDoctorAppointmentsHandler(appointmentRepo.Object, slotRepo.Object, identity.Object, guestRepo.Object);
 
-        [Fact]
-        public async Task ValidateRefreshToken_Valid_ReturnsToken()
-        {
-            var user = await SeedUserAsync("Valid Token User");
-            var tokenValue = await _sut.GenerateRefreshTokenAsync(user.Id);
+        var result = await sut.Handle(new GetDoctorAppointmentsQuery("doc", date), CancellationToken.None);
 
-            var result = await _sut.ValidateRefreshTokenAsync(tokenValue);
+        Assert.Single(result);
+        Assert.Equal("Registered", result[0].PatientType);
+        Assert.Equal("User Uno", result[0].PatientName);
+    }
 
-            Assert.NotNull(result);
-            Assert.Equal(user.Id, result!.UserId);
-        }
+    [Fact]
+    public async Task GetDoctorAppointments_MapsGuestPatient()
+    {
+        var date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1));
+        var slot = new DoctorAvailabilitySlot("doc", date.DayOfWeek, TimeSpan.FromHours(10), TimeSpan.FromHours(11));
+        var appointment = Appointment.Create(slot, date, "doc", null, "guest-1");
 
-        [Fact]
-        public async Task ValidateRefreshToken_Revoked_ReturnsNull()
-        {
-            var user = await SeedUserAsync("Revoked Token User");
-            
-            var rtValue = "revoked-token-123";
-            await using (var ctx = _fixture.DbContextFactory.CreateDbContext())
-            {
-                ctx.RefreshTokens.Add(new RefreshToken
-                {
-                    Token = rtValue,
-                    UserId = user.Id,
-                    ExpiresAt = DateTime.UtcNow.AddDays(7),
-                    isRevoked = true
-                });
-                await ctx.SaveChangesAsync();
-            }
+        var appointmentRepo = new Mock<IAppointmentRepository>();
+        var slotRepo = new Mock<IDoctorAvailabilitySlotRepository>();
+        var identity = new Mock<IIdentityService>();
+        var guestRepo = new Mock<IPatientGuestRepository>();
 
-            var result = await _sut.ValidateRefreshTokenAsync(rtValue);
+        appointmentRepo.Setup(x => x.ListByDoctorAsync("doc", date, It.IsAny<CancellationToken>())).ReturnsAsync([appointment]);
+        slotRepo.Setup(x => x.GetByIdsAsync(It.IsAny<List<Guid>>(), It.IsAny<CancellationToken>())).ReturnsAsync([slot]);
+        identity.Setup(x => x.GetByIds(It.IsAny<List<string>>())).ReturnsAsync([]);
+        guestRepo.Setup(x => x.GetByIdsAsync(It.IsAny<List<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new GuestPatient("guest-1", "Guest Uno", "300", "")]);
 
-            Assert.Null(result);
-        }
+        var sut = new GetDoctorAppointmentsHandler(appointmentRepo.Object, slotRepo.Object, identity.Object, guestRepo.Object);
 
-        [Fact]
-        public async Task RotateRefreshToken_Success()
-        {
-            var user = await SeedUserAsync("Rotate User");
-            var oldTokenValue = await _sut.GenerateRefreshTokenAsync(user.Id);
-            
-            var oldToken = await _sut.ValidateRefreshTokenAsync(oldTokenValue);
-            var newTokenValue = await _sut.RotateRefreshTokenAsync(oldToken!);
+        var result = await sut.Handle(new GetDoctorAppointmentsQuery("doc", date), CancellationToken.None);
 
-            Assert.NotEqual(oldTokenValue, newTokenValue);
-            
-            await using var ctx = _fixture.DbContextFactory.CreateDbContext();
-            var revoked = ctx.RefreshTokens.First(rt => rt.Token == oldTokenValue);
-            Assert.True(revoked.isRevoked);
-        }
+        Assert.Single(result);
+        Assert.Equal("Guest", result[0].PatientType);
+        Assert.Equal("Guest Uno", result[0].PatientName);
+    }
+
+    [Fact]
+    public async Task GetDoctorAppointments_UsesSlotStartTimeForStartField()
+    {
+        var date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1));
+        var slot = new DoctorAvailabilitySlot("doc", date.DayOfWeek, TimeSpan.FromHours(13), TimeSpan.FromHours(14));
+        var appointment = Appointment.Create(slot, date, "doc", "user-2", null);
+
+        var appointmentRepo = new Mock<IAppointmentRepository>();
+        var slotRepo = new Mock<IDoctorAvailabilitySlotRepository>();
+        var identity = new Mock<IIdentityService>();
+        var guestRepo = new Mock<IPatientGuestRepository>();
+
+        appointmentRepo.Setup(x => x.ListByDoctorAsync("doc", date, It.IsAny<CancellationToken>())).ReturnsAsync([appointment]);
+        slotRepo.Setup(x => x.GetByIdsAsync(It.IsAny<List<Guid>>(), It.IsAny<CancellationToken>())).ReturnsAsync([slot]);
+        identity.Setup(x => x.GetByIds(It.IsAny<List<string>>())).ReturnsAsync([new UserDto("user-2", "u2@test.com", "User Dos", "")]);
+        guestRepo.Setup(x => x.GetByIdsAsync(It.IsAny<List<string>>(), It.IsAny<CancellationToken>())).ReturnsAsync([]);
+
+        var sut = new GetDoctorAppointmentsHandler(appointmentRepo.Object, slotRepo.Object, identity.Object, guestRepo.Object);
+
+        var result = await sut.Handle(new GetDoctorAppointmentsQuery("doc", date), CancellationToken.None);
+
+        Assert.Equal(date.ToDateTime(TimeOnly.MinValue).AddHours(13), result[0].Start);
+    }
+
+    [Fact]
+    public async Task GetDoctorAppointments_CallsDependenciesOnce()
+    {
+        var date = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1));
+        var slot = new DoctorAvailabilitySlot("doc", date.DayOfWeek, TimeSpan.FromHours(9), TimeSpan.FromHours(10));
+        var appointment = Appointment.Create(slot, date, "doc", "user-3", null);
+
+        var appointmentRepo = new Mock<IAppointmentRepository>();
+        var slotRepo = new Mock<IDoctorAvailabilitySlotRepository>();
+        var identity = new Mock<IIdentityService>();
+        var guestRepo = new Mock<IPatientGuestRepository>();
+
+        appointmentRepo.Setup(x => x.ListByDoctorAsync("doc", date, It.IsAny<CancellationToken>())).ReturnsAsync([appointment]);
+        slotRepo.Setup(x => x.GetByIdsAsync(It.IsAny<List<Guid>>(), It.IsAny<CancellationToken>())).ReturnsAsync([slot]);
+        identity.Setup(x => x.GetByIds(It.IsAny<List<string>>())).ReturnsAsync([new UserDto("user-3", "u3@test.com", "User Tres", "")]);
+        guestRepo.Setup(x => x.GetByIdsAsync(It.IsAny<List<string>>(), It.IsAny<CancellationToken>())).ReturnsAsync([]);
+
+        var sut = new GetDoctorAppointmentsHandler(appointmentRepo.Object, slotRepo.Object, identity.Object, guestRepo.Object);
+        await sut.Handle(new GetDoctorAppointmentsQuery("doc", date), CancellationToken.None);
+
+        appointmentRepo.Verify(x => x.ListByDoctorAsync("doc", date, It.IsAny<CancellationToken>()), Times.Once);
+        slotRepo.Verify(x => x.GetByIdsAsync(It.IsAny<List<Guid>>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 }
