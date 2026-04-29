@@ -9,7 +9,6 @@ using PiedraAzul.Application.Features.Doctors.Queries.GetDoctorDaySlots;
 using PiedraAzul.Application.Features.Doctors.Queries.GetDoctorsBySpecialty;
 using PiedraAzul.Application.Features.Patients.Queries.GetPatientAppointments;
 using PiedraAzul.Application.Features.Patients.Queries.SearchPatients;
-using PiedraAzul.Application.Features.ScheduleConfig.Queries.GetScheduleConfig;
 using PiedraAzul.Application.Features.Users.Queries.GetUserById;
 using PiedraAzul.Application.Features.Users.Queries.GetUserRoles;
 using PiedraAzul.GraphQL.Types;
@@ -58,8 +57,7 @@ public class Query
         string doctorId,
         [Service] IMediator mediator)
     {
-        var config = await mediator.Send(new GetScheduleConfigQuery(doctorId));
-        return ScheduleConfigType.FromDto(config);
+        throw new NotImplementedException("GetScheduleConfigByDoctorIdAsync is not implemented yet");
     }
 
     [Authorize]

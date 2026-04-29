@@ -14,8 +14,6 @@ namespace PiedraAzul.Infrastructure.Persistence
     public class AppDbContext : IdentityDbContext<ApplicationUser>
     {
         public DbSet<SystemConfig> SystemConfigs => Set<SystemConfig>();
-        public DbSet<DoctorScheduleConfig> DoctorScheduleConfigs => Set<DoctorScheduleConfig>();
-        public DbSet<DoctorScheduleDayConfig> DoctorScheduleDayConfigs => Set<DoctorScheduleDayConfig>();
         public DbSet<Appointment> Appointments => Set<Appointment>();
         public DbSet<Doctor> Doctors => Set<Doctor>();
         public DbSet<DoctorAvailabilitySlot> DoctorAvailabilitySlots => Set<DoctorAvailabilitySlot>();
