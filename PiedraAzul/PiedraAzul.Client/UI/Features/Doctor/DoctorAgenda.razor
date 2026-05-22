@@ -2,16 +2,54 @@
 @layout PiedraAzul.Client.UI.Shared.Layout.EmptyLayout
 @using System.Globalization
 @using PiedraAzul.Client.States
+@using PiedraAzul.Client.Models.GraphQL
+@using PiedraAzul.Client.Services.GraphQLServices
 @inject UserState UserState
+@inject GraphQLAppointmentService AppointmentService
 @inject NavigationManager NavigationManager
 
-<div class="bg-slate-50 pb-12">
+<div class="min-h-screen bg-slate-50 pb-12">
+    <!-- HEADER / NAV -->
+    <header class="bg-white border-b sticky top-0 z-30 mb-8">
+        <div class="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-8">
+                <!-- Logo -->
+                <div class="flex items-center gap-3">
+                    <span class="text-xl font-bold text-slate-800">Piedra Azul</span>
+                </div>
+
+                <!-- Nav Links -->
+                <nav class="hidden md:flex items-center gap-8">
+                    <a href="/doctor" class="text-slate-500 font-medium hover:text-slate-900 transition-colors py-7">Dashboard</a>
+                    <a href="/doctor/pacientes" class="text-slate-500 font-medium hover:text-slate-900 transition-colors py-7">Pacientes</a>
+                    <a href="/doctor/agenda" class="text-slate-900 font-semibold border-b-2 border-primary py-7">Mi Agenda</a>
+                </nav>
+            </div>
+
+            <div class="flex items-center gap-6">
+                <!-- Notifications -->
+                <button class="relative p-2 text-slate-400 hover:text-slate-600 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                    <span class="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border-2 border-white"></span>
+                </button>
+
+                <!-- User Profile -->
+                <div class="flex items-center gap-3 pl-6 border-l">
+                    <div class="text-right hidden sm:block">
+                        <div class="text-sm font-bold text-slate-900">@(UserState?.User?.Name ?? "Doctor")</div>
+                        <div class="text-xs text-slate-400">Doctor</div>
+                    </div>
+                    <img src="@(string.IsNullOrEmpty(UserState?.User?.AvatarUrl) || UserState?.User?.AvatarUrl == "default.png" ? $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(UserState?.User?.Name ?? "Doctor")}&background=257D8D&color=fff" : UserState?.User?.AvatarUrl)" alt="Doctor" class="w-10 h-10 rounded-full border-2 border-slate-100 shadow-sm" onerror="this.src='https://ui-avatars.com/api/?name=Doctor&background=257D8D&color=fff'" />
+                </div>
+            </div>
+        </div>
+    </header>
 
     <main class="max-w-7xl mx-auto px-4 pt-2">
         <!-- Header Title & Controls -->
         <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
             <div>
-                <h1 class="text-2xl md:text-4xl font-black text-slate-900 mb-1">Dr. Roberto Gómez</h1>
+                <h1 class="text-2xl md:text-4xl font-black text-slate-900 mb-1">@(UserState?.User?.Name ?? "Cargando...")</h1>
                 <p class="text-slate-500 text-sm font-medium">Visualiza y organiza tu agenda de citas mensuales.</p>
             </div>
             
@@ -85,9 +123,9 @@
 
                         
                         <div class="space-y-1.5 overflow-hidden">
-                            @if (MockAppointments.ContainsKey(date.Date))
+                            @if (MonthlyAppointments.ContainsKey(date.Date))
                             {
-                                var apps = MockAppointments[date.Date];
+                                var apps = MonthlyAppointments[date.Date];
                                 @foreach (var app in apps.Take(3))
                                 {
                                      <div @onclick:stopPropagation="true" class="text-[10px] font-bold p-2 rounded-lg border border-primary/10 @(app.Status == "Urgent" ? "bg-rose-50 text-rose-600 border-rose-100" : app.Status == "Internal" ? "bg-slate-100 text-slate-600 border-slate-200" : "bg-primary/5 text-primary") truncate flex items-center gap-1.5">
@@ -113,14 +151,14 @@
 </div>
 
 @code {
-    private DateTime CurrentDate = new DateTime(2026, 3, 1);
+    private DateTime CurrentDate = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
     private string[] DaysOfWeek = { "Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo" };
     private List<DateTime> CalendarDays = new();
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         CalculateCalendar();
-        LoadMockData();
+        await LoadAppointmentsAsync();
     }
 
     private void CalculateCalendar()
@@ -128,8 +166,6 @@
         CalendarDays.Clear();
         var firstDayOfMonth = new DateTime(CurrentDate.Year, CurrentDate.Month, 1);
         
-        // Find the first Monday before or on the 1st of the month
-        // In .NET, DayOfWeek.Monday = 1, Sunday = 0.
         int offset = ((int)firstDayOfMonth.DayOfWeek - (int)DayOfWeek.Monday + 7) % 7;
         var startDate = firstDayOfMonth.AddDays(-offset);
 
@@ -140,16 +176,18 @@
         }
     }
 
-    private void PreviousMonth()
+    private async Task PreviousMonth()
     {
         CurrentDate = CurrentDate.AddMonths(-1);
         CalculateCalendar();
+        await LoadAppointmentsAsync();
     }
 
-    private void NextMonth()
+    private async Task NextMonth()
     {
         CurrentDate = CurrentDate.AddMonths(1);
         CalculateCalendar();
+        await LoadAppointmentsAsync();
     }
 
     private void IrACronograma(DateTime date)
@@ -157,35 +195,38 @@
         NavigationManager.NavigateTo($"/doctor/cronograma-diario?date={date:yyyy-MM-dd}");
     }
 
-    private class Appointment { public string Time; public string Patient; public string Status; }
-    private Dictionary<DateTime, List<Appointment>> MockAppointments = new();
+    private class AppointmentVM 
+    { 
+        public string Time { get; set; } = ""; 
+        public string Patient { get; set; } = ""; 
+        public string Status { get; set; } = ""; 
+    }
 
-    private void LoadMockData()
+    private Dictionary<DateTime, List<AppointmentVM>> MonthlyAppointments = new();
+
+    private async Task LoadAppointmentsAsync()
     {
-        // Sample data for March 2026 (matching the prototype as much as possible)
-        MockAppointments[new DateTime(2026, 3, 2)] = new List<Appointment> {
-            new() { Time = "08:00", Patient = "M. Santos", Status = "Normal" },
-            new() { Time = "09:30", Patient = "L. Vargas", Status = "Normal" }
-        };
-        MockAppointments[new DateTime(2026, 3, 3)] = new List<Appointment> {
-            new() { Time = "10:00", Patient = "J. Pérez (Urgent)", Status = "Urgent" }
-        };
-        MockAppointments[new DateTime(2026, 3, 4)] = new List<Appointment> {
-            new() { Time = "09:00", Patient = "Carlos M.", Status = "Normal" },
-            new() { Time = "10:15", Patient = "A. Rodríguez", Status = "Normal" },
-            new() { Time = "11:30", Patient = "E. Silva", Status = "Normal" },
-            new() { Time = "14:00", Patient = "T. Miller", Status = "Normal" },
-            new() { Time = "16:00", Patient = "R. Davis", Status = "Normal" }
-        };
-        MockAppointments[new DateTime(2026, 3, 5)] = new List<Appointment> {
-            new() { Time = "14:00", Patient = "Staff Meeting", Status = "Internal" }
-        };
-        MockAppointments[new DateTime(2026, 3, 10)] = new List<Appointment> {
-            new() { Time = "08:30", Patient = "T. López", Status = "Normal" }
-        };
-        MockAppointments[new DateTime(2026, 3, 12)] = new List<Appointment> {
-            new() { Time = "13:00", Patient = "M. Gómez", Status = "Normal" }
-        };
+        if (UserState?.User?.Id == null) return;
+
+        var result = await AppointmentService.GetDoctorAppointments(UserState.User.Id, null);
+        
+        if (result.IsSuccess && result.Value != null)
+        {
+            MonthlyAppointments.Clear();
+            
+            var appsByDate = result.Value
+                .GroupBy(a => a.Start.ToLocalTime().Date);
+
+            foreach (var group in appsByDate)
+            {
+                MonthlyAppointments[group.Key] = group.OrderBy(a => a.Start).Select(a => new AppointmentVM
+                {
+                    Time = a.Start.ToLocalTime().ToString("HH:mm"),
+                    Patient = string.IsNullOrWhiteSpace(a.PatientName) ? "Sin Nombre" : a.PatientName,
+                    Status = "Normal"
+                }).ToList();
+            }
+        }
     }
 }
 
@@ -196,16 +237,3 @@
     .shadow-primary\/20 { --tw-shadow-color: rgba(37, 125, 141, 0.2); shadow-color: var(--tw-shadow-color); }
     .shadow-primary\/30 { --tw-shadow-color: rgba(37, 125, 141, 0.3); shadow-color: var(--tw-shadow-color); }
 </style>
-
-@code {
-    // Helper extension to capitalize first letter
-}
-
-@functions {
-    // I will use a simple C# helper instead of @functions if possible
-}
-
-@code {
-    // Adding the extension method logic here for simplicity in the razor file
-}
-

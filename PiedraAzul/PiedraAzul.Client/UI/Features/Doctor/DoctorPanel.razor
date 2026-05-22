@@ -1,7 +1,14 @@
 @page "/doctor"
 @layout PiedraAzul.Client.UI.Shared.Layout.EmptyLayout
 @using PiedraAzul.Client.States
+@using PiedraAzul.Client.Models.GraphQL
+@using PiedraAzul.Client.Services.GraphQLServices
+@using PiedraAzul.Client.Services.AdminServices
+@using PiedraAzul.Contracts.Enums
 @inject UserState UserState
+@inject GraphQLDoctorService DoctorService
+@inject GraphQLAppointmentService AppointmentService
+@inject UserManagementService UserManagementService
 
 <div class="min-h-screen bg-slate-50 pb-12">
    <!-- HEADER / NAV -->
@@ -10,9 +17,6 @@
             <div class="flex items-center gap-8">
                 <!-- Logo -->
                 <div class="flex items-center gap-3">
-                    <div class="bg-primary p-2 rounded-lg text-white">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
-                    </div>
                     <span class="text-xl font-bold text-slate-800">Piedra Azul</span>
                 </div>
 
@@ -34,10 +38,10 @@
                 <!-- User Profile -->
                 <div class="flex items-center gap-3 pl-6 border-l">
                     <div class="text-right hidden sm:block">
-                        <div class="text-sm font-bold text-slate-900">Dr. Roberto Gómez</div>
+                        <div class="text-sm font-bold text-slate-900">@(UserState?.User?.Name ?? "Doctor")</div>
                         <div class="text-xs text-slate-400">Doctor</div>
                     </div>
-                    <img src="/Avatars/doctor-avatar.png" alt="Doctor" class="w-10 h-10 rounded-full border-2 border-slate-100 shadow-sm" onerror="this.src='https://ui-avatars.com/api/?name=Roberto+Gomez&background=257D8D&color=fff'" />
+                    <img src="@(string.IsNullOrEmpty(UserState?.User?.AvatarUrl) || UserState?.User?.AvatarUrl == "default.png" ? $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(UserState?.User?.Name ?? "Doctor")}&background=257D8D&color=fff" : UserState?.User?.AvatarUrl)" alt="Doctor" class="w-10 h-10 rounded-full border-2 border-slate-100 shadow-sm" onerror="this.src='https://ui-avatars.com/api/?name=Doctor&background=257D8D&color=fff'" />
                 </div>
             </div>
         </div>
@@ -48,25 +52,41 @@
         <div class="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
             <div class="flex flex-col md:flex-row items-center gap-8">
                 <div class="relative">
-                    <img src="/Avatars/doctor-avatar.png" alt="Profile" class="w-32 h-32 rounded-full border-4 border-slate-50 shadow-md object-cover" onerror="this.src='https://ui-avatars.com/api/?name=Roberto+Gomez&background=257D8D&color=fff'" />
+                    <img src="@(string.IsNullOrEmpty(CurrentDoctor?.AvatarUrl) || CurrentDoctor?.AvatarUrl == "default.png" ? $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(UserState?.User?.Name ?? "Doctor")}&background=257D8D&color=fff" : CurrentDoctor?.AvatarUrl)" alt="Profile" class="w-32 h-32 rounded-full border-4 border-slate-50 shadow-md object-cover" onerror="this.src='https://ui-avatars.com/api/?name=Doctor&background=257D8D&color=fff'" />
                     <div class="absolute bottom-2 right-2 w-5 h-5 bg-emerald-500 border-4 border-white rounded-full"></div>
                 </div>
                 <div class="text-center md:text-left">
-                    <h1 class="text-4xl font-bold text-slate-900 mb-3">Dr. Roberto Gómez</h1>
+                    <h1 class="text-4xl font-bold text-slate-900 mb-3">@(UserState?.User?.Name ?? "Cargando...")</h1>
                     <div class="flex flex-wrap items-center gap-3 justify-center md:justify-start">
-                        <span class="bg-primary/10 text-primary px-4 py-1.5 rounded-xl text-sm font-semibold">Especialista en Dieta y Nutrición</span>
-                        <span class="bg-emerald-50/80 text-emerald-600 px-4 py-1.5 rounded-xl text-sm font-semibold flex items-center gap-2">
-                            <span class="w-2 h-2 bg-emerald-500 rounded-full"></span>
-                            Estado: Activo
+                        <span class="bg-primary/10 text-primary px-4 py-1.5 rounded-xl text-sm font-semibold">@(CurrentDoctor?.Specialty ?? "Especialista")</span>
+                        <span class="@(IsActive ? "bg-emerald-50/80 text-emerald-600" : "bg-slate-100 text-slate-500") px-4 py-1.5 rounded-xl text-sm font-semibold flex items-center gap-2 transition-colors">
+                            <span class="w-2 h-2 @(IsActive ? "bg-emerald-500" : "bg-slate-400") rounded-full transition-colors"></span>
+                            Estado: @(IsActive ? "Activo" : "Inactivo")
                         </span>
                     </div>
                 </div>
             </div>
             
-            <button class="bg-primary text-white px-8 py-3.5 rounded-2xl font-bold flex items-center gap-3 hover:opacity-90 transition-all shadow-lg shadow-primary/20">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-                Estado
-            </button>
+            <div class="relative">
+                <button @onclick="() => showStatusMenu = !showStatusMenu" class="@(IsActive ? "bg-primary shadow-primary/20" : "bg-slate-500 shadow-slate-500/20") text-white px-8 py-3.5 rounded-2xl font-bold flex items-center gap-3 hover:opacity-90 transition-all shadow-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                    Estado
+                </button>
+                
+                @if (showStatusMenu)
+                {
+                    <div class="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden z-20 animate-fade-in-down">
+                        <button @onclick="() => SetStatus(true)" class="w-full text-left px-5 py-3 hover:bg-slate-50 flex items-center gap-3 transition-colors font-semibold text-slate-700 border-b border-slate-50">
+                            <span class="w-2.5 h-2.5 bg-emerald-500 rounded-full"></span>
+                            Activo
+                        </button>
+                        <button @onclick="() => SetStatus(false)" class="w-full text-left px-5 py-3 hover:bg-slate-50 flex items-center gap-3 transition-colors font-semibold text-slate-700">
+                            <span class="w-2.5 h-2.5 bg-slate-400 rounded-full"></span>
+                            Inactivo
+                        </button>
+                    </div>
+                }
+            </div>
         </div>
 
         <!-- Search Bar -->
@@ -96,9 +116,9 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                         </div>
                     </div>
-                    <div class="text-6xl font-black text-slate-900 mb-4">12</div>
+                    <div class="text-6xl font-black text-slate-900 mb-4">@TotalCitas</div>
                     <div class="text-primary font-semibold flex items-center gap-2">
-                        4 llegadas confirmadas
+                        @(Completadas > 0 ? $"{Completadas} completadas" : "Sin citas finalizadas aún")
                     </div>
                 </div>
 
@@ -110,9 +130,9 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                         </div>
                     </div>
-                    <div class="text-6xl font-black text-slate-900 mb-4">4</div>
+                    <div class="text-6xl font-black text-slate-900 mb-4">@Completadas</div>
                     <div class="text-emerald-500 font-semibold flex items-center gap-2">
-                        33% de la meta diaria
+                        @(TotalCitas > 0 ? (Completadas * 100 / TotalCitas) : 0)% de las citas de hoy
                     </div>
                 </div>
 
@@ -124,9 +144,9 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><circle cx="12" cy="14" r="3"/><path d="M12 11v3h2"/></svg>
                         </div>
                     </div>
-                    <div class="text-6xl font-black text-slate-900 mb-4">8</div>
+                    <div class="text-6xl font-black text-slate-900 mb-4">@Pendientes</div>
                     <div class="text-amber-600 font-semibold flex items-center gap-2">
-                        Siguiente: 10:30 AM
+                        Siguiente: @(SiguienteCita != null ? SiguienteCita.Start.ToString("hh:mm tt") : "N/A")
                     </div>
                 </div>
             </div>
@@ -165,6 +185,90 @@
 </div>
 
 @code {
-    // Preparado para la lógica futura
-    // Aquí se inyectarían los servicios para cargar las estadísticas reales
+    private DoctorGQL? CurrentDoctor;
+    private List<AppointmentGQL> TodaysAppointments = new();
+    private int TotalCitas = 0;
+    private int Completadas = 0;
+    private int Pendientes = 0;
+    private AppointmentGQL? SiguienteCita = null;
+    
+    private bool IsActive = true;
+    private bool showStatusMenu = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (UserState?.User?.Id == null) return;
+        
+        // 1. Encontrar al Doctor actual (buscamos en todas las especialidades ya que no sabemos cuál es de antemano)
+        for (int i = 0; i <= 3; i++)
+        {
+            var type = (DoctorType)i;
+            var result = await DoctorService.GetDoctorsByTypeAsync(type.ToGraphQL());
+            var myDoc = result.FirstOrDefault(d => d.UserId == UserState.User.Id);
+            if (myDoc != null)
+            {
+                CurrentDoctor = myDoc;
+                break;
+            }
+        }
+
+        // Si no se encuentra, no carga citas (caso raro si el rol está bien asignado)
+        if (CurrentDoctor != null)
+        {
+            // 2. Cargar citas de hoy
+            var appointmentsResult = await AppointmentService.GetDoctorAppointments(CurrentDoctor.UserId, DateTime.Today);
+            if (appointmentsResult.IsSuccess)
+            {
+                TodaysAppointments = appointmentsResult.Value ?? new();
+                
+                TotalCitas = TodaysAppointments.Count;
+                var now = DateTime.Now;
+                
+                // Citas que ya pasaron
+                Completadas = TodaysAppointments.Count(a => a.Start < now);
+                Pendientes = TotalCitas - Completadas;
+                
+                // Encontrar la próxima cita más cercana
+                SiguienteCita = TodaysAppointments
+                    .Where(a => a.Start >= now)
+                    .OrderBy(a => a.Start)
+                    .FirstOrDefault();
+            }
+        }
+    }
+
+    private async Task SetStatus(bool status)
+    {
+        if (IsActive == status)
+        {
+            showStatusMenu = false;
+            return;
+        }
+
+        try
+        {
+            if (UserState?.User?.Id != null)
+            {
+                // Intentar cambiar el estado en el backend
+                var res = await UserManagementService.ToggleUserStatusAsync(UserState.User.Id);
+                if (res.IsSuccess && res.Value != null)
+                {
+                    IsActive = res.Value.IsActive;
+                }
+                else
+                {
+                    // Fallback visual si el doctor no tiene permisos de admin para usar este endpoint
+                    IsActive = status;
+                }
+            }
+        }
+        catch
+        {
+            // Fallback visual
+            IsActive = status;
+        }
+
+        showStatusMenu = false;
+        StateHasChanged();
+    }
 }

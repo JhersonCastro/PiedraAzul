@@ -2,8 +2,9 @@
 @layout PiedraAzul.Client.UI.Shared.Layout.EmptyLayout
 @using PiedraAzul.Client.Models.GraphQL
 @using PiedraAzul.Client.States
+@using PiedraAzul.Client.Services.GraphQLServices
 @inject UserState UserState
-@inject PiedraAzul.Client.Services.GraphQLServices.GraphQLPatientService PatientService
+@inject PatientSearchService PatientSearchService
 @inject IJSRuntime JS
 
 <div class="min-h-screen bg-slate-50 pb-12">
@@ -14,9 +15,6 @@
             <div class="flex items-center gap-8">
                 <!-- Logo -->
                 <div class="flex items-center gap-3">
-                    <div class="bg-primary p-2 rounded-lg text-white">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
-                    </div>
                     <span class="text-xl font-bold text-slate-800">Piedra Azul</span>
                 </div>
 
@@ -24,7 +22,7 @@
                 <nav class="hidden md:flex items-center gap-8">
                     <a href="/doctor" class="text-slate-500 font-medium hover:text-slate-900 transition-colors py-7">Dashboard</a>
                     <a href="/doctor/pacientes" class="text-slate-900 font-semibold border-b-2 border-primary py-7">Pacientes</a>
-                    <a href="/doctor/agenda" class="text-slate-500 font-medium hover:text-slate-900 transition-colors">Mi Agenda</a>
+                    <a href="/doctor/agenda" class="text-slate-500 font-medium hover:text-slate-900 transition-colors py-7">Mi Agenda</a>
                 </nav>
             </div>
 
@@ -36,10 +34,10 @@
                 <!-- User Profile -->
                 <div class="flex items-center gap-3 pl-6 border-l">
                     <div class="text-right hidden sm:block">
-                        <div class="text-sm font-bold text-slate-900">Dr. Roberto Gómez</div>
+                        <div class="text-sm font-bold text-slate-900">@(UserState?.User?.Name ?? "Doctor")</div>
                         <div class="text-xs text-slate-400">Doctor</div>
                     </div>
-                    <img src="https://ui-avatars.com/api/?name=Roberto+Gomez&background=257D8D&color=fff" alt="Doctor" class="w-10 h-10 rounded-full border-2 border-slate-100 shadow-sm" />
+                    <img src="@(string.IsNullOrEmpty(UserState?.User?.AvatarUrl) || UserState?.User?.AvatarUrl == "default.png" ? $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(UserState?.User?.Name ?? "Doctor")}&background=257D8D&color=fff" : UserState?.User?.AvatarUrl)" alt="Doctor" class="w-10 h-10 rounded-full border-2 border-slate-100 shadow-sm" onerror="this.src='https://ui-avatars.com/api/?name=Doctor&background=257D8D&color=fff'" />
                 </div>
             </div>
         </div>
@@ -61,12 +59,15 @@
         <!-- Filters Section -->
         <div class="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100 flex flex-col md:flex-row items-end gap-6 mb-10">
             <div class="flex-1 w-full">
-                <label class="block text-slate-500 font-bold uppercase tracking-wider text-xs mb-3 ml-1">ESPECIALISTA</label>
+                <label class="block text-slate-500 font-bold uppercase tracking-wider text-xs mb-3 ml-1">PACIENTE</label>
                 <div class="relative group">
                     <div class="absolute inset-y-0 left-5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-primary transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
                     </div>
                     <input type="text" 
+                           @bind="searchQuery" 
+                           @bind:event="oninput" 
+                           @onkeyup="FilterPatients"
                            placeholder="Busca pacientes por nombre, id, teléfono..." 
                            class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 pl-14 pr-6 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all" />
                 </div>
@@ -80,7 +81,7 @@
                 </div>
             </div>
 
-            <button class="bg-primary text-white px-10 py-4 rounded-2xl font-bold hover:opacity-90 transition-all shadow-lg shadow-primary/20 h-[60px]">
+            <button @onclick="FilterPatients" class="bg-primary text-white px-10 py-4 rounded-2xl font-bold hover:opacity-90 transition-all shadow-lg shadow-primary/20 h-[60px]">
                 Buscar
             </button>
         </div>
@@ -99,42 +100,53 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-50">
-                        @foreach (var p in dummyPatients)
+                        @if (isLoading)
                         {
-                            <tr class="hover:bg-slate-50/50 transition-colors">
-                                <td class="px-8 py-6">
-                                    <div class="flex items-center gap-4">
-                                        <div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
-                                            @GetInitials(p.Name)
+                            <tr><td colspan="5" class="px-8 py-10 text-center text-slate-400 italic">Cargando pacientes...</td></tr>
+                        }
+                        else if (!filteredPatients.Any())
+                        {
+                            <tr><td colspan="5" class="px-8 py-10 text-center text-slate-400 italic">No se encontraron pacientes registrados</td></tr>
+                        }
+                        else
+                        {
+                            @foreach (var p in filteredPatients)
+                            {
+                                <tr class="hover:bg-slate-50/50 transition-colors">
+                                    <td class="px-8 py-6">
+                                        <div class="flex items-center gap-4">
+                                            <div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
+                                                @GetInitials(p.Name)
+                                            </div>
+                                            <span class="font-bold text-slate-900 text-lg">@p.Name</span>
                                         </div>
-                                        <span class="font-bold text-slate-900 text-lg">@p.Name</span>
-                                    </div>
-                                </td>
-                                <td class="px-8 py-6">
-                                    <span class="text-slate-600 font-bold font-mono">@p.Id</span>
-                                </td>
-                                <td class="px-8 py-6">
-                                    <span class="text-slate-500 font-medium">@p.LastVisit</span>
-                                </td>
-                                <td class="px-8 py-6">
-                                    <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold @GetStatusClass(p.Status)">
-                                        <span class="w-1.5 h-1.5 rounded-full @GetStatusDotClass(p.Status)"></span>
-                                        @p.Status
-                                    </span>
-                                </td>
-                                <td class="px-8 py-6 text-right">
-                                    <div class="flex items-center justify-end gap-3">
-                                        <button class="flex items-center gap-2 bg-slate-50 text-slate-600 px-4 py-2 rounded-xl text-sm font-bold hover:bg-slate-100 transition-all">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
-                                            Ver registros
-                                        </button>
-                                        <button class="flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-xl text-sm font-bold hover:bg-primary/20 transition-all border border-primary/20">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
-                                            Cita nueva
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
+                                    </td>
+                                    <td class="px-8 py-6">
+                                        <span class="text-slate-600 font-bold font-mono">@p.Id</span>
+                                    </td>
+                                    <td class="px-8 py-6">
+                                        <span class="text-slate-500 font-medium">@p.LastVisit</span>
+                                    </td>
+                                    <td class="px-8 py-6">
+                                        <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold @GetStatusClass(p.Status)">
+                                            <span class="w-1.5 h-1.5 rounded-full @GetStatusDotClass(p.Status)"></span>
+                                            @p.Status
+                                        </span>
+                                    </td>
+                                    <td class="px-8 py-6 text-right">
+                                        <div class="flex items-center justify-end gap-3">
+                                            <button class="flex items-center gap-2 bg-slate-50 text-slate-600 px-4 py-2 rounded-xl text-sm font-bold hover:bg-slate-100 transition-all">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
+                                                Ver registros
+                                            </button>
+                                            <button class="flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-xl text-sm font-bold hover:bg-primary/20 transition-all border border-primary/20">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
+                                                Cita nueva
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
                         }
                     </tbody>
                 </table>
@@ -142,7 +154,7 @@
 
             <!-- Table Footer / Pagination -->
             <div class="bg-slate-50/50 px-8 py-6 flex items-center justify-between">
-                <span class="text-slate-500 font-medium">Mostrando 1 a 4 de 248 pacientes</span>
+                <span class="text-slate-500 font-medium">Mostrando @filteredPatients.Count pacientes</span>
                 
                 <div class="flex items-center gap-2">
                     <button class="p-2 text-slate-400 hover:text-slate-900 transition-colors">
@@ -186,6 +198,44 @@
 @code {
     private async Task GoBack() => await JS.InvokeVoidAsync("history.back");
 
+    private List<PatientSearchResultGQL> allPatients = new();
+    private List<PatientVM> filteredPatients = new();
+    private string searchQuery = "";
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        var result = await PatientSearchService.SearchPatientsAsync("", 200); // Cargar un lote inicial razonable
+        if (result.IsSuccess)
+        {
+            allPatients = result.Value;
+            FilterPatients();
+        }
+        isLoading = false;
+    }
+
+    private void FilterPatients()
+    {
+        var query = searchQuery?.ToLowerInvariant() ?? "";
+        
+        var matching = string.IsNullOrWhiteSpace(query) 
+            ? allPatients 
+            : allPatients.Where(p => 
+                (p.Name?.ToLowerInvariant().Contains(query) ?? false) || 
+                (p.Identification?.Contains(query) ?? false) ||
+                (p.Phone?.Contains(query) ?? false)
+              ).ToList();
+
+        filteredPatients = matching.Select(p => new PatientVM
+        {
+            Name = string.IsNullOrWhiteSpace(p.Name) ? "Sin Nombre" : p.Name,
+            Id = string.IsNullOrWhiteSpace(p.Identification) ? "N/A" : p.Identification,
+            LastVisit = "Registrado", // No hay LastVisit explícito en SearchResult
+            Status = p.Type == "USER" ? "Activo" : "Invitado"
+        }).OrderBy(p => p.Name).ToList();
+    }
+
     private class PatientVM
     {
         public string Name { get; set; } = "";
@@ -194,33 +244,27 @@
         public string Status { get; set; } = "";
     }
 
-    private List<PatientVM> dummyPatients = new()
-    {
-        new() { Name = "Juan Díaz", Id = "1002964507", LastVisit = "15 mar, 2026", Status = "Activo" },
-        new() { Name = "Mango Güeno", Id = "1001234567", LastVisit = "15 mar, 2026", Status = "Programado" },
-        new() { Name = "Rafael Sánchez", Id = "1007654321", LastVisit = "14 mar, 2026", Status = "Inactivo" },
-        new() { Name = "Alice Wonderful", Id = "1001324567", LastVisit = "10 dic, 1996", Status = "Activo" }
-    };
-
     private string GetInitials(string name)
     {
-        var parts = name.Split(' ');
-        return string.Join("", parts.Select(p => p[0])).ToUpper();
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 1) return parts[0][..1].ToUpper();
+        return $"{parts[0][0]}{parts[1][0]}".ToUpper();
     }
 
     private string GetStatusClass(string status) => status switch
     {
-        "Activo" => "bg-emerald-50 text-emerald-600",
-        "Programado" => "bg-amber-50 text-amber-600",
-        "Inactivo" => "bg-slate-100 text-slate-500",
-        _ => "bg-slate-50 text-slate-400"
+        "Activo" => "bg-emerald-50 text-emerald-600 border border-emerald-100",
+        "Invitado" => "bg-amber-50 text-amber-600 border border-amber-100",
+        "Inactivo" => "bg-slate-50 text-slate-500 border border-slate-200",
+        _ => "bg-slate-50 text-slate-600 border border-slate-200"
     };
 
     private string GetStatusDotClass(string status) => status switch
     {
         "Activo" => "bg-emerald-500",
-        "Programado" => "bg-amber-500",
+        "Invitado" => "bg-amber-500",
         "Inactivo" => "bg-slate-400",
-        _ => "bg-slate-300"
+        _ => "bg-slate-400"
     };
 }
