@@ -15,6 +15,7 @@ public class AppointmentType
     public string Specialty { get; set; } = "";
     public DateTime Start { get; set; }
     public DateTime CreatedAt { get; set; }
+    public string Status { get; set; } = "Active";
 
     public static AppointmentType FromDto(AppointmentDto a) => new()
     {
@@ -28,7 +29,8 @@ public class AppointmentType
         DoctorName = a.DoctorName,
         Specialty = a.Specialty,
         Start = a.Start,
-        CreatedAt = a.CreatedAt
+        CreatedAt = a.CreatedAt,
+        Status = a.Status
     };
 
     public static AppointmentType FromDomain(Domain.Entities.Operations.Appointment a) => new()
@@ -40,6 +42,7 @@ public class AppointmentType
         PatientName = "",
         AppointmentSlotId = a.DoctorAvailabilitySlotId.ToString(),
         Start = a.Date.ToDateTime(TimeOnly.MinValue),
-        CreatedAt = a.CreatedAt
+        CreatedAt = a.CreatedAt,
+        Status = a.Status.ToString()
     };
 }

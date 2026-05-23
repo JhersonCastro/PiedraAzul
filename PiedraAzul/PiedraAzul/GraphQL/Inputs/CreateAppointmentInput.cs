@@ -4,7 +4,8 @@ public record GuestPatientInput(
     string Identification,
     string Name,
     string? Phone,
-    string? ExtraInfo
+    string? ExtraInfo,
+    string? Email = null
 );
 
 public record CreateAppointmentInput(

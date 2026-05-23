@@ -6,5 +6,6 @@
         public string Name { get; set; } = default!;
         public string Phone { get; set; } = default!;
         public string? ExtraInfo { get; set; }
+        public string? Email { get; set; }
     }
 }

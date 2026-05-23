@@ -29,6 +29,17 @@ else
 {
     <div style="background:#F8FAFC;font-family:'DM Sans',sans-serif">
 
+        <!-- Mobile Header with Hamburger -->
+        <div class="flex md:hidden items-center gap-3 px-4 py-3 bg-white border-b border-[#E2E8F0]">
+            <button @onclick="() => _sidebarOpen = !_sidebarOpen"
+                    class="p-2 hover:bg-gray-100 rounded-lg transition">
+                <svg class="w-5 h-5 text-[#374151]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+            </button>
+            <span class="text-[13px] font-bold text-[#0F172A]">@_breadcrumbItem</span>
+        </div>
+
         <!-- Breadcrumb (desktop) -->
         <div class="hidden md:flex items-center gap-1.5 px-6 py-2 border-b border-[#E2E8F0] bg-white text-[13px] text-[#94A3B8] font-medium">
             <span>@_breadcrumbGroup</span>
@@ -36,10 +47,17 @@ else
             <span class="text-[#0F172A] font-bold">@_breadcrumbItem</span>
         </div>
 
+        <!-- Mobile Overlay -->
+        @if (_sidebarOpen)
+        {
+            <div class="md:hidden fixed inset-0 bg-black/50 z-40" @onclick="() => _sidebarOpen = false"></div>
+        }
+
         <div class="flex" style="min-height:calc(100vh - 120px)">
 
             <!-- ══════════ SIDEBAR ══════════ -->
-            <aside class="hidden md:flex w-60 bg-white border-r border-[#E2E8F0] flex-col flex-shrink-0 overflow-y-auto">
+            <aside class="md:flex w-60 bg-white border-r border-[#E2E8F0] flex-col flex-shrink-0 overflow-y-auto
+                         @(_sidebarOpen ? "fixed inset-y-0 left-0 z-50 md:relative md:inset-auto md:z-auto" : "hidden md:flex")">
 
                 <!-- User card -->
                 <div class="px-4 py-5 border-b border-[#F1F5F9] text-center flex-shrink-0">
@@ -115,6 +133,18 @@ else
                         <div class="h-2"></div>
                     }
 
+                    <!-- ── Portal Paciente ── -->
+                    @if (IsPatient)
+                    {
+                        @NavGroupHeader("Mi Portal", "portal-paciente",
+                            """<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M12 21v-4"/>""")
+                        @if (IsGroupOpen("portal-paciente"))
+                        {
+                            @NavItem("pac-citas", "Mis citas", "Mi Portal")
+                        }
+                        <div class="h-2"></div>
+                    }
+
                 </nav>
 
                 <!-- Logout -->
@@ -173,6 +203,9 @@ else
                     case "agendar-manual":
                         <ManualBooking />
                         break;
+                    case "pac-citas":
+                        <PatientAppointments />
+                        break;
                     default:
                         <ProfileSection OnUserUpdated="OnUserUpdated" />
                         break;
@@ -187,12 +220,14 @@ else
     private bool _loading = true;
     private string _tab = "perfil";
     private Dictionary<string, bool> _collapsed = new();
+    private bool _sidebarOpen = false;
 
     private string AvatarSrc => _user?.AvatarUrl is null or "default.png"
         ? "/Avatars/default.png" : _user.AvatarUrl;
 
-    private bool IsDoctor => _user?.Roles.Contains("Doctor") == true;
-    private bool IsAdmin  => _user?.Roles.Contains("Admin") == true;
+    private bool IsDoctor   => _user?.Roles.Contains("Doctor") == true;
+    private bool IsAdmin    => _user?.Roles.Contains("Admin") == true;
+    private bool IsPatient  => _user?.Roles.Contains("Patient") == true;
 
     private string _breadcrumbGroup = "Mi Cuenta";
     private string _breadcrumbItem  = "Mi perfil";
@@ -218,6 +253,7 @@ else
     private void Navigate(string tab, string group, string item)
     {
         _tab = tab; _breadcrumbGroup = group; _breadcrumbItem = item;
+        _sidebarOpen = false;
         StateHasChanged();
     }
 

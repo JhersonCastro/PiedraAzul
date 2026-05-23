@@ -16,7 +16,8 @@ public record GuestPatientGqlInput(
     string Identification,
     string Name,
     string? Phone,
-    string? ExtraInfo
+    string? ExtraInfo,
+    string? Email = null
 );
 
 public class GraphQLAppointmentService(GraphQLHttpClient client)
@@ -103,13 +104,69 @@ public class GraphQLAppointmentService(GraphQLHttpClient client)
         });
     }
 
+    public async Task<Result<bool>> SendGuestOtpByHashAsync(string hash, string channel)
+    {
+        const string mutation = """
+            mutation SendGuestOtpByHash($hash: String!, $channel: String!) {
+                sendGuestOtpByHash(hash: $hash, channel: $channel)
+            }
+            """;
+
+        return await GraphQLExecutor.Execute(async () =>
+        {
+            await client.ExecuteAsync<object?>(mutation, new { hash, channel }, "sendGuestOtpByHash");
+            return true;
+        });
+    }
+
+    /// <summary>
+    /// Verifica OTP por hash y opcionalmente actualiza datos editados por el usuario.
+    /// Si name/phone/email son null, solo verifica el OTP.
+    /// </summary>
+    public async Task<Result<GuestDataGQL?>> VerifyGuestOtpByHashAsync(
+        string hash, string code, string? name = null, string? phone = null, string? email = null)
+    {
+        const string mutation = """
+            mutation VerifyGuestOtpByHash($hash: String!, $code: String!, $name: String, $phone: String, $email: String) {
+                verifyGuestOtpByHash(hash: $hash, code: $code, name: $name, phone: $phone, email: $email) {
+                    id name phone email sessionType
+                }
+            }
+            """;
+
+        return await GraphQLExecutor.Execute(async () =>
+            await client.ExecuteAsync<GuestDataGQL?>(mutation, new { hash, code, name, phone, email }, "verifyGuestOtpByHash")
+        );
+    }
+
+    public async Task<Result<List<AppointmentGQL>>> GetMyAppointmentsAsync()
+    {
+        const string query = """
+            query GetMyAppointments {
+                myAppointments {
+                    id patientUserId patientGuestId patientType patientName
+                    appointmentSlotId doctorId doctorName specialty start createdAt status
+                }
+            }
+            """;
+
+        return await GraphQLExecutor.Execute(async () =>
+        {
+            var result = await client.ExecuteAsync<List<AppointmentGQL>>(
+                query,
+                null,
+                "myAppointments");
+            return result ?? new();
+        });
+    }
+
     public async Task<Result<List<AppointmentGQL>>> GetMyUpcomingAppointmentsAsync()
     {
         const string query = """
             query GetMyUpcomingAppointments {
                 myUpcomingAppointments {
                     id patientUserId patientGuestId patientType patientName
-                    appointmentSlotId doctorId doctorName specialty start createdAt
+                    appointmentSlotId doctorId doctorName specialty start createdAt status
                 }
             }
             """;
@@ -132,7 +189,7 @@ public class GraphQLAppointmentService(GraphQLHttpClient client)
             query GetDoctorAppointments($doctorId: String!, $date: DateTime) {
                 doctorAppointments(doctorId: $doctorId, date: $date) {
                     id patientUserId patientGuestId patientType patientName
-                    appointmentSlotId doctorId doctorName specialty start createdAt
+                    appointmentSlotId doctorId doctorName specialty start createdAt status
                 }
             }
             """;
@@ -144,9 +201,81 @@ public class GraphQLAppointmentService(GraphQLHttpClient client)
                 new
                 {
                     doctorId,
-                    date = date.HasValue ? (object?)date.Value.ToUniversalTime().ToString("o") : null
+                    // Usamos DateTimeKind.Utc en la fecha (sin hora) para evitar
+                    // que ToUniversalTime cambie el día en zonas UTC+X
+                    date = date.HasValue
+                        ? (object?)DateTime.SpecifyKind(date.Value.Date, DateTimeKind.Utc).ToString("o")
+                        : null
                 },
                 "doctorAppointments");
+            return result ?? new();
+        });
+    }
+
+    /// <summary>Reagenda una cita para un paciente autenticado.</summary>
+    public async Task<Result<AppointmentGQL>> RescheduleAppointmentAsync(
+        Guid appointmentId, Guid newSlotId, DateTime newDate)
+    {
+        const string mutation = """
+            mutation RescheduleAppointment($appointmentId: UUID!, $newSlotId: UUID!, $newDate: DateTime!) {
+                rescheduleAppointment(appointmentId: $appointmentId, newSlotId: $newSlotId, newDate: $newDate) {
+                    id patientUserId patientGuestId patientType patientName
+                    appointmentSlotId doctorId doctorName specialty start createdAt status
+                }
+            }
+            """;
+
+        return await GraphQLExecutor.Execute(async () =>
+        {
+            var result = await client.ExecuteAsync<AppointmentGQL>(
+                mutation,
+                new { appointmentId, newSlotId, newDate },
+                "rescheduleAppointment");
+            return result!;
+        });
+    }
+
+    /// <summary>Reagenda una cita para un invitado verificado por hash.</summary>
+    public async Task<Result<AppointmentGQL>> RescheduleAppointmentByHashAsync(
+        string verificationHash, Guid appointmentId, Guid newSlotId, DateTime newDate)
+    {
+        const string mutation = """
+            mutation RescheduleAppointmentByHash($verificationHash: String!, $appointmentId: UUID!, $newSlotId: UUID!, $newDate: DateTime!) {
+                rescheduleAppointmentByHash(verificationHash: $verificationHash, appointmentId: $appointmentId, newSlotId: $newSlotId, newDate: $newDate) {
+                    id patientUserId patientGuestId patientType patientName
+                    appointmentSlotId doctorId doctorName specialty start createdAt status
+                }
+            }
+            """;
+
+        return await GraphQLExecutor.Execute(async () =>
+        {
+            var result = await client.ExecuteAsync<AppointmentGQL>(
+                mutation,
+                new { verificationHash, appointmentId, newSlotId, newDate },
+                "rescheduleAppointmentByHash");
+            return result!;
+        });
+    }
+
+    /// <summary>Obtiene las citas próximas de un invitado verificado por hash.</summary>
+    public async Task<Result<List<AppointmentGQL>>> GetGuestUpcomingAppointmentsAsync(string verificationHash)
+    {
+        const string query = """
+            query GetGuestUpcomingAppointments($verificationHash: String!) {
+                guestUpcomingAppointments(verificationHash: $verificationHash) {
+                    id patientUserId patientGuestId patientType patientName
+                    appointmentSlotId doctorId doctorName specialty start createdAt status
+                }
+            }
+            """;
+
+        return await GraphQLExecutor.Execute(async () =>
+        {
+            var result = await client.ExecuteAsync<List<AppointmentGQL>>(
+                query,
+                new { verificationHash },
+                "guestUpcomingAppointments");
             return result ?? new();
         });
     }

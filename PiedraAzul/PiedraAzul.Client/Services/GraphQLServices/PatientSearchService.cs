@@ -29,21 +29,22 @@ public class PatientSearchService(GraphQLHttpClient graphQL)
 
     /// <summary>
     /// Lookup público para el flujo de auto-agendamiento de invitados.
-    /// No requiere autenticación. Busca por cédula exacta.
+    /// Devuelve hash de verificación si es un guest existente, o tipo REGISTERED si tiene cuenta.
+    /// Devuelve null si no existe.
     /// </summary>
-    public async Task<Result<PatientSearchResultGQL?>> LookupByIdentificationAsync(string identification)
+    public async Task<Result<GuestLookupResultGQL?>> LookupByIdentificationAsync(string identification)
     {
         return await GraphQLExecutor.Execute(async () =>
         {
             const string gqlQuery = """
                 query LookupGuest($identification: String!) {
                     lookupGuestByIdentification(identification: $identification) {
-                        id name identification phone type
+                        verificationHash hasPhone hasEmail maskedPhone maskedEmail type
                     }
                 }
                 """;
 
-            return await graphQL.ExecuteAsync<PatientSearchResultGQL?>(
+            return await graphQL.ExecuteAsync<GuestLookupResultGQL?>(
                 gqlQuery,
                 new { identification },
                 "lookupGuestByIdentification");

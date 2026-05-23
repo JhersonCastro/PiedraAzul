@@ -34,7 +34,8 @@ public class CreateGuestPatientHandler
                 id,
                 request.Name,
                 request.Phone,
-                request.ExtraInfo
+                request.ExtraInfo,
+                request.Email
             );
 
             await _repo.AddAsync(patient, ct);

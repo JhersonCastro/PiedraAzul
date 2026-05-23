@@ -9,6 +9,8 @@ using PiedraAzul.Application;
 using PiedraAzul.Infrastructure;
 using PiedraAzul.Client.Extensions;
 using PiedraAzul.Services;
+using PiedraAzul.Application.Common.Interfaces;
+using PiedraAzul.RealTime;
 #endregion
 
 var builder = WebApplication.CreateBuilder(args);
@@ -41,6 +43,7 @@ builder.Services.AddRazorComponents()
     .AddInteractiveWebAssemblyComponents();
 
 // 🔹 API stuff
+builder.Services.AddScoped<IAppointmentNotifier, AppointmentNotifier>();
 builder.Services.AddSignalR();
 builder.Services.AddPiedraAzulGraphQL();
 builder.Services.AddHttpContextAccessor();

@@ -148,7 +148,8 @@ namespace PiedraAzul.Application.Features.Patients.Queries.GetPatientAppointment
                     DoctorName = doctorUser?.Name ?? "",
                     Specialty = doctorEntity?.Specialty.ToString() ?? "",
                     Start = start,
-                    CreatedAt = a.CreatedAt
+                    CreatedAt = a.CreatedAt,
+                    Status = a.Status.ToString()
                 };
             }).ToList();
         }

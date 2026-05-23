@@ -1,0 +1,315 @@
+@using PiedraAzul.Client.Models.GraphQL
+
+@*
+    Modal de validación de canal para FLUJO 2 (usuario registrado) y FLUJO 3 (guest invitado).
+    Tiene 3 estados internos:
+    1. SelectChannel - mostrar datos enmascarados y selector de canal
+    2. EnterOtp - ingresar código OTP
+    3. ConfirmData - mostrar formulario editable con datos NO enmascarados (después de verificar OTP)
+*@
+
+@if (IsOpen)
+{
+    <div class="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"></div>
+
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md border border-slate-100 overflow-hidden">
+
+            <!-- Header -->
+            <div class="flex items-center justify-between px-6 py-4 bg-slate-50 border-b border-slate-100">
+                <h2 class="text-base font-bold text-slate-900">@GetTitle()</h2>
+                @if (!IsLoading && _stage != Stage.ConfirmData)
+                {
+                    <button @onclick="HandleClose"
+                            class="text-slate-400 hover:text-slate-700 transition-colors">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                }
+            </div>
+
+            <!-- Body -->
+            <div class="px-6 py-5">
+
+                @if (_stage == Stage.SelectChannel)
+                {
+                    <div class="space-y-4">
+                        <div class="flex items-start gap-3 rounded-xl bg-teal-50 border border-teal-200 px-4 py-3">
+                            <svg class="w-5 h-5 text-teal-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <p class="text-sm text-teal-800">
+                                Para continuar, verifica tu identidad. Te enviaremos un código por el canal que elijas.
+                            </p>
+                        </div>
+
+                        <div>
+                            <p class="mb-3 text-sm font-semibold text-slate-700">¿Cómo quieres recibir el código?</p>
+                            <div class="space-y-2">
+                                @if (HasPhone)
+                                {
+                                    <button type="button"
+                                            @onclick='() => _selectedChannel = "sms"'
+                                            class="w-full flex items-center gap-3 rounded-xl border-2 p-3 transition text-left
+                                                   @(_selectedChannel == "sms" ? "border-teal-600 bg-teal-50" : "border-slate-200 hover:border-slate-300")">
+                                        <svg class="h-6 w-6 flex-shrink-0 @(_selectedChannel == "sms" ? "text-teal-600" : "text-slate-500")" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                        </svg>
+                                        <div class="flex flex-col">
+                                            <span class="text-xs font-semibold @(_selectedChannel == "sms" ? "text-teal-700" : "text-slate-700")">SMS</span>
+                                            <span class="text-xs text-slate-600">@MaskedPhone</span>
+                                        </div>
+                                    </button>
+                                }
+
+                                @if (HasEmail)
+                                {
+                                    <button type="button"
+                                            @onclick='() => _selectedChannel = "email"'
+                                            class="w-full flex items-center gap-3 rounded-xl border-2 p-3 transition text-left
+                                                   @(_selectedChannel == "email" ? "border-teal-600 bg-teal-50" : "border-slate-200 hover:border-slate-300")">
+                                        <svg class="h-6 w-6 flex-shrink-0 @(_selectedChannel == "email" ? "text-teal-600" : "text-slate-500")" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                            <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                        </svg>
+                                        <div class="flex flex-col">
+                                            <span class="text-xs font-semibold @(_selectedChannel == "email" ? "text-teal-700" : "text-slate-700")">Email</span>
+                                            <span class="text-xs text-slate-600">@MaskedEmail</span>
+                                        </div>
+                                    </button>
+                                }
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(_error))
+                        {
+                            <p class="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-600">@_error</p>
+                        }
+
+                        <button type="button"
+                                @onclick="HandleSendOtp"
+                                disabled="@(IsLoading || string.IsNullOrEmpty(_selectedChannel))"
+                                class="w-full py-2.5 bg-teal-700 hover:bg-teal-800 disabled:opacity-50 text-white text-sm font-bold rounded-lg transition">
+                            @(IsLoading ? "Enviando..." : "Enviar código")
+                        </button>
+                    </div>
+                }
+                else if (_stage == Stage.EnterOtp)
+                {
+                    <div class="flex flex-col items-center gap-4">
+                        <p class="text-sm text-slate-600 text-center">
+                            Ingresa el código de 6 dígitos que enviamos a @GetChannelLabel().
+                        </p>
+
+                        <input type="text"
+                               @bind="_otpCode"
+                               @bind:event="oninput"
+                               maxlength="6"
+                               placeholder="000000"
+                               class="w-44 rounded-xl border-2 border-slate-300 px-4 py-3 text-center text-2xl
+                                      font-bold tracking-widest focus:border-teal-600 focus:outline-none" />
+
+                        @if (!string.IsNullOrEmpty(_error))
+                        {
+                            <p class="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-600">@_error</p>
+                        }
+
+                        <button type="button"
+                                @onclick="HandleVerifyOtp"
+                                disabled="@(_otpCode?.Length != 6 || IsLoading)"
+                                class="w-full py-2.5 bg-teal-700 hover:bg-teal-800 disabled:opacity-50 text-white text-sm font-bold rounded-lg transition">
+                            @(IsLoading ? "Verificando..." : "Verificar")
+                        </button>
+
+                        <button type="button"
+                                @onclick="GoBackToChannel"
+                                class="text-xs text-teal-700 underline hover:text-teal-900">
+                            ¿No recibiste el código? Volver a enviar
+                        </button>
+                    </div>
+                }
+                else if (_stage == Stage.ConfirmData)
+                {
+                    <div class="space-y-4">
+                        <div class="flex items-start gap-3 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3">
+                            <svg class="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <p class="text-sm text-emerald-800">
+                                Identidad verificada. Confirma o actualiza tus datos antes de continuar.
+                            </p>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Nombre completo</label>
+                            <input type="text"
+                                   @bind="_editName"
+                                   @bind:event="oninput"
+                                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-teal-600 focus:outline-none" />
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Teléfono</label>
+                            <input type="tel"
+                                   @bind="_editPhone"
+                                   @bind:event="oninput"
+                                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-teal-600 focus:outline-none" />
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Email <span class="text-slate-400">(opcional)</span></label>
+                            <input type="email"
+                                   @bind="_editEmail"
+                                   @bind:event="oninput"
+                                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-teal-600 focus:outline-none" />
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(_error))
+                        {
+                            <p class="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-600">@_error</p>
+                        }
+
+                        <button type="button"
+                                @onclick="HandleConfirmData"
+                                disabled="@(IsLoading || string.IsNullOrWhiteSpace(_editName) || string.IsNullOrWhiteSpace(_editPhone))"
+                                class="w-full py-2.5 bg-teal-700 hover:bg-teal-800 disabled:opacity-50 text-white text-sm font-bold rounded-lg transition">
+                            Confirmar y continuar
+                        </button>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    enum Stage { SelectChannel, EnterOtp, ConfirmData }
+
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public bool HasPhone { get; set; }
+    [Parameter] public bool HasEmail { get; set; }
+    [Parameter] public string? MaskedPhone { get; set; }
+    [Parameter] public string? MaskedEmail { get; set; }
+    [Parameter] public bool IsLoading { get; set; }
+    [Parameter] public string? ExternalError { get; set; }
+
+    /// <summary>Callback que envía OTP. Recibe el canal seleccionado.</summary>
+    [Parameter] public EventCallback<string> OnSendOtp { get; set; }
+
+    /// <summary>
+    /// Callback que verifica OTP. Recibe (canal, código).
+    /// Debe retornar GuestDataGQL? con los datos del usuario si fue exitoso, null si falló.
+    /// </summary>
+    [Parameter] public Func<string, string, Task<GuestDataGQL?>>? OnVerifyOtp { get; set; }
+
+    /// <summary>
+    /// Callback final que recibe los datos confirmados por el usuario y el código OTP usado.
+    /// El padre debe persistir estos cambios en BD usando el código.
+    /// </summary>
+    [Parameter] public EventCallback<(GuestDataGQL Data, string OtpCode)> OnConfirmData { get; set; }
+
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private Stage _stage = Stage.SelectChannel;
+    private string? _selectedChannel;
+    private string? _otpCode;
+    private string? _error;
+
+    private string? _editName;
+    private string? _editPhone;
+    private string? _editEmail;
+
+    protected override void OnParametersSet()
+    {
+        if (!string.IsNullOrEmpty(ExternalError))
+            _error = ExternalError;
+
+        // Auto-seleccionar canal único si solo hay uno disponible
+        if (string.IsNullOrEmpty(_selectedChannel))
+        {
+            if (HasPhone && !HasEmail) _selectedChannel = "sms";
+            else if (HasEmail && !HasPhone) _selectedChannel = "email";
+        }
+    }
+
+    private string GetTitle() => _stage switch
+    {
+        Stage.SelectChannel => "Verifica tu identidad",
+        Stage.EnterOtp => "Ingresa el código",
+        Stage.ConfirmData => "Confirma tus datos",
+        _ => "Verificación"
+    };
+
+    private string GetChannelLabel() => _selectedChannel switch
+    {
+        "sms" => MaskedPhone ?? "tu teléfono",
+        "email" => MaskedEmail ?? "tu email",
+        _ => "tu canal"
+    };
+
+    private async Task HandleSendOtp()
+    {
+        if (string.IsNullOrEmpty(_selectedChannel)) return;
+        _error = null;
+        await OnSendOtp.InvokeAsync(_selectedChannel);
+
+        // Si no hubo error externo, avanzar a EnterOtp
+        if (string.IsNullOrEmpty(ExternalError))
+            _stage = Stage.EnterOtp;
+    }
+
+    private async Task HandleVerifyOtp()
+    {
+        if (string.IsNullOrEmpty(_otpCode) || _otpCode.Length != 6 || string.IsNullOrEmpty(_selectedChannel)) return;
+        if (OnVerifyOtp is null) return;
+
+        _error = null;
+        var result = await OnVerifyOtp(_selectedChannel, _otpCode);
+
+        if (result is null)
+        {
+            _error = "Código incorrecto. Intenta de nuevo.";
+            return;
+        }
+
+        // Pre-llenar campos editables con los datos del usuario
+        _editName = result.Name;
+        _editPhone = result.Phone;
+        _editEmail = result.Email;
+        _stage = Stage.ConfirmData;
+    }
+
+    private async Task HandleConfirmData()
+    {
+        if (string.IsNullOrWhiteSpace(_editName) || string.IsNullOrWhiteSpace(_editPhone)) return;
+        if (string.IsNullOrEmpty(_otpCode)) return;
+
+        var data = new GuestDataGQL
+        {
+            Name = _editName.Trim(),
+            Phone = _editPhone.Trim(),
+            Email = (_editEmail ?? "").Trim()
+        };
+
+        await OnConfirmData.InvokeAsync((data, _otpCode));
+    }
+
+    private void GoBackToChannel()
+    {
+        _stage = Stage.SelectChannel;
+        _otpCode = null;
+        _error = null;
+    }
+
+    private async Task HandleClose()
+    {
+        _stage = Stage.SelectChannel;
+        _selectedChannel = null;
+        _otpCode = null;
+        _error = null;
+        _editName = null;
+        _editPhone = null;
+        _editEmail = null;
+        await OnClose.InvokeAsync();
+    }
+}

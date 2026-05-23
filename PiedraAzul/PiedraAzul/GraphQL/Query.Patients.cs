@@ -3,6 +3,7 @@ using HotChocolate.Authorization;
 using Mediator;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using PiedraAzul.Application.Common.Interfaces;
 using PiedraAzul.Application.Features.Patients.Queries.SearchPatients;
 using PiedraAzul.GraphQL.Types;
 using PiedraAzul.Domain.Repositories;
@@ -14,13 +15,17 @@ public partial class Query
 {
     /// <summary>
     /// Lookup público (sin auth) para el flujo de auto-agendamiento.
-    /// Busca primero en usuarios registrados y luego en pacientes invitados.
-    /// Devuelve datos parcialmente enmascarados para cumplir con habeas data.
+    /// Devuelve un hash de verificación junto con canales enmascarados (teléfono/email).
+    /// El usuario debe verificar OTP para acceder a los datos completos.
+    /// - REGISTERED: usuario con cuenta. Si tiene email/teléfono, genera hash; si no, Type=NoContact.
+    /// - GUEST: guest existente con misma cédula. Genera hash si tiene email/teléfono.
+    /// - null: no existe.
     /// </summary>
-    public async Task<PatientSearchResultType?> LookupGuestByIdentificationAsync(
+    public async Task<GuestLookupResultType?> LookupGuestByIdentificationAsync(
         string identification,
         [Service] IPatientGuestRepository guestRepository,
-        [Service] UserManager<ApplicationUser> userManager)
+        [Service] UserManager<ApplicationUser> userManager,
+        [Service] IGuestOtpService guestOtpService)
     {
         if (string.IsNullOrWhiteSpace(identification))
             return null;
@@ -33,12 +38,38 @@ public partial class Query
 
         if (registeredUser is not null)
         {
-            return new PatientSearchResultType
+            var hasPhone = !string.IsNullOrEmpty(registeredUser.PhoneNumber);
+            var hasEmail = !string.IsNullOrEmpty(registeredUser.Email);
+
+            // Si no tiene ni teléfono ni email, no puede continuar como invitado
+            if (!hasPhone && !hasEmail)
             {
-                Id = registeredUser.Id,
-                Name = MaskName(registeredUser.Name),
-                Identification = id,
-                Phone = MaskPhone(registeredUser.PhoneNumber ?? ""),
+                return new GuestLookupResultType
+                {
+                    VerificationHash = "",
+                    HasPhone = false,
+                    HasEmail = false,
+                    MaskedPhone = null,
+                    MaskedEmail = null,
+                    Type = PatientTypeEnum.NoContact
+                };
+            }
+
+            // Crear sesión para usuario registrado
+            var userHash = await guestOtpService.CreateSessionForRegisteredUserAsync(
+                registeredUser.Id,
+                registeredUser.Name,
+                registeredUser.PhoneNumber,
+                registeredUser.Email,
+                expirationMinutes: 0);
+
+            return new GuestLookupResultType
+            {
+                VerificationHash = userHash,
+                HasPhone = hasPhone,
+                HasEmail = hasEmail,
+                MaskedPhone = hasPhone ? MaskPhone(registeredUser.PhoneNumber!) : null,
+                MaskedEmail = hasEmail ? MaskEmail(registeredUser.Email!) : null,
                 Type = PatientTypeEnum.Registered
             };
         }
@@ -47,14 +78,63 @@ public partial class Query
         var guest = await guestRepository.GetByIdAsync(id);
         if (guest is null) return null;
 
-        return new PatientSearchResultType
+        var guestHasPhone = !string.IsNullOrEmpty(guest.Phone);
+        var guestHasEmail = !string.IsNullOrEmpty(guest.Email);
+
+        // Si no tiene ni teléfono ni email, no puede continuar
+        if (!guestHasPhone && !guestHasEmail)
         {
-            Id = guest.Id,
-            Name = MaskName(guest.Name),
-            Identification = guest.Id,
-            Phone = MaskPhone(guest.Phone ?? ""),
+            return new GuestLookupResultType
+            {
+                VerificationHash = "",
+                HasPhone = false,
+                HasEmail = false,
+                MaskedPhone = null,
+                MaskedEmail = null,
+                Type = PatientTypeEnum.NoContact
+            };
+        }
+
+        var hash = await guestOtpService.CreateSessionAsync(guest.Id, expirationMinutes: 0);
+
+        return new GuestLookupResultType
+        {
+            VerificationHash = hash,
+            HasPhone = guestHasPhone,
+            HasEmail = guestHasEmail,
+            MaskedPhone = guestHasPhone ? MaskPhoneShort(guest.Phone) : null,
+            MaskedEmail = guestHasEmail ? MaskEmail(guest.Email!) : null,
             Type = PatientTypeEnum.Guest
         };
+    }
+
+    /// <summary>
+    /// Enmascara el teléfono con formato "Terminado en: XXXX".
+    /// </summary>
+    private static string MaskPhoneShort(string phone)
+    {
+        var digits = new string(phone.Where(char.IsDigit).ToArray());
+        if (digits.Length < 4) return "****";
+        return $"Terminado en: {digits[^4..]}";
+    }
+
+    /// <summary>
+    /// Enmascara el email: muestra primera letra, asteriscos, última letra antes del @ y el dominio.
+    /// </summary>
+    /// <example>"juanperez@gmail.com" → "j***z@gmail.com"</example>
+    private static string MaskEmail(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email) || !email.Contains('@'))
+            return "***@***";
+
+        var parts = email.Split('@');
+        var local = parts[0];
+        var domain = parts[1];
+
+        if (local.Length <= 2)
+            return $"{local[0]}***@{domain}";
+
+        return $"{local[0]}***{local[^1]}@{domain}";
     }
 
     [Authorize(Roles = new[] { "Doctor", "Admin" })]
@@ -72,21 +152,38 @@ public partial class Query
             .Take(limit ?? int.MaxValue)
             .ToList();
 
+        // ✅ Cargar todos los usuarios de una vez (evita N+1)
+        var registeredIds = deduplicated
+            .Where(p => p.Type == "Registered")
+            .Select(p => p.Id)
+            .ToList();
+
+        var usersMap = registeredIds.Any()
+            ? (await userManager.Users
+                .Where(u => registeredIds.Contains(u.Id))
+                .ToDictionaryAsync(u => u.Id))
+            : new();
+
         var results = new List<PatientSearchResultType>();
         foreach (var p in deduplicated)
         {
             var phone = p.Phone;
-            if (p.Type == "Registered" && string.IsNullOrEmpty(phone))
+            if (p.Type == "Registered" && string.IsNullOrEmpty(phone) && usersMap.TryGetValue(p.Id, out var user))
             {
-                var user = await userManager.FindByIdAsync(p.Id);
-                phone = user?.PhoneNumber ?? "";
+                phone = user.PhoneNumber ?? "";
+            }
+
+            var identification = p.Type == "Guest" ? p.Id : "";
+            if (p.Type == "Registered" && usersMap.TryGetValue(p.Id, out var u))
+            {
+                identification = u.IdentificationNumber ?? "";
             }
 
             results.Add(new PatientSearchResultType
             {
                 Id = p.Id,
                 Name = p.Name,
-                Identification = p.Type == "Guest" ? p.Id : "",
+                Identification = identification,
                 Phone = phone,
                 Type = p.Type == "Guest" ? PatientTypeEnum.Guest : PatientTypeEnum.Registered
             });
@@ -102,21 +199,39 @@ public partial class Query
     {
         var patients = await mediator.Send(new SearchPatientsQuery(query));
 
+        // ✅ Cargar todos los usuarios de una vez (evita N+1)
+        var registeredIds = patients
+            .Where(p => p.Type == "Registered")
+            .Select(p => p.Id)
+            .Distinct()
+            .ToList();
+
+        var usersMap = registeredIds.Any()
+            ? (await userManager.Users
+                .Where(u => registeredIds.Contains(u.Id))
+                .ToDictionaryAsync(u => u.Id))
+            : new();
+
         var results = new List<PatientSearchResultType>();
         foreach (var p in patients)
         {
             var phone = p.Phone;
-            if (p.Type == "Registered" && string.IsNullOrEmpty(phone))
+            if (p.Type == "Registered" && string.IsNullOrEmpty(phone) && usersMap.TryGetValue(p.Id, out var user))
             {
-                var user = await userManager.FindByIdAsync(p.Id);
-                phone = user?.PhoneNumber ?? "";
+                phone = user.PhoneNumber ?? "";
+            }
+
+            var identification = p.Type == "Guest" ? p.Id : "";
+            if (p.Type == "Registered" && usersMap.TryGetValue(p.Id, out var u))
+            {
+                identification = u.IdentificationNumber ?? "";
             }
 
             results.Add(new PatientSearchResultType
             {
                 Id = p.Id,
                 Name = p.Name,
-                Identification = p.Type == "Guest" ? p.Id : "",
+                Identification = identification,
                 Phone = phone,
                 Type = p.Type == "Guest" ? PatientTypeEnum.Guest : PatientTypeEnum.Registered
             });

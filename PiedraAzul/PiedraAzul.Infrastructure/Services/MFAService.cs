@@ -14,6 +14,7 @@ public class MFAService : IMFAService
 {
     private readonly AppDbContext _context;
     private readonly IEmailService _emailService;
+    private readonly IMessageService _smsService;
     private readonly IMemoryCache _cache;
     private readonly IConfiguration _configuration;
     private const int BackupCodeCount = 10;
@@ -22,11 +23,13 @@ public class MFAService : IMFAService
     public MFAService(
         AppDbContext context,
         IEmailService emailService,
+        IMessageService smsService,
         IMemoryCache cache,
         IConfiguration configuration)
     {
         _context = context;
         _emailService = emailService;
+        _smsService = smsService;
         _cache = cache;
         _configuration = configuration;
     }
@@ -54,12 +57,14 @@ public class MFAService : IMFAService
 
         var emailOtpEnabled = mfas.Any(m => m.IsEnabled && m.MFAMethod == "Email");
         var totpEnabled = mfas.Any(m => m.IsEnabled && m.MFAMethod == "TOTP");
+        var smsOtpEnabled = mfas.Any(m => m.IsEnabled && m.MFAMethod == "SMS");
         var hasBackupCodes = mfas.Any(m => !string.IsNullOrEmpty(m.BackupCodesEncrypted));
 
         return new MFAStatus(
             EmailOTPEnabled: emailOtpEnabled,
             TOTPEnabled: totpEnabled,
-            HasBackupCodes: hasBackupCodes
+            HasBackupCodes: hasBackupCodes,
+            SMSOTPEnabled: smsOtpEnabled
         );
     }
 
@@ -325,6 +330,17 @@ public class MFAService : IMFAService
             return false;
 
         return await _emailService.SendMFAEmailAsync(email, email, otp, 10);
+    }
+
+    public async Task<bool> SendOTPSmsAsync(string userId, string phoneNumber)
+    {
+        var otp = _cache.Get<string>($"mfa_otp_{userId}");
+        if (string.IsNullOrEmpty(otp))
+            return false;
+
+        var expirationMinutes = _configuration.GetValue<int>("Security:MFA:OTPExpirationMinutes", 10);
+        var message = $"Tu código de verificación de Piedra Azul es: {otp}. Válido por {expirationMinutes} minutos.";
+        return await _smsService.SMSAsync(phoneNumber, message);
     }
 
     private string DecryptBackupCodes(string encryptedCodes)

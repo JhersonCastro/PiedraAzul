@@ -1,6 +1,8 @@
 ﻿using Mediator;
 using Moq;
+using PiedraAzul.Application.Common.Interfaces;
 using PiedraAzul.Application.Common.Models.Patients;
+using PiedraAzul.Application.Common.Models.User;
 using PiedraAzul.Application.Features.Appointments.CreateAppointment;
 using PiedraAzul.Application.Features.Patients.Commands.CreateGuestPatient;
 using PiedraAzul.Domain.Common.Exceptions;
@@ -19,11 +21,16 @@ public class AppointmentServiceTests
     private readonly Mock<IPatientRepository> _patientRepository = new();
     private readonly Mock<IPatientGuestRepository> _guestRepository = new();
     private readonly Mock<IMediator> _mediator = new();
+    private readonly Mock<IIdentityService> _identityService = new();
 
     private readonly CreateAppointmentHandler _sut;
 
     public AppointmentServiceTests()
     {
+        _identityService
+            .Setup(x => x.GetById(It.IsAny<string>()))
+            .ReturnsAsync(new UserDto("user-id", "test@test.com", "Test User", "", false));
+
         _sut = new CreateAppointmentHandler(
             _appointmentRepository.Object,
             _doctorRepository.Object,
@@ -31,7 +38,8 @@ public class AppointmentServiceTests
             _patientRepository.Object,
             _guestRepository.Object,
             new ImmediateUnitOfWork(),
-            _mediator.Object);
+            _mediator.Object,
+            _identityService.Object);
     }
 
     [Fact]

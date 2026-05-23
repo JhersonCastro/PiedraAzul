@@ -4,6 +4,7 @@ using Mediator;
 using Microsoft.AspNetCore.Http;
 using PiedraAzul.Application.Common.Models.Patients;
 using PiedraAzul.Application.Features.Appointments.CreateAppointment;
+using PiedraAzul.Application.Features.Appointments.RescheduleAppointment;
 using PiedraAzul.GraphQL.Inputs;
 using PiedraAzul.GraphQL.Types;
 using System.Security.Claims;
@@ -12,7 +13,7 @@ namespace PiedraAzul.GraphQL;
 
 public partial class Mutation
 {
-    [Authorize(Roles = new[] { "Doctor", "Admin" })]
+    [Authorize(Roles = new[] { "Doctor", "Admin", "Patient" })]
     public async Task<AppointmentType> CreateAppointmentAsync(
         CreateAppointmentInput input,
         [Service] IMediator mediator,
@@ -43,7 +44,8 @@ public partial class Mutation
                 Identification = input.Guest.Identification,
                 Name = input.Guest.Name,
                 Phone = input.Guest.Phone,
-                ExtraInfo = input.Guest.ExtraInfo
+                ExtraInfo = input.Guest.ExtraInfo,
+                Email = input.Guest.Email
             };
         }
 
@@ -84,7 +86,8 @@ public partial class Mutation
             Identification = input.Guest.Identification,
             Name = input.Guest.Name,
             Phone = input.Guest.Phone,
-            ExtraInfo = input.Guest.ExtraInfo
+            ExtraInfo = input.Guest.ExtraInfo,
+            Email = input.Guest.Email
         };
 
         var appointment = await mediator.Send(
@@ -96,6 +99,51 @@ public partial class Mutation
                 patientGuest
             )
         );
+
+        return AppointmentType.FromDomain(appointment);
+    }
+
+    /// <summary>
+    /// Reagenda una cita para un paciente autenticado (registrado).
+    /// </summary>
+    [Authorize(Roles = new[] { "Patient" })]
+    public async Task<AppointmentType> RescheduleAppointmentAsync(
+        Guid appointmentId,
+        Guid newSlotId,
+        DateTime newDate,
+        [Service] IMediator mediator,
+        [Service] IHttpContextAccessor httpContextAccessor)
+    {
+        var userId = httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? throw new GraphQLException("No autenticado");
+
+        var appointment = await mediator.Send(
+            new RescheduleAppointmentCommand(
+                appointmentId,
+                userId,
+                newSlotId,
+                DateOnly.FromDateTime(newDate)));
+
+        return AppointmentType.FromDomain(appointment);
+    }
+
+    /// <summary>
+    /// Reagenda una cita para un invitado verificado mediante hash OTP.
+    /// No requiere autenticación.
+    /// </summary>
+    public async Task<AppointmentType> RescheduleAppointmentByHashAsync(
+        string verificationHash,
+        Guid appointmentId,
+        Guid newSlotId,
+        DateTime newDate,
+        [Service] IMediator mediator)
+    {
+        var appointment = await mediator.Send(
+            new RescheduleAppointmentByHashCommand(
+                verificationHash,
+                appointmentId,
+                newSlotId,
+                DateOnly.FromDateTime(newDate)));
 
         return AppointmentType.FromDomain(appointment);
     }

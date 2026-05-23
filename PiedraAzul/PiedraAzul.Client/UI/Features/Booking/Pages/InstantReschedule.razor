@@ -1,0 +1,423 @@
+@page "/reagendar"
+
+@using System.Globalization
+@using PiedraAzul.Client.Models.GraphQL
+@using PiedraAzul.Client.Services.GraphQLServices
+@using PiedraAzul.Client.UI.Features.Booking.Components
+@inject GraphQLAppointmentService AppointmentService
+@inject PatientSearchService PatientSearchService
+
+<div class="min-h-screen bg-gradient-to-b from-[#F0FDFA] to-white py-8 px-4">
+    <div class="mx-auto max-w-xl">
+
+        <!-- Header -->
+        <div class="mb-8 text-center">
+            <div class="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-100">
+                <svg class="h-7 w-7 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+            </div>
+            <h1 class="text-2xl font-extrabold text-[#0F172A]">Reagendar Cita</h1>
+            <p class="mt-1 text-sm text-[#64748B]">Ingresa tu número de identificación para ver tus citas y reagendarlas.</p>
+        </div>
+
+        @if (_isSuccess)
+        {
+            <!-- Success state -->
+            <div class="rounded-2xl border border-green-200 bg-green-50 p-8 text-center">
+                <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
+                    <svg class="h-7 w-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                </div>
+                <h2 class="text-lg font-bold text-green-800">¡Cita reagendada!</h2>
+                <p class="mt-1 text-sm text-green-700">Tu cita fue reagendada exitosamente.</p>
+                <button @onclick="ResetAll"
+                        class="mt-5 rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-teal-700 transition">
+                    Reagendar otra cita
+                </button>
+            </div>
+        }
+        else if (_stage == Stage.Identification)
+        {
+            <!-- Stage 0: Enter ID -->
+            <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <label class="mb-1.5 block text-sm font-semibold text-slate-700">Número de identificación</label>
+                <input @bind="_identification" @bind:event="oninput" @onkeydown="OnIdKeyDown"
+                       type="text" placeholder="Ej: 1150064123"
+                       class="w-full rounded-xl border-2 border-slate-200 px-4 py-3 text-sm focus:border-teal-500 focus:outline-none transition" />
+
+                @if (!string.IsNullOrEmpty(_error))
+                {
+                    <p class="mt-2 text-sm text-red-600">@_error</p>
+                }
+
+                <button @onclick="StartSearchAsync"
+                        disabled="@(_searching || string.IsNullOrWhiteSpace(_identification))"
+                        class="mt-4 w-full rounded-xl bg-teal-600 py-3 text-sm font-bold text-white hover:bg-teal-700 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                    @if (_searching)
+                    {
+                        <div class="h-4 w-4 animate-spin rounded-full border-b-2 border-white"></div>
+                    }
+                    Buscar mis citas
+                </button>
+            </div>
+        }
+        else if (_stage == Stage.Appointments)
+        {
+            <!-- Stage 2: Show appointments + reschedule button -->
+            <div>
+                <div class="mb-4 flex items-center gap-2">
+                    <button @onclick="() => { _stage = Stage.Identification; _error = null; }"
+                            class="flex items-center gap-1 text-sm text-slate-500 hover:text-teal-600 transition">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                        </svg>
+                        Volver
+                    </button>
+                    <span class="text-sm font-semibold text-slate-800">Citas próximas</span>
+                </div>
+
+                @if (!string.IsNullOrEmpty(_error))
+                {
+                    <div class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">@_error</div>
+                }
+
+                @if (_loadingAppointments)
+                {
+                    <div class="flex justify-center py-16">
+                        <div class="h-7 w-7 animate-spin rounded-full border-b-2 border-teal-600"></div>
+                    </div>
+                }
+                else if (_appointments.Count == 0)
+                {
+                    <div class="rounded-2xl border border-slate-200 bg-white p-8 text-center">
+                        <p class="text-[15px] font-bold text-[#0F172A]">No tienes citas próximas</p>
+                        <p class="mt-1 text-[13px] text-[#94A3B8]">No se encontraron citas activas para reagendar.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="flex flex-col gap-3">
+                        @foreach (var appt in _appointments)
+                        {
+                            var dateStr = char.ToUpper(appt.Start.ToString("dddd", new CultureInfo("es-ES"))[0])
+                                          + appt.Start.ToString("dddd, d 'de' MMMM yyyy", new CultureInfo("es-ES"))[1..];
+                            var timeStr = appt.Start.ToString("hh:mm tt", CultureInfo.InvariantCulture);
+
+                            <div class="rounded-2xl border border-[#BAE6FD] bg-white p-4 flex gap-4 items-start shadow-sm">
+                                <div class="flex-shrink-0 h-11 w-11 rounded-xl flex items-center justify-center bg-[#E0F2FE]">
+                                    <svg class="h-5 w-5 text-[#0284C7]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <rect x="3" y="4" width="18" height="18" rx="2"/>
+                                        <path d="M16 2v4M8 2v4M3 10h18"/>
+                                    </svg>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <p class="text-[14px] font-bold text-[#0F172A]">Dr. @appt.DoctorName</p>
+                                        @if (!string.IsNullOrEmpty(appt.Specialty))
+                                        {
+                                            <span class="rounded-full bg-[#F1F5F9] px-2 py-0.5 text-[11px] font-semibold text-[#475569]">@appt.Specialty</span>
+                                        }
+                                    </div>
+                                    <p class="mt-1 text-[12px] text-[#64748B] capitalize">@dateStr · @timeStr</p>
+                                </div>
+                                <button @onclick="() => OpenRescheduleModal(appt)"
+                                        class="flex-shrink-0 flex items-center gap-1.5 rounded-xl border border-[#257D8D] px-3 py-1.5 text-[12px] font-semibold text-[#257D8D] hover:bg-teal-50 transition">
+                                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                    </svg>
+                                    Reagendar
+                                </button>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        }
+
+    </div>
+</div>
+
+<!-- PatientVerificationModal -->
+<PatientVerificationModal IsOpen="_showVerificationModal"
+                          IsLoading="_searching"
+                          SearchResultType="@_searchResultType"
+                          ErrorMessage="@_searchError"
+                          OnRegisteredLogin="OnRegisteredLogin"
+                          OnRegisteredGuestContinue="OnGuestContinue"
+                          OnGuestContinue="OnGuestContinue"
+                          OnNewPatientContinue="OnNotFound"
+                          OnRetry="OnRetrySearch"
+                          OnClose="() => _showVerificationModal = false" />
+
+<!-- ChannelValidationModal -->
+<ChannelValidationModal IsOpen="_showChannelModal"
+                        IsLoading="_channelLoading"
+                        HasPhone="@(_searchResult?.HasPhone ?? false)"
+                        HasEmail="@(_searchResult?.HasEmail ?? false)"
+                        MaskedPhone="@_searchResult?.MaskedPhone"
+                        MaskedEmail="@_searchResult?.MaskedEmail"
+                        OnSendOtp="SendOtpByHashAsync"
+                        OnVerifyOtp="VerifyOtpByHashAsync"
+                        OnConfirmData="OnChannelConfirm"
+                        OnClose="OnChannelModalClose" />
+
+<!-- RescheduleModal — @key fuerza remontaje al elegir otra cita -->
+<RescheduleModal @key="@(_selectedAppt?.Id ?? string.Empty)"
+                 IsOpen="_showRescheduleModal"
+                 IsLoading="_rescheduleLoading"
+                 OriginalDoctorId="@(_selectedAppt?.DoctorId)"
+                 OnConfirm="HandleRescheduleConfirm"
+                 OnClose="() => { _showRescheduleModal = false; _selectedAppt = null; }" />
+
+@code {
+    private enum Stage { Identification, Appointments }
+
+    private Stage _stage = Stage.Identification;
+    private string? _identification;
+    private string? _error;
+    private bool _isSuccess;
+
+    // Lookup / verification
+    private bool _searching;
+    private bool _showVerificationModal;
+    private GuestLookupResultGQL? _searchResult;
+    private string? _searchResultType;
+    private string? _searchError;
+    private string? _verificationHash;
+
+    // Channel OTP modal
+    private bool _showChannelModal;
+    private bool _channelLoading;
+
+    // Appointments
+    private bool _loadingAppointments;
+    private List<AppointmentGQL> _appointments = [];
+
+    // Reschedule
+    private bool _showRescheduleModal;
+    private bool _rescheduleLoading;
+    private AppointmentGQL? _selectedAppt;
+
+    // ─── ID lookup ────────────────────────────────────────────────────────────
+
+    private async Task OnIdKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !_searching && !string.IsNullOrWhiteSpace(_identification))
+            await StartSearchAsync();
+    }
+
+    // Outer handler: manages loading state
+    private async Task StartSearchAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_identification) || _searching) return;
+
+        _searching = true;
+        _showVerificationModal = false;
+        _searchError = null;
+        _searchResult = null;
+        _searchResultType = null;
+        StateHasChanged();
+
+        await DoSearchAsync(_identification);
+
+        _searching = false;
+        _showVerificationModal = true;
+        StateHasChanged();
+    }
+
+    // Inner handler: only does the search and sets the result type
+    private async Task DoSearchAsync(string identification)
+    {
+        var result = await PatientSearchService.LookupByIdentificationAsync(identification);
+
+        if (!result.IsSuccess)
+        {
+            _searchError = result.Error?.Message ?? "Error de conexión";
+            _searchResultType = "ERROR";
+            return;
+        }
+
+        if (result.Value is not null)
+        {
+            _searchResult = result.Value;
+            _verificationHash = result.Value.VerificationHash;
+            _searchResultType = result.Value.Type.ToUpperInvariant() switch
+            {
+                "REGISTERED" => "REGISTERED",
+                "GUEST"      => "GUEST",
+                "NOCONTACT" or "NO_CONTACT" => "NO_CONTACT",
+                _            => "NOT_FOUND"
+            };
+        }
+        else
+        {
+            _searchResultType = "NOT_FOUND";
+        }
+    }
+
+    // ─── Verification modal callbacks ─────────────────────────────────────────
+
+    private void OnRegisteredLogin()
+    {
+        _showVerificationModal = false;
+        // For reschedule, registered users should log in and use the account area
+        _error = "Para reagendar tu cita, inicia sesión en tu cuenta y ve a 'Mis citas'.";
+        _stage = Stage.Identification;
+    }
+
+    private void OnGuestContinue()
+    {
+        _showVerificationModal = false;
+        _showChannelModal = true;
+        StateHasChanged();
+    }
+
+    private void OnNotFound()
+    {
+        _showVerificationModal = false;
+        _error = "No encontramos citas asociadas a ese número de identificación.";
+        StateHasChanged();
+    }
+
+    private async Task OnRetrySearch()
+    {
+        if (string.IsNullOrWhiteSpace(_identification)) return;
+
+        _searching = true;
+        _showVerificationModal = false;
+        _searchError = null;
+        _searchResultType = null;
+        StateHasChanged();
+
+        await DoSearchAsync(_identification);
+
+        _searching = false;
+        _showVerificationModal = true;
+        StateHasChanged();
+    }
+
+    // ─── Channel OTP modal callbacks ──────────────────────────────────────────
+
+    private async Task SendOtpByHashAsync(string channel)
+    {
+        _channelLoading = true;
+        StateHasChanged();
+
+        await AppointmentService.SendGuestOtpByHashAsync(_verificationHash!, channel);
+
+        _channelLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task<GuestDataGQL?> VerifyOtpByHashAsync(string channel, string code)
+    {
+        _channelLoading = true;
+        StateHasChanged();
+
+        var result = await AppointmentService.VerifyGuestOtpByHashAsync(_verificationHash!, code);
+
+        _channelLoading = false;
+        StateHasChanged();
+
+        return result.IsSuccess ? result.Value : null;
+    }
+
+    private async Task OnChannelConfirm((GuestDataGQL Data, string OtpCode) payload)
+    {
+        _channelLoading = true;
+        StateHasChanged();
+
+        // Persist any updated data
+        await AppointmentService.VerifyGuestOtpByHashAsync(
+            _verificationHash!, payload.OtpCode, payload.Data.Name, payload.Data.Phone, payload.Data.Email);
+
+        _channelLoading = false;
+        _showChannelModal = false;
+
+        // Load appointments
+        await LoadGuestAppointmentsAsync();
+        _stage = Stage.Appointments;
+        StateHasChanged();
+    }
+
+    private void OnChannelModalClose()
+    {
+        _showChannelModal = false;
+        StateHasChanged();
+    }
+
+    // ─── Appointments ─────────────────────────────────────────────────────────
+
+    private async Task LoadGuestAppointmentsAsync()
+    {
+        _loadingAppointments = true;
+        _appointments = [];
+        StateHasChanged();
+
+        var result = await AppointmentService.GetGuestUpcomingAppointmentsAsync(_verificationHash!);
+
+        _loadingAppointments = false;
+
+        if (!result.IsSuccess)
+        {
+            _error = "No se pudieron cargar las citas. Intenta de nuevo.";
+            return;
+        }
+
+        _appointments = result.Value ?? [];
+        StateHasChanged();
+    }
+
+    // ─── Reschedule ───────────────────────────────────────────────────────────
+
+    private void OpenRescheduleModal(AppointmentGQL appt)
+    {
+        _selectedAppt = appt;
+        _showRescheduleModal = true;
+        _error = null;
+    }
+
+    private async Task HandleRescheduleConfirm((string DoctorId, string SlotId, DateTime Date) selection)
+    {
+        if (_selectedAppt is null) return;
+
+        _rescheduleLoading = true;
+        StateHasChanged();
+
+        var result = await AppointmentService.RescheduleAppointmentByHashAsync(
+            _verificationHash!,
+            Guid.Parse(_selectedAppt.Id),
+            Guid.Parse(selection.SlotId),
+            selection.Date.ToUniversalTime());
+
+        _rescheduleLoading = false;
+
+        if (!result.IsSuccess)
+        {
+            _error = result.Error?.Message ?? "No se pudo reagendar la cita. Intenta de nuevo.";
+            _showRescheduleModal = false;
+            _selectedAppt = null;
+            StateHasChanged();
+            return;
+        }
+
+        _showRescheduleModal = false;
+        _selectedAppt = null;
+        _isSuccess = true;
+        StateHasChanged();
+    }
+
+    private void ResetAll()
+    {
+        _isSuccess = false;
+        _stage = Stage.Identification;
+        _identification = null;
+        _verificationHash = null;
+        _searchResult = null;
+        _appointments = [];
+        _error = null;
+        StateHasChanged();
+    }
+}

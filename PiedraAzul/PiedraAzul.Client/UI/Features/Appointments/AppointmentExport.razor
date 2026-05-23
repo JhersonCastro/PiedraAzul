@@ -79,12 +79,12 @@
                 <div>
                     <label class="block text-slate-500 font-bold uppercase tracking-wider text-xs mb-3 ml-1">MÉDICO / TERAPISTA</label>
                     <div class="relative">
-                        <select value="@SelectedDoctor" @onchange="OnDoctorChanged" 
+                        <select value="@SelectedDoctor" @onchange="OnDoctorChanged"
                                 class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-6 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all text-slate-700 font-medium appearance-none">
                             <option value="all">Todos los profesionales</option>
                             @foreach (var doc in allDoctors)
                             {
-                                <option value="@doc.UserId">@doc.Name (@doc.Specialty)</option>
+                                <option value="@doc.DoctorId">@doc.Name (@doc.Specialty)</option>
                             }
                         </select>
                         <div class="absolute inset-y-0 right-6 flex items-center pointer-events-none text-slate-400">
@@ -122,6 +122,10 @@
                         @if (isLoading)
                         {
                             <tr><td colspan="4" class="px-8 py-10 text-center text-slate-400 italic">Cargando citas...</td></tr>
+                        }
+                        else if (_lastError is not null)
+                        {
+                            <tr><td colspan="4" class="px-8 py-10 text-center text-red-500 italic text-xs font-mono">Error: @_lastError</td></tr>
                         }
                         else if (!appointments.Any())
                         {
@@ -188,6 +192,7 @@
     private string SelectedDoctor { get; set; } = "all";
     private DateTime SelectedDate { get; set; } = DateTime.Today;
     private bool isLoading = true;
+    private string? _lastError;
 
     private List<DoctorGQL> allDoctors = new();
     private List<AppointmentVM> appointments = new();
@@ -198,7 +203,7 @@
     protected override async Task OnInitializedAsync()
     {
         isLoading = true;
-        
+
         // Cargar todos los doctores de todas las especialidades secuencialmente (como en AdminAgenda)
         for (int i = 0; i <= 3; i++)
         {
@@ -210,12 +215,8 @@
             }
         }
 
-        // Si es doctor, pre-seleccionar su ID si está en la lista
-        if (IsDoctor && UserState.User != null)
-        {
-            var myDoctor = allDoctors.FirstOrDefault(d => d.UserId == UserState.User.Id);
-            if (myDoctor != null) SelectedDoctor = myDoctor.UserId;
-        }
+        // Mantener "all" como valor por defecto (no pre-seleccionar el doctor del usuario)
+        // El usuario puede seleccionar su propia agenda si lo desea
 
         await LoadAppointmentsAsync();
     }
@@ -238,6 +239,7 @@
     private async Task LoadAppointmentsAsync()
     {
         isLoading = true;
+        _lastError = null;
         StateHasChanged();
 
         var list = new List<AppointmentVM>();
@@ -246,10 +248,10 @@
         {
             foreach (var doc in allDoctors)
             {
-                var res = await AppointmentService.GetDoctorAppointments(doc.UserId, SelectedDate);
+                var res = await AppointmentService.GetDoctorAppointments(doc.DoctorId, SelectedDate);
                 if (res.IsSuccess)
                 {
-                    list.AddRange(res.Value.Select(a => new AppointmentVM 
+                    list.AddRange(res.Value.Select(a => new AppointmentVM
                     {
                         Patient = a.PatientName,
                         Time = a.Start.ToString("hh:mm tt"),
@@ -257,21 +259,29 @@
                         Status = "Confirmada"
                     }));
                 }
+                else
+                {
+                    _lastError = $"[{doc.Name}] {res.Error?.Message}";
+                }
             }
         }
         else
         {
-            var doc = allDoctors.FirstOrDefault(d => d.UserId == SelectedDoctor);
+            var doc = allDoctors.FirstOrDefault(d => d.DoctorId == SelectedDoctor);
             var res = await AppointmentService.GetDoctorAppointments(SelectedDoctor, SelectedDate);
             if (res.IsSuccess)
             {
-                list.AddRange(res.Value.Select(a => new AppointmentVM 
+                list.AddRange(res.Value.Select(a => new AppointmentVM
                 {
                     Patient = a.PatientName,
                     Time = a.Start.ToString("hh:mm tt"),
                     Specialty = doc?.Specialty ?? "General",
                     Status = "Confirmada"
                 }));
+            }
+            else
+            {
+                _lastError = res.Error?.Message;
             }
         }
 

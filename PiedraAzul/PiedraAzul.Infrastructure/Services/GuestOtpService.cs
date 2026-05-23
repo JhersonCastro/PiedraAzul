@@ -1,7 +1,10 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using PiedraAzul.Application.Common.Interfaces;
+using PiedraAzul.Domain.Entities.Profiles.Patients;
+using PiedraAzul.Infrastructure.Persistence;
 
 namespace PiedraAzul.Infrastructure.Services;
 
@@ -10,8 +13,10 @@ public class GuestOtpService : IGuestOtpService
     private readonly IMemoryCache _cache;
     private readonly IEmailService _emailService;
     private readonly IWhatsAppService _whatsApp;
+    private readonly IMessageService _smsService;
     private readonly IConfiguration _config;
     private readonly ILogger<GuestOtpService> _logger;
+    private readonly AppDbContext _context;
 
     private const int MaxAttempts = 3;
 
@@ -21,15 +26,21 @@ public class GuestOtpService : IGuestOtpService
         IMemoryCache cache,
         IEmailService emailService,
         IWhatsAppService whatsApp,
+        IMessageService smsService,
         IConfiguration config,
-        ILogger<GuestOtpService> logger)
+        ILogger<GuestOtpService> logger,
+        AppDbContext context)
     {
         _cache = cache;
         _emailService = emailService;
         _whatsApp = whatsApp;
+        _smsService = smsService;
         _config = config;
         _logger = logger;
+        _context = context;
     }
+
+    // ── Flujo nuevo usuario (sin cuenta previa) ─────────────────────────
 
     public async Task<string> SendAsync(string phone, string? email, OtpChannel channel)
     {
@@ -42,23 +53,7 @@ public class GuestOtpService : IGuestOtpService
         var entry = new OtpEntry(code, 0, DateTime.UtcNow.AddMinutes(expirationMinutes));
         _cache.Set(CacheKey(sessionToken), entry, TimeSpan.FromMinutes(expirationMinutes + 1));
 
-        if (channel == OtpChannel.WhatsApp)
-        {
-            var phoneE164 = ToE164Colombia(phone);
-            var message = $"Tu código de confirmación para tu cita en Piedra Azul es: *{code}*\nVálido por {expirationMinutes} minutos.";
-            _logger.LogInformation("[GuestOTP] Enviando mensaje WhatsApp a {Phone}: {Message}", phoneE164, message);
-            await _whatsApp.SendMessageAsync(phoneE164, message);
-            _logger.LogInformation("[GuestOTP] Mensaje WhatsApp enviado a {Phone}", phoneE164);
-        }
-        else
-        {
-            if (string.IsNullOrWhiteSpace(email))
-                throw new InvalidOperationException("Email requerido para canal Email");
-
-            _logger.LogInformation("[GuestOTP] Enviando email a {Email} con código {Code}", email, code);
-            await _emailService.SendMFAEmailAsync(email, "Paciente", code, expirationMinutes);
-            _logger.LogInformation("[GuestOTP] Email enviado a {Email}", email);
-        }
+        await SendCodeAsync(channel, phone, email, code, expirationMinutes);
 
         return sessionToken;
     }
@@ -89,34 +84,211 @@ public class GuestOtpService : IGuestOtpService
             return Task.FromResult(false);
         }
 
-        // Código correcto — lo invalida inmediatamente
         _cache.Remove(key);
         return Task.FromResult(true);
     }
 
-    // ──────────────────────────────────────────────
-    // Helpers
-    // ──────────────────────────────────────────────
+    // ── Pre-verificación para guests existentes (FLUJO 3) ───────────────
 
-    private static string GenerateCode()
+    public async Task<string> CreateSessionAsync(string guestId, int expirationMinutes)
     {
-        var random = new Random();
-        return random.Next(100_000, 999_999).ToString();
+        var expMinutes = expirationMinutes > 0
+            ? expirationMinutes
+            : _config.GetValue<int>("Security:MFA:OTPExpirationMinutes", 10);
+
+        var session = GuestVerificationSession.ForGuest(guestId, expMinutes);
+        await _context.GuestVerificationSessions.AddAsync(session);
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("[GuestVerification] Sesión creada para guest {GuestId}, hash: {Hash}", guestId, session.Hash);
+        return session.Hash;
     }
 
-    /// <summary>
-    /// Convierte un número colombiano (10 dígitos que empiezan con 3)
-    /// al formato E.164: +57XXXXXXXXXX
-    /// </summary>
+    // ── Pre-verificación para usuarios registrados (FLUJO 2) ────────────
+
+    public async Task<string> CreateSessionForRegisteredUserAsync(
+        string userId, string userName, string? userPhone, string? userEmail, int expirationMinutes)
+    {
+        var expMinutes = expirationMinutes > 0
+            ? expirationMinutes
+            : _config.GetValue<int>("Security:MFA:OTPExpirationMinutes", 10);
+
+        var session = GuestVerificationSession.ForRegisteredUser(userId, userName, userPhone, userEmail, expMinutes);
+        await _context.GuestVerificationSessions.AddAsync(session);
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("[GuestVerification] Sesión creada para usuario registrado {UserId}, hash: {Hash}", userId, session.Hash);
+        return session.Hash;
+    }
+
+    // ── Envío de OTP por hash (compartido FLUJO 2 y FLUJO 3) ────────────
+
+    public async Task SendOtpByHashAsync(string hash, OtpChannel channel)
+    {
+        var session = await _context.GuestVerificationSessions
+            .Include(s => s.Guest)
+            .FirstOrDefaultAsync(s => s.Hash == hash);
+
+        if (session is null || session.IsExpired)
+            throw new InvalidOperationException("Sesión de verificación inválida o expirada.");
+
+        var expirationMinutes = _config.GetValue<int>("Security:MFA:OTPExpirationMinutes", 10);
+        var code = GenerateCode();
+
+        session.SetOtp(code, channel.ToString());
+        await _context.SaveChangesAsync();
+
+        // Obtener datos según el tipo de sesión
+        string? phone;
+        string? email;
+        if (session.SessionType == VerificationSessionType.Guest)
+        {
+            if (session.Guest is null)
+                throw new InvalidOperationException("Datos del guest no disponibles.");
+            phone = session.Guest.Phone;
+            email = session.Guest.Email;
+        }
+        else
+        {
+            phone = session.UserPhone;
+            email = session.UserEmail;
+        }
+
+        if (channel == OtpChannel.Email && string.IsNullOrWhiteSpace(email))
+            throw new InvalidOperationException("Este usuario no tiene email registrado.");
+
+        if ((channel == OtpChannel.SMS || channel == OtpChannel.WhatsApp) && string.IsNullOrWhiteSpace(phone))
+            throw new InvalidOperationException("Este usuario no tiene teléfono registrado.");
+
+        var emailToSend = channel == OtpChannel.Email ? email : null;
+        await SendCodeAsync(channel, phone ?? "", emailToSend, code, expirationMinutes);
+
+        _logger.LogInformation("[GuestVerification] OTP enviado para hash {Hash}, canal {Channel}", hash, channel);
+    }
+
+    public async Task<GuestVerificationResult> VerifyOtpByHashAsync(
+        string hash, string code, string? updatedName = null, string? updatedPhone = null, string? updatedEmail = null)
+    {
+        var session = await _context.GuestVerificationSessions
+            .Include(s => s.Guest)
+            .FirstOrDefaultAsync(s => s.Hash == hash);
+
+        if (session is null || session.IsExpired)
+            throw new InvalidOperationException("Sesión de verificación inválida o expirada.");
+
+        // Si ya está verificada, retornar los datos actuales
+        if (session.Verified)
+        {
+            return new GuestVerificationResult(true, BuildVerifiedData(session));
+        }
+
+        if (session.OtpCode != code.Trim())
+            return new GuestVerificationResult(false, null);
+
+        session.MarkVerified();
+
+        // Aplicar actualizaciones si se proporcionaron
+        if (!string.IsNullOrWhiteSpace(updatedName) || !string.IsNullOrWhiteSpace(updatedPhone) || !string.IsNullOrWhiteSpace(updatedEmail))
+        {
+            if (session.SessionType == VerificationSessionType.Guest && session.Guest is not null)
+            {
+                session.Guest.UpdateInfo(
+                    updatedName ?? session.Guest.Name,
+                    updatedPhone ?? session.Guest.Phone,
+                    updatedEmail ?? session.Guest.Email);
+            }
+            else if (session.SessionType == VerificationSessionType.RegisteredUser)
+            {
+                session.UpdateUserData(updatedName, updatedPhone, updatedEmail);
+            }
+        }
+
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("[GuestVerification] Verificación exitosa para hash {Hash}", hash);
+        return new GuestVerificationResult(true, BuildVerifiedData(session));
+    }
+
+    public async Task<bool> IsSessionVerifiedAsync(string hash)
+    {
+        if (string.IsNullOrWhiteSpace(hash)) return false;
+        var now = DateTime.UtcNow;
+        return await _context.GuestVerificationSessions
+            .AnyAsync(s => s.Hash == hash && s.Verified && s.ExpiresAt > now);
+    }
+
+    public async Task<VerifiedUserData?> GetVerifiedDataAsync(string hash)
+    {
+        var session = await _context.GuestVerificationSessions
+            .Include(s => s.Guest)
+            .FirstOrDefaultAsync(s => s.Hash == hash);
+
+        if (session is null || !session.Verified || session.IsExpired)
+            return null;
+
+        return BuildVerifiedData(session);
+    }
+
+    // ── Helpers ─────────────────────────────────────────────────────────
+
+    private static VerifiedUserData? BuildVerifiedData(GuestVerificationSession session)
+    {
+        if (session.SessionType == VerificationSessionType.Guest)
+        {
+            if (session.Guest is null) return null;
+            return new VerifiedUserData(
+                Id: session.Guest.Id,
+                Name: session.Guest.Name,
+                Phone: session.Guest.Phone,
+                Email: session.Guest.Email,
+                SessionType: VerificationSessionType.Guest
+            );
+        }
+        else
+        {
+            return new VerifiedUserData(
+                Id: session.UserId ?? "",
+                Name: session.UserName ?? "",
+                Phone: session.UserPhone ?? "",
+                Email: session.UserEmail,
+                SessionType: VerificationSessionType.RegisteredUser
+            );
+        }
+    }
+
+    private async Task SendCodeAsync(OtpChannel channel, string phone, string? email, string code, int expirationMinutes)
+    {
+        if (channel == OtpChannel.WhatsApp)
+        {
+            var phoneE164 = ToE164Colombia(phone);
+            var message = $"Tu código de confirmación para tu cita en Piedra Azul es: *{code}*\nVálido por {expirationMinutes} minutos.";
+            await _whatsApp.SendMessageAsync(phoneE164, message);
+        }
+        else if (channel == OtpChannel.SMS)
+        {
+            var phoneE164 = ToE164Colombia(phone);
+            var message = $"Tu código de confirmación para tu cita en Piedra Azul es: {code}. Válido por {expirationMinutes} minutos.";
+            var sent = await _smsService.SMSAsync(phoneE164, message);
+            if (!sent)
+                throw new InvalidOperationException("No se pudo enviar el SMS. Intenta con otro canal.");
+        }
+        else
+        {
+            if (string.IsNullOrWhiteSpace(email))
+                throw new InvalidOperationException("Email requerido para canal Email");
+            await _emailService.SendMFAEmailAsync(email, "Paciente", code, expirationMinutes);
+        }
+    }
+
+    private static string GenerateCode() => new Random().Next(100_000, 999_999).ToString();
+
     public static string ToE164Colombia(string phone)
     {
         var digits = new string(phone.Where(char.IsDigit).ToArray());
 
-        // Si ya tiene código de país 57
         if (digits.StartsWith("57") && digits.Length == 12)
-            return $"{digits}";
+            return digits;
 
-        // Número local colombiano de 10 dígitos
         if (digits.Length == 10 && digits.StartsWith("3"))
             return $"57{digits}";
 

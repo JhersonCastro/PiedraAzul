@@ -1,6 +1,8 @@
 ﻿using Mediator;
+using PiedraAzul.Application.Common.Interfaces;
 using PiedraAzul.Application.Features.Patients.Commands.CreateGuestPatient;
 using PiedraAzul.Domain.Entities.Operations;
+using PiedraAzul.Domain.Entities.Profiles.Patients;
 using PiedraAzul.Domain.Repositories;
 
 namespace PiedraAzul.Application.Features.Appointments.CreateAppointment;
@@ -15,6 +17,7 @@ public class CreateAppointmentHandler
     private readonly IPatientGuestRepository _patientGuestRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMediator _mediator;
+    private readonly IIdentityService _identityService;
 
     public CreateAppointmentHandler(
         IAppointmentRepository appointmentRepository,
@@ -23,7 +26,8 @@ public class CreateAppointmentHandler
         IPatientRepository patientRepository,
         IPatientGuestRepository patientGuestRepository,
         IUnitOfWork unitOfWork,
-        IMediator mediator)
+        IMediator mediator,
+        IIdentityService identityService)
     {
         _appointmentRepository = appointmentRepository;
         _doctorRepository = doctorRepository;
@@ -32,6 +36,7 @@ public class CreateAppointmentHandler
         _patientGuestRepository = patientGuestRepository;
         _unitOfWork = unitOfWork;
         _mediator = mediator;
+        _identityService = identityService;
     }
 
     public async ValueTask<Appointment> Handle(
@@ -65,7 +70,14 @@ public class CreateAppointmentHandler
                     .GetByUserIdAsync(request.PatientUserId, ct);
 
                 if (patient is null)
-                    throw new Exception("Patient not found");
+                {
+                    // Auto-crear el RegisteredPatient si aún no existe en la tabla Patients.
+                    // Esto cubre usuarios legacy o creados por admin que no pasaron por el
+                    // flujo de registro estándar (CreateProfileForRoleAsync).
+                    var userDto = await _identityService.GetById(request.PatientUserId);
+                    var name = userDto?.Name ?? userDto?.Email ?? string.Empty;
+                    await _patientRepository.AddAsync(new RegisteredPatient(request.PatientUserId, name), ct);
+                }
 
                 userId = request.PatientUserId;
             }
@@ -83,7 +95,8 @@ public class CreateAppointmentHandler
                             guestRequest.Identification,
                             guestRequest.Name,
                             guestRequest.Phone,
-                            guestRequest.ExtraInfo
+                            guestRequest.ExtraInfo,
+                            guestRequest.Email
                         ),
                         ct
                     );

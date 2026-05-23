@@ -18,6 +18,7 @@ namespace PiedraAzul.Infrastructure.Persistence
         public DbSet<Doctor> Doctors => Set<Doctor>();
         public DbSet<DoctorAvailabilitySlot> DoctorAvailabilitySlots => Set<DoctorAvailabilitySlot>();
         public DbSet<Patient> Patients => Set<Patient>();
+        public DbSet<GuestVerificationSession> GuestVerificationSessions => Set<GuestVerificationSession>();
         public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
         public DbSet<PasskeyCredential> PasskeyCredentials => Set<PasskeyCredential>();
         public DbSet<UserMFAConfiguration> UserMFAConfigurations => Set<UserMFAConfiguration>();

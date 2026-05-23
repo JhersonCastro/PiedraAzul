@@ -1,0 +1,257 @@
+@using PiedraAzul.Client.Models.Booking
+@using PiedraAzul.Client.Models.UserProfiles
+@using PiedraAzul.Client.Services.GraphQLServices
+@using PiedraAzul.Contracts.Enums
+
+@*
+    Modal de reagendamiento: 3 pasos internos, reutilizando los componentes
+    de selección de doctor y horario del flujo de booking para mantener
+    consistencia visual.
+        1. SelectDoctor  — MenuTypeMedic
+        2. SelectSlot    — AppointmentScheduler
+        3. Confirm       — resumen + botón confirmar
+*@
+
+@if (IsOpen)
+{
+    <div class="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"></div>
+
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl border border-slate-100 flex flex-col max-h-[92vh]">
+
+            <!-- Header -->
+            <div class="flex items-center justify-between px-6 py-4 bg-slate-50 border-b border-slate-100 flex-shrink-0">
+                <div class="flex items-center gap-3">
+                    <!-- Step indicator -->
+                    <div class="flex gap-1.5">
+                        @for (int i = 0; i < 3; i++)
+                        {
+                            var idx = i;
+                            <div class="h-2 rounded-full transition-all @(idx == _stepIndex ? "w-6 bg-teal-600" : idx < _stepIndex ? "w-2 bg-teal-400" : "w-2 bg-slate-200")"></div>
+                        }
+                    </div>
+                    <h2 class="text-base font-bold text-slate-900">@GetTitle()</h2>
+                </div>
+                @if (!IsLoading)
+                {
+                    <button @onclick="HandleClose"
+                            class="text-slate-400 hover:text-slate-700 transition-colors">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                }
+            </div>
+
+            <!-- Body -->
+            <div class="px-6 py-5 overflow-y-auto flex-1">
+
+                @if (!string.IsNullOrEmpty(_error))
+                {
+                    <div class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">@_error</div>
+                }
+
+                @if (IsLoading)
+                {
+                    <div class="flex justify-center py-16">
+                        <div class="h-8 w-8 animate-spin rounded-full border-b-2 border-teal-600"></div>
+                    </div>
+                }
+                else if (_stepIndex == 0)
+                {
+                    @if (OriginalDoctorId is not null)
+                    {
+                        <p class="text-sm text-slate-600 mb-4">
+                            Puedes mantener el mismo médico o elegir uno diferente para tu nueva cita.
+                        </p>
+                    }
+
+                    <MenuTypeMedic OnSelected="HandleDoctorSelected" />
+                }
+                else if (_stepIndex == 1)
+                {
+                    @if (!string.IsNullOrEmpty(_selectedDoctorId))
+                    {
+                        <AppointmentScheduler DoctorId="@_selectedDoctorId"
+                                              OnSelected="HandleSlotSelected"
+                                              @key="_selectedDoctorId" />
+                    }
+                }
+                else if (_stepIndex == 2)
+                {
+                    <!-- Step 3: Confirm -->
+                    <div class="space-y-4">
+                        <div class="flex items-start gap-3 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
+                            <svg class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.073 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                            </svg>
+                            <p class="text-sm text-amber-800">
+                                Tu cita anterior quedará marcada como reagendada. Esta acción no se puede deshacer.
+                            </p>
+                        </div>
+
+                        <div class="rounded-xl border border-slate-200 bg-slate-50 divide-y divide-slate-100">
+                            <div class="px-4 py-3 flex justify-between">
+                                <span class="text-sm text-slate-500">Médico</span>
+                                <span class="text-sm font-semibold text-slate-800">@_selectedDoctorName</span>
+                            </div>
+                            <div class="px-4 py-3 flex justify-between">
+                                <span class="text-sm text-slate-500">Fecha</span>
+                                <span class="text-sm font-semibold text-slate-800 capitalize">
+                                    @(_selectedSlot is not null ? _selectedSlot.Date.ToString("dddd, d 'de' MMMM yyyy", new System.Globalization.CultureInfo("es-ES")) : "-")
+                                </span>
+                            </div>
+                            <div class="px-4 py-3 flex justify-between">
+                                <span class="text-sm text-slate-500">Hora</span>
+                                <span class="text-sm font-semibold text-slate-800">@(_selectedSlot?.Time ?? "-")</span>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+            </div>
+
+            <!-- Footer -->
+            <div class="flex items-center justify-between px-6 py-4 bg-slate-50 border-t border-slate-100 flex-shrink-0 gap-3">
+                @if (_stepIndex > 0)
+                {
+                    <button type="button" @onclick="GoBack"
+                            disabled="@IsLoading"
+                            class="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 transition disabled:opacity-50">
+                        Atrás
+                    </button>
+                }
+                else
+                {
+                    <div></div>
+                }
+
+                @if (_stepIndex < 2)
+                {
+                    <button type="button" @onclick="GoNext"
+                            disabled="@(!CanGoNext() || IsLoading)"
+                            class="rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-teal-700 transition disabled:opacity-40 disabled:cursor-not-allowed">
+                        Siguiente
+                    </button>
+                }
+                else
+                {
+                    <button type="button" @onclick="ConfirmReschedule"
+                            disabled="@IsLoading"
+                            class="flex items-center gap-2 rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-teal-700 transition disabled:opacity-40 disabled:cursor-not-allowed">
+                        @if (IsLoading)
+                        {
+                            <div class="h-4 w-4 animate-spin rounded-full border-b-2 border-white"></div>
+                        }
+                        Confirmar reagendamiento
+                    </button>
+                }
+            </div>
+
+        </div>
+    </div>
+}
+
+@code {
+    // ─── Parameters ───────────────────────────────────────────────────────────
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public bool IsLoading { get; set; }
+
+    /// <summary>Id del doctor de la cita original (informativo).</summary>
+    [Parameter] public string? OriginalDoctorId { get; set; }
+
+    /// <summary>Callback cuando el usuario confirma. Recibe (doctorId, slotId, date).</summary>
+    [Parameter] public EventCallback<(string DoctorId, string SlotId, DateTime Date)> OnConfirm { get; set; }
+
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    // ─── Internal state ───────────────────────────────────────────────────────
+    private int _stepIndex = 0;
+    private string? _error;
+
+    // Step 0 result
+    private string? _selectedDoctorId;
+    private string? _selectedDoctorName;
+
+    // Step 1 result
+    private AppointmentSchedulerModel? _selectedSlot;
+
+    // ─── Step 0 callback ──────────────────────────────────────────────────────
+
+    private void HandleDoctorSelected(DoctorModel? doctor)
+    {
+        // MenuTypeMedic invoca con null al inicializarse para limpiar selección
+        if (doctor is null)
+        {
+            _selectedDoctorId = null;
+            _selectedDoctorName = null;
+        }
+        else
+        {
+            _selectedDoctorId = doctor.Id;
+            _selectedDoctorName = doctor.Name;
+            // Reiniciar slot si cambia el doctor
+            _selectedSlot = null;
+        }
+    }
+
+    // ─── Step 1 callback ──────────────────────────────────────────────────────
+
+    private void HandleSlotSelected(AppointmentSchedulerModel slot)
+    {
+        _selectedSlot = slot;
+    }
+
+    // ─── Navigation ───────────────────────────────────────────────────────────
+
+    private bool CanGoNext() => _stepIndex switch
+    {
+        0 => !string.IsNullOrEmpty(_selectedDoctorId),
+        1 => _selectedSlot is not null,
+        _ => false
+    };
+
+    private void GoNext()
+    {
+        _error = null;
+        if (_stepIndex < 2) _stepIndex++;
+    }
+
+    private void GoBack()
+    {
+        _error = null;
+        if (_stepIndex > 0) _stepIndex--;
+    }
+
+    private string GetTitle() => _stepIndex switch
+    {
+        0 => "Elige el médico",
+        1 => "Elige el día y hora",
+        _ => "Confirmar reagendamiento"
+    };
+
+    // ─── Confirm ──────────────────────────────────────────────────────────────
+
+    private async Task ConfirmReschedule()
+    {
+        if (string.IsNullOrEmpty(_selectedDoctorId) || _selectedSlot is null)
+            return;
+
+        await OnConfirm.InvokeAsync((_selectedDoctorId, _selectedSlot.SlotId, _selectedSlot.Date));
+    }
+
+    private async Task HandleClose()
+    {
+        ResetState();
+        await OnClose.InvokeAsync();
+    }
+
+    private void ResetState()
+    {
+        _stepIndex = 0;
+        _error = null;
+        _selectedDoctorId = null;
+        _selectedDoctorName = null;
+        _selectedSlot = null;
+    }
+}

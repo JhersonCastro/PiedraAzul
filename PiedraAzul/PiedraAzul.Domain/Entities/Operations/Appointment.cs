@@ -3,6 +3,8 @@ using PiedraAzul.Domain.Entities.Profiles.Doctor;
 
 namespace PiedraAzul.Domain.Entities.Operations
 {
+    public enum AppointmentStatus { Active, Cancelled, Rescheduled }
+
     public class Appointment
     {
         public Guid Id { get; private set; }
@@ -18,6 +20,12 @@ namespace PiedraAzul.Domain.Entities.Operations
         public DateOnly Date { get; private set; }
 
         public DateTime CreatedAt { get; private set; }
+
+        /// <summary>Active (default), Cancelled o Rescheduled (soft-delete para auditoría).</summary>
+        public AppointmentStatus Status { get; private set; } = AppointmentStatus.Active;
+
+        /// <summary>Si fue reagendada, apunta al Id de la nueva cita.</summary>
+        public Guid? RescheduledToId { get; private set; }
 
         private Appointment() { }
 
@@ -65,6 +73,19 @@ namespace PiedraAzul.Domain.Entities.Operations
                 date,
                 patientUserId,
                 patientGuestId);
+        }
+
+        /// <summary>Soft-delete: marca esta cita como reagendada y registra el Id de la nueva.</summary>
+        public void MarkAsRescheduled(Guid newAppointmentId)
+        {
+            Status = AppointmentStatus.Rescheduled;
+            RescheduledToId = newAppointmentId;
+        }
+
+        /// <summary>Soft-delete: cancela la cita.</summary>
+        public void Cancel()
+        {
+            Status = AppointmentStatus.Cancelled;
         }
     }
 }

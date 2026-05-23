@@ -24,15 +24,19 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
         // ── Patient Search / Verification Modal ───────────────────────────
         private bool _showVerificationModal;
         private bool _searching;
-        private PatientSearchResultGQL? _searchResult;
+        private GuestLookupResultGQL? _searchResult;
         private string? _searchResultType;
         private string? _searchError;
 
-        // ── OTP ──────────────────────────────────────────────────────────
+        // ── OTP final (FLUJO 1 - nuevo usuario) ───────────────────────────
         bool _otpSent = false;
         bool _otpLoading = false;
         string? _otpError = null;
-        // ─────────────────────────────────────────────────────────────────
+
+        // ── Channel Validation Modal (FLUJO 2 y FLUJO 3) ──────────────────
+        private bool _showChannelValidationModal;
+        private bool _channelValidationLoading;
+        private string? _channelValidationError;
 
         protected override async Task OnInitializedAsync()
         {
@@ -54,7 +58,6 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
                 {
                     if (Stepper.CurrentStep == 0)
                     {
-                        // Step 1 → search DB before allowing advance
                         _searching = true;
                         _showVerificationModal = true;
                         _searchError = null;
@@ -62,14 +65,14 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
                         _searchResultType = null;
                         StateHasChanged();
 
-                        await Task.Yield(); // let UI render the loading modal first
+                        await Task.Yield();
 
                         await SearchPatientByIdentificationAsync(Model.PatientIdentification!);
 
                         _searching = false;
                         StateHasChanged();
 
-                        return false; // never auto-advance; modal handles navigation
+                        return false;
                     }
 
                     return true;
@@ -81,40 +84,43 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
 
         private async Task SearchPatientByIdentificationAsync(string identification)
         {
-            // Usa el endpoint público sin auth (busca GuestPatient por cédula exacta)
             var result = await PatientSearchService.LookupByIdentificationAsync(identification);
 
             if (!result.IsSuccess)
             {
                 _searchError = result.Error?.Message ?? "Error de conexión";
                 _searchResultType = "ERROR";
-                _searchResult = null;
                 return;
             }
 
             if (result.Value is not null)
             {
-                _searchResult = result.Value;
-                _searchResultType = _searchResult.Type; // "GUEST"
+                var lookup = result.Value;
+                _searchResult = lookup;
 
-                // Pre-populate model from search
-                Model.PatientName = _searchResult.Name;
-                Model.PatientPhone = _searchResult.Phone;
-                Model.PatientDataFromSearch = true;
-                Model.IsNewPatient = false;
+                // Guardar datos enmascarados y canales disponibles
+                Model.VerificationHash = lookup.VerificationHash;
+                Model.HasPhoneAvailable = lookup.HasPhone;
+                Model.HasEmailAvailable = lookup.HasEmail;
+                Model.MaskedPhone = lookup.MaskedPhone;
+                Model.MaskedEmail = lookup.MaskedEmail;
+
+                _searchResultType = lookup.Type.ToUpperInvariant() switch
+                {
+                    "REGISTERED" => "REGISTERED",
+                    "GUEST" => "GUEST",
+                    "NOCONTACT" or "NO_CONTACT" => "NO_CONTACT",
+                    _ => "NOT_FOUND"
+                };
             }
             else
             {
                 _searchResultType = "NOT_FOUND";
-                _searchResult = null;
-                Model.PatientName = null;
-                Model.PatientPhone = null;
-                Model.PatientDataFromSearch = false;
                 Model.IsNewPatient = true;
             }
         }
 
-        // ── Modal Callbacks ───────────────────────────────────────────────
+        // ── Modal Callbacks (PatientVerificationModal) ────────────────────
 
         private void OnRegisteredLogin()
         {
@@ -122,27 +128,27 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
             Navigation.NavigateTo($"/login?returnUrl=/instant-medical-booking");
         }
 
+        /// <summary>FLUJO 2: Usuario registrado continúa como invitado → abrir modal de validación</summary>
         private void OnRegisteredGuestContinue()
         {
-            // Data already populated from search; skip data form (Step 2) → go to Doctor (Step 2 = index 2)
             _showVerificationModal = false;
-            Model.IsNewPatient = false;
-            Stepper.GoToStep(2);
+            Model.IsRegisteredContinuingAsGuest = true;
+            _showChannelValidationModal = true;
             StateHasChanged();
         }
 
-        private void OnGuestConfirm()
+        /// <summary>FLUJO 3: Guest existente → abrir modal de validación</summary>
+        private void OnGuestContinue()
         {
-            // Guest found, data pre-populated; skip data form → go to Doctor (index 2)
             _showVerificationModal = false;
-            Model.IsNewPatient = false;
-            Stepper.GoToStep(2);
+            Model.IsRegisteredContinuingAsGuest = false;
+            _showChannelValidationModal = true;
             StateHasChanged();
         }
 
+        /// <summary>FLUJO 1: Nuevo paciente</summary>
         private void OnNewPatientContinue()
         {
-            // Not found or error fallback → show data form in Step 2 (index 1)
             _showVerificationModal = false;
             Model.IsNewPatient = true;
             Stepper.GoToStep(1);
@@ -165,6 +171,89 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
         private void OnVerificationModalClose()
         {
             _showVerificationModal = false;
+        }
+
+        // ── Channel Validation Modal Callbacks (FLUJO 2 y FLUJO 3) ────────
+
+        private async Task SendChannelValidationOtpAsync(string channel)
+        {
+            _channelValidationError = null;
+            _channelValidationLoading = true;
+            StateHasChanged();
+
+            var result = await AppointmentService.SendGuestOtpByHashAsync(
+                Model.VerificationHash!, channel);
+
+            _channelValidationLoading = false;
+
+            if (!result.IsSuccess)
+                _channelValidationError = result.Error?.Message ?? "No se pudo enviar el código.";
+
+            StateHasChanged();
+        }
+
+        private async Task<GuestDataGQL?> VerifyChannelValidationOtpAsync(string channel, string code)
+        {
+            _channelValidationError = null;
+            _channelValidationLoading = true;
+            StateHasChanged();
+
+            // Solo verificar el OTP (sin actualizar datos aún - usuario verá los datos primero)
+            var result = await AppointmentService.VerifyGuestOtpByHashAsync(
+                Model.VerificationHash!, code);
+
+            _channelValidationLoading = false;
+            StateHasChanged();
+
+            if (!result.IsSuccess || result.Value is null)
+                return null;
+
+            return result.Value;
+        }
+
+        /// <summary>Callback final del modal: usuario confirmó/editó sus datos.</summary>
+        private async Task OnChannelValidationConfirm((GuestDataGQL Data, string OtpCode) payload)
+        {
+            _channelValidationLoading = true;
+            StateHasChanged();
+
+            var (data, otpCode) = payload;
+
+            // Persistir los datos editados en BD volviendo a llamar verifyGuestOtpByHash con los datos.
+            // La sesión ya está verificada → solo actualizará datos en BD (guest o sesión según tipo).
+            var persistResult = await AppointmentService.VerifyGuestOtpByHashAsync(
+                Model.VerificationHash!, otpCode, data.Name, data.Phone, data.Email);
+
+            _channelValidationLoading = false;
+
+            if (!persistResult.IsSuccess)
+            {
+                _channelValidationError = persistResult.Error?.Message ?? "Error al guardar los datos.";
+                StateHasChanged();
+                return;
+            }
+
+            // Aplicar datos al modelo local
+            Model.PatientName = data.Name;
+            Model.PatientPhone = data.Phone;
+            Model.PatientEmail = string.IsNullOrWhiteSpace(data.Email) ? null : data.Email;
+            Model.ChannelValidationVerified = true;
+            Model.IsPreVerifiedGuest = true;
+            Model.OtpVerified = true;  // Marcar verificado para que pase el submit final
+
+            _showChannelValidationModal = false;
+
+            // Saltar al step de selección de doctor (índice 2: 0=ID, 1=Datos, 2=Doctor)
+            Stepper.GoToStep(2);
+            StateHasChanged();
+        }
+
+        private void OnChannelValidationModalClose()
+        {
+            _showChannelValidationModal = false;
+            _channelValidationError = null;
+            Model.IsRegisteredContinuingAsGuest = false;
+            StateHasChanged();
         }
 
         // ── Doctor & Slot ─────────────────────────────────────────────────
@@ -191,7 +280,7 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
             Model.AppointmentSchedulerModel = args;
         }
 
-        // ── OTP ───────────────────────────────────────────────────────────
+        // ── OTP final (FLUJO 1 - solo nuevo usuario) ──────────────────────
 
         private async Task SendOtpAsync()
         {
@@ -253,17 +342,17 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
 
         private async Task HandlerSubmit()
         {
-            if (!Model.OtpVerified)
+            if (!Model.OtpVerified && !Model.IsPreVerifiedGuest)
             {
                 _errorMessage = "Debes verificar tu identidad antes de confirmar la cita.";
                 return;
             }
 
-            var extraInfo = Model.OtpChannel == "email" ? Model.PatientEmail ?? "" : "";
+            var extraInfo = !string.IsNullOrWhiteSpace(Model.PatientEmail) ? Model.PatientEmail : "";
 
             var result = await AppointmentService.BookGuestAppointmentAsync(new CreateAppointmentGqlInput(
                 Guest: CreateContracts.CreateGuestPatientInput(
-                    Model.PatientName!, Model.PatientPhone!, Model.PatientIdentification!, extraInfo),
+                    Model.PatientName!, Model.PatientPhone!, Model.PatientIdentification!, extraInfo, Model.PatientEmail),
                 PatientUserId: null,
                 DoctorId: Model.DoctorId,
                 DoctorAvailabilitySlotId: Model.SlotId,

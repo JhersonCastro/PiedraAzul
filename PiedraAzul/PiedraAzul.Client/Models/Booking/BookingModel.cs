@@ -1,4 +1,4 @@
-﻿using PiedraAzul.Client.Models.GraphQL;
+using PiedraAzul.Client.Models.GraphQL;
 using PiedraAzul.Client.Models.UserProfiles;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
@@ -7,10 +7,11 @@ namespace PiedraAzul.Client.Models.Booking
 {
     public class BookingModel
     {
-        //Selected Patient
+        // ── Identificación ───────────────────────────────────────────
         [Required]
         [MinLength(5, ErrorMessage = "El ID debe tener al menos 5 caracteres")]
         public string? PatientIdentification { get; set; }
+
         [Required(ErrorMessage = "El nombre es obligatorio")]
         [MinLength(3, ErrorMessage = "El nombre es muy corto")]
         public string? PatientName { get; set; }
@@ -19,12 +20,11 @@ namespace PiedraAzul.Client.Models.Booking
         [Phone(ErrorMessage = "Teléfono inválido")]
         public string? PatientPhone { get; set; }
 
-
         public string? PatientAddress { get; set; }
 
-        // ── OTP Verification ─────────────────────────────────────────
-        /// <summary>Canal elegido por el huésped: "whatsapp" o "email"</summary>
-        public string OtpChannel { get; set; } = "email";
+        // ── OTP Verification (FLUJO 1) ────────────────────────────────
+        /// <summary>Canal elegido por el huésped: "sms", "whatsapp" o "email"</summary>
+        public string OtpChannel { get; set; } = "sms";
 
         /// <summary>Email solo requerido si OtpChannel == "email"</summary>
         [EmailAddress(ErrorMessage = "Email inválido")]
@@ -38,8 +38,8 @@ namespace PiedraAzul.Client.Models.Booking
 
         /// <summary>true cuando el OTP fue verificado correctamente</summary>
         public bool OtpVerified { get; set; }
-        // ─────────────────────────────────────────────────────────────
 
+        // ── Doctor & Slot ─────────────────────────────────────────────
         [Required(ErrorMessage = "El doctor es obligatorio")]
         public string? DoctorId { get; set; }
 
@@ -56,16 +56,44 @@ namespace PiedraAzul.Client.Models.Booking
         [JsonIgnore]
         public PatientSearchResultGQL? SearchResult { get; set; }
 
-        /// <summary>"REGISTERED" | "GUEST" | "NOT_FOUND" | "ERROR" | null</summary>
+        /// <summary>"REGISTERED" | "GUEST" | "NOT_FOUND" | "NO_CONTACT" | "ERROR" | null</summary>
         [JsonIgnore]
         public string? SearchResultType { get; set; }
 
         [JsonIgnore]
         public bool PatientDataFromSearch { get; set; }
 
-        /// <summary>true = show data form in Step 2; false = skip to doctor</summary>
+        /// <summary>true = FLUJO 1 (nuevo usuario, completar datos en Step 1)</summary>
         [JsonIgnore]
         public bool IsNewPatient { get; set; }
-    }
 
+        // ── Pre-verificación (FLUJO 2 y FLUJO 3) ─────────────────────
+        /// <summary>Hash de la sesión de verificación devuelto por lookupGuestByIdentification.</summary>
+        [JsonIgnore]
+        public string? VerificationHash { get; set; }
+
+        /// <summary>true = el usuario fue pre-verificado al inicio; omitir OTP final.</summary>
+        [JsonIgnore]
+        public bool IsPreVerifiedGuest { get; set; }
+
+        /// <summary>true = FLUJO 2 (usuario registrado continuando como invitado, datos READONLY)</summary>
+        [JsonIgnore]
+        public bool IsRegisteredContinuingAsGuest { get; set; }
+
+        // ── Datos enmascarados disponibles (para modal de validación) ─
+        [JsonIgnore]
+        public bool HasPhoneAvailable { get; set; }
+
+        [JsonIgnore]
+        public bool HasEmailAvailable { get; set; }
+
+        [JsonIgnore]
+        public string? MaskedPhone { get; set; }
+
+        [JsonIgnore]
+        public string? MaskedEmail { get; set; }
+
+        [JsonIgnore]
+        public bool ChannelValidationVerified { get; set; }
+    }
 }

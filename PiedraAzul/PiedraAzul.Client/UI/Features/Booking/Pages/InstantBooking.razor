@@ -28,7 +28,7 @@ else
         <div class="mx-auto my-6 flex w-full max-w-6xl flex-col rounded-xl bg-white p-8 shadow-2xl">
             <Stepper @ref="Stepper" TModel="BookingModel" FinishText="Solicitar cita" OnFinish="HandlerSubmit">
 
-                <!-- STEP 1: Solo identificación -->
+                <!-- STEP 1: Identificación -->
                 <Step TModel="BookingModel"
                       Title="Identificación"
                       Fields="@(new[] { nameof(Model.PatientIdentification) })">
@@ -68,15 +68,19 @@ else
                 </Step>
 
 
-                <!-- STEP 2: Datos adicionales (solo para nuevos pacientes) -->
+                <!-- STEP 2: Datos personales (FLUJO 1 editable; FLUJO 2 y 3 readonly) -->
                 <Step TModel="BookingModel"
                       Title="Tus datos"
                       Fields="@(new[] { nameof(Model.PatientName), nameof(Model.PatientPhone) })">
 
                     <div class="mb-6 flex flex-col items-center text-center">
-                        <h2 class="text-2xl font-bold">Ingresa tus datos</h2>
+                        <h2 class="text-2xl font-bold">
+                            @(Model.IsPreVerifiedGuest ? "Tus datos verificados" : "Ingresa tus datos")
+                        </h2>
                         <p class="mt-2 text-gray-600">
-                            Necesitamos un poco más de información para reservar tu cita.
+                            @(Model.IsPreVerifiedGuest
+                                ? "Estos son los datos que usaremos para tu cita."
+                                : "Necesitamos un poco más de información para reservar tu cita.")
                         </p>
                     </div>
 
@@ -91,8 +95,9 @@ else
                                 <label class="text-lg font-semibold">Nombre completo</label>
                             </div>
 
-                            <InputText class="mt-2 rounded-md border-2 border-gray-300 px-4 py-3 focus:ring-primary focus:outline-none focus:ring-2"
+                            <InputText class="@($"mt-2 rounded-md border-2 border-gray-300 px-4 py-3 focus:ring-primary focus:outline-none focus:ring-2 {(Model.IsPreVerifiedGuest ? "bg-gray-100 cursor-not-allowed" : "")}")"
                                        @bind-Value="Model.PatientName"
+                                       readonly="@Model.IsPreVerifiedGuest"
                                        placeholder="Ej: Juan López" />
 
                             <ValidationMessage For="@(() => Model.PatientName)" class="text-red-500 text-sm mt-1" />
@@ -107,11 +112,30 @@ else
                                 <label class="text-lg font-semibold">Número de teléfono</label>
                             </div>
 
-                            <InputText class="mt-2 rounded-md border-2 border-gray-300 px-4 py-3 focus:ring-primary focus:outline-none focus:ring-2"
+                            <InputText class="@($"mt-2 rounded-md border-2 border-gray-300 px-4 py-3 focus:ring-primary focus:outline-none focus:ring-2 {(Model.IsPreVerifiedGuest ? "bg-gray-100 cursor-not-allowed" : "")}")"
                                        @bind-Value="Model.PatientPhone"
+                                       readonly="@Model.IsPreVerifiedGuest"
                                        placeholder="Ej: 301 123 4567" />
 
                             <ValidationMessage For="@(() => Model.PatientPhone)" class="text-red-500 text-sm mt-1" />
+                        </div>
+
+                        <!-- Email (opcional, solo FLUJO 1; FLUJO 2 y 3 muestra readonly si hay) -->
+                        <div class="flex flex-col">
+                            <div class="flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24" fill="#257D8D">
+                                    <path d="M160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720v480q0 33-23.5 56.5T800-160H160Zm320-280L160-640v400h640v-400L480-440Z"/>
+                                </svg>
+                                <label class="text-lg font-semibold">Correo electrónico <span class="text-sm text-gray-400 font-normal">(opcional)</span></label>
+                            </div>
+
+                            <InputText type="email"
+                                       class="@($"mt-2 rounded-md border-2 border-gray-300 px-4 py-3 focus:ring-primary focus:outline-none focus:ring-2 {(Model.IsPreVerifiedGuest ? "bg-gray-100 cursor-not-allowed" : "")}")"
+                                       @bind-Value="Model.PatientEmail"
+                                       readonly="@Model.IsPreVerifiedGuest"
+                                       placeholder="tucorreo@ejemplo.com" />
+
+                            <ValidationMessage For="@(() => Model.PatientEmail)" class="text-red-500 text-sm mt-1" />
                         </div>
 
                     </div>
@@ -147,152 +171,178 @@ else
                     <div class="flex flex-col gap-2 text-lg">
                         <p><b>Nombre:</b> @Model.PatientName</p>
                         <p><b>Teléfono:</b> @Model.PatientPhone</p>
+                        @if (!string.IsNullOrWhiteSpace(Model.PatientEmail))
+                        {
+                            <p><b>Email:</b> @Model.PatientEmail</p>
+                        }
                         <p><b>Nombre de doctor:</b> @Model.Doctor?.Name</p>
                         <p><b>A la fecha:</b> @Model.AppointmentSchedulerModel?.Date.ToShortDateString() @Model.AppointmentSchedulerModel?.Time</p>
                     </div>
 
                 </Step>
 
-                <!-- STEP 6: Verificación OTP -->
+                <!-- STEP 6: Verificación OTP (omitido para guests pre-verificados) -->
                 <Step TModel="BookingModel" Title="Verificación">
 
-                    <div class="mb-6 flex flex-col items-center text-center">
-                        <h2 class="text-2xl font-bold">Verifica tu identidad</h2>
-                        <p class="mt-2 text-gray-600">
-                            Te enviaremos un código de 6 dígitos para confirmar tu cita.
-                        </p>
-                    </div>
-
-                    <div class="flex w-full flex-col gap-5 rounded border-2 border-gray-200 p-5">
-
-                        @if (!_otpSent)
-                        {
-                            <!-- Selección de canal -->
-                            <div>
-                                <p class="mb-3 text-base font-semibold text-gray-700">¿Cómo quieres recibir el código?</p>
-                                <div class="flex gap-3">
-                                    <button type="button"
-                                            disabled
-                                            class="relative flex flex-1 flex-col items-center gap-2 rounded-xl border-2 p-4 transition
-                                                   border-gray-300 bg-gray-100 cursor-not-allowed opacity-60"
-                                            title="WhatsApp temporalmente deshabilitado">
-                                        <svg class="h-8 w-8 text-gray-400" viewBox="0 0 24 24" fill="currentColor">
-                                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
-                                            <path d="M12 0C5.373 0 0 5.373 0 12c0 2.128.558 4.122 1.532 5.855L.057 23.171a.75.75 0 00.92.919l5.355-1.462A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.907 0-3.698-.501-5.254-1.378l-.376-.215-3.898 1.064 1.08-3.818-.233-.386A9.955 9.955 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" />
-                                        </svg>
-                                        <span class="text-sm font-semibold text-gray-500">WhatsApp</span>
-                                        <span class="text-xs text-gray-400">Deshabilitado</span>
-                                    </button>
-
-                                    <button type="button"
-                                            @onclick='() => Model.OtpChannel = "email"'
-                                            class="flex flex-1 flex-col items-center gap-2 rounded-xl border-2 p-4 transition
-                                                   @(Model.OtpChannel == "email" ? "border-[#2A9D8F] bg-[#e8f5f3]" : "border-gray-200 hover:border-gray-300")">
-                                        <svg class="h-8 w-8 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                                            <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                                        </svg>
-                                        <span class="text-sm font-semibold @(Model.OtpChannel == "email" ? "text-[#2A9D8F]" : "text-gray-700")">
-                                            Email
-                                        </span>
-                                        <span class="text-xs text-gray-500">Ingresa tu correo</span>
-                                    </button>
-                                </div>
+                    @if (Model.IsPreVerifiedGuest)
+                    {
+                        <!-- FLUJO 2 y FLUJO 3: ya verificado en modal inicial -->
+                        <div class="flex flex-col items-center gap-4 py-6">
+                            <div class="flex h-16 w-16 items-center justify-center rounded-full bg-[#edf7f2]">
+                                <svg class="h-8 w-8 text-[#166534]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                    <polyline points="20 6 9 17 4 12" />
+                                </svg>
                             </div>
+                            <p class="text-lg font-bold text-[#166534]">Identidad verificada</p>
+                            <p class="text-sm text-gray-500">Ya verificaste tu identidad al inicio. Puedes continuar.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <!-- FLUJO 1: nuevo usuario, requiere OTP -->
+                        <div class="mb-6 flex flex-col items-center text-center">
+                            <h2 class="text-2xl font-bold">Verifica tu identidad</h2>
+                            <p class="mt-2 text-gray-600">
+                                Te enviaremos un código de 6 dígitos para confirmar tu cita.
+                            </p>
+                        </div>
 
-                            @if (Model.OtpChannel == "email")
+                        <div class="flex w-full flex-col gap-5 rounded border-2 border-gray-200 p-5">
+
+                            @if (!_otpSent)
                             {
-                                <div class="flex flex-col">
-                                    <label class="mb-1 text-sm font-semibold text-gray-700">Correo electrónico</label>
-                                    <InputText type="email"
-                                               @bind-Value="Model.PatientEmail"
-                                               placeholder="tucorreo@ejemplo.com"
-                                               class="rounded-md border-2 border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#2A9D8F]" />
-                                    <ValidationMessage For="@(() => Model.PatientEmail)" class="mt-1 text-sm text-red-500" />
+                                <!-- Selección de canal -->
+                                <div>
+                                    <p class="mb-3 text-base font-semibold text-gray-700">¿Cómo quieres recibir el código?</p>
+                                    <div class="flex gap-3">
+                                        <button type="button"
+                                                disabled
+                                                class="relative flex flex-1 flex-col items-center gap-2 rounded-xl border-2 p-4 transition
+                                                       border-gray-300 bg-gray-100 cursor-not-allowed opacity-60"
+                                                title="WhatsApp temporalmente deshabilitado">
+                                            <svg class="h-8 w-8 text-gray-400" viewBox="0 0 24 24" fill="currentColor">
+                                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+                                                <path d="M12 0C5.373 0 0 5.373 0 12c0 2.128.558 4.122 1.532 5.855L.057 23.171a.75.75 0 00.92.919l5.355-1.462A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.907 0-3.698-.501-5.254-1.378l-.376-.215-3.898 1.064 1.08-3.818-.233-.386A9.955 9.955 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" />
+                                            </svg>
+                                            <span class="text-sm font-semibold text-gray-500">WhatsApp</span>
+                                            <span class="text-xs text-gray-400">Deshabilitado</span>
+                                        </button>
+
+                                        <button type="button"
+                                                @onclick='() => Model.OtpChannel = "sms"'
+                                                class="flex flex-1 flex-col items-center gap-2 rounded-xl border-2 p-4 transition
+                                                       @(Model.OtpChannel == "sms" ? "border-[#2A9D8F] bg-[#e8f5f3]" : "border-gray-200 hover:border-gray-300")">
+                                            <svg class="h-8 w-8 @(Model.OtpChannel == "sms" ? "text-[#2A9D8F]" : "text-gray-500")" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                            </svg>
+                                            <span class="text-sm font-semibold @(Model.OtpChannel == "sms" ? "text-[#2A9D8F]" : "text-gray-700")">
+                                                SMS
+                                            </span>
+                                            <span class="text-xs text-gray-500">Al @Model.PatientPhone</span>
+                                        </button>
+
+                                        @if (!string.IsNullOrWhiteSpace(Model.PatientEmail))
+                                        {
+                                            <button type="button"
+                                                    @onclick='() => Model.OtpChannel = "email"'
+                                                    class="flex flex-1 flex-col items-center gap-2 rounded-xl border-2 p-4 transition
+                                                           @(Model.OtpChannel == "email" ? "border-[#2A9D8F] bg-[#e8f5f3]" : "border-gray-200 hover:border-gray-300")">
+                                                <svg class="h-8 w-8 @(Model.OtpChannel == "email" ? "text-[#2A9D8F]" : "text-gray-500")" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                                    <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                                </svg>
+                                                <span class="text-sm font-semibold @(Model.OtpChannel == "email" ? "text-[#2A9D8F]" : "text-gray-700")">
+                                                    Email
+                                                </span>
+                                                <span class="text-xs text-gray-500">Al @Model.PatientEmail</span>
+                                            </button>
+                                        }
+                                    </div>
                                 </div>
-                            }
-
-                            @if (!string.IsNullOrEmpty(_otpError))
-                            {
-                                <p class="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-600">@_otpError</p>
-                            }
-
-                            <button type="button"
-                                    @onclick="SendOtpAsync"
-                                    disabled="@_otpLoading"
-                                    class="w-full rounded-lg bg-[#2A9D8F] py-3 text-base font-semibold text-white
-                                           transition hover:bg-[#1e7168] disabled:opacity-50">
-                                @(_otpLoading ? "Enviando..." : "Enviar código")
-                            </button>
-                        }
-                        else
-                        {
-                            <div class="flex flex-col items-center gap-4">
-                                <div class="flex h-14 w-14 items-center justify-center rounded-full bg-[#e8f5f3]">
-                                    <svg class="h-7 w-7 text-[#2A9D8F]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                                        <path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                                    </svg>
-                                </div>
-
-                                <div class="text-center">
-                                    <p class="text-sm font-semibold text-gray-800">
-                                        Código enviado por
-                                        @(Model.OtpChannel == "whatsapp" ? $"WhatsApp al {Model.PatientPhone}" : $"Email a {Model.PatientEmail}")
-                                    </p>
-                                    <p class="mt-0.5 text-xs text-gray-500">Válido por 10 minutos</p>
-                                </div>
-
-                                <input type="text"
-                                       @bind="Model.OtpCode"
-                                       @bind:event="oninput"
-                                       maxlength="6"
-                                       placeholder="000000"
-                                       class="w-48 rounded-xl border-2 border-gray-300 px-4 py-3 text-center text-3xl
-                                              font-bold tracking-widest focus:border-[#2A9D8F] focus:outline-none
-                                              focus:ring-2 focus:ring-[#2A9D8F]/20" />
 
                                 @if (!string.IsNullOrEmpty(_otpError))
                                 {
                                     <p class="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-600">@_otpError</p>
                                 }
 
-                                @if (Model.OtpVerified)
-                                {
-                                    <div class="flex items-center gap-2 rounded-lg bg-[#edf7f2] px-4 py-2 text-sm font-semibold text-[#166534]">
-                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                            <polyline points="20 6 9 17 4 12" />
-                                        </svg>
-                                        Identidad verificada
-                                    </div>
-                                }
-
                                 <button type="button"
-                                        @onclick="VerifyOtpAsync"
-                                        disabled="@(Model.OtpCode?.Length != 6 || _otpLoading || Model.OtpVerified)"
+                                        @onclick="SendOtpAsync"
+                                        disabled="@_otpLoading"
                                         class="w-full rounded-lg bg-[#2A9D8F] py-3 text-base font-semibold text-white
                                                transition hover:bg-[#1e7168] disabled:opacity-50">
-                                    @if (_otpLoading)
-                                    {
-                                        <span>Verificando...</span>
-                                    }
-                                    else if (Model.OtpVerified)
-                                    {
-                                        <span>✓ Verificado</span>
-                                    }
-                                    else
-                                    {
-                                        <span>Verificar código</span>
-                                    }
+                                    @(_otpLoading ? "Enviando..." : "Enviar código")
                                 </button>
+                            }
+                            else
+                            {
+                                <div class="flex flex-col items-center gap-4">
+                                    <div class="flex h-14 w-14 items-center justify-center rounded-full bg-[#e8f5f3]">
+                                        <svg class="h-7 w-7 text-[#2A9D8F]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                            <path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                        </svg>
+                                    </div>
 
-                                <button type="button"
-                                        @onclick="ResetOtp"
-                                        class="text-xs text-[#2A9D8F] underline hover:text-[#1e7168]">
-                                    ¿No recibiste el código? Volver a enviar
-                                </button>
-                            </div>
-                        }
+                                    <div class="text-center">
+                                        <p class="text-sm font-semibold text-gray-800">
+                                            Código enviado por
+                                            @(Model.OtpChannel == "sms" ? $"SMS al {Model.PatientPhone}"
+                                              : $"Email a {Model.PatientEmail}")
+                                        </p>
+                                        <p class="mt-0.5 text-xs text-gray-500">Válido por 10 minutos</p>
+                                    </div>
 
-                    </div>
+                                    <input type="text"
+                                           @bind="Model.OtpCode"
+                                           @bind:event="oninput"
+                                           maxlength="6"
+                                           placeholder="000000"
+                                           class="w-48 rounded-xl border-2 border-gray-300 px-4 py-3 text-center text-3xl
+                                                  font-bold tracking-widest focus:border-[#2A9D8F] focus:outline-none
+                                                  focus:ring-2 focus:ring-[#2A9D8F]/20" />
+
+                                    @if (!string.IsNullOrEmpty(_otpError))
+                                    {
+                                        <p class="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-600">@_otpError</p>
+                                    }
+
+                                    @if (Model.OtpVerified)
+                                    {
+                                        <div class="flex items-center gap-2 rounded-lg bg-[#edf7f2] px-4 py-2 text-sm font-semibold text-[#166534]">
+                                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                                <polyline points="20 6 9 17 4 12" />
+                                            </svg>
+                                            Identidad verificada
+                                        </div>
+                                    }
+
+                                    <button type="button"
+                                            @onclick="VerifyOtpAsync"
+                                            disabled="@(Model.OtpCode?.Length != 6 || _otpLoading || Model.OtpVerified)"
+                                            class="w-full rounded-lg bg-[#2A9D8F] py-3 text-base font-semibold text-white
+                                                   transition hover:bg-[#1e7168] disabled:opacity-50">
+                                        @if (_otpLoading)
+                                        {
+                                            <span>Verificando...</span>
+                                        }
+                                        else if (Model.OtpVerified)
+                                        {
+                                            <span>✓ Verificado</span>
+                                        }
+                                        else
+                                        {
+                                            <span>Verificar código</span>
+                                        }
+                                    </button>
+
+                                    <button type="button"
+                                            @onclick="ResetOtp"
+                                            class="text-xs text-[#2A9D8F] underline hover:text-[#1e7168]">
+                                        ¿No recibiste el código? Volver a enviar
+                                    </button>
+                                </div>
+                            }
+
+                        </div>
+                    }
 
                 </Step>
 
@@ -305,15 +355,27 @@ else
     </EditForm>
 }
 
-<!-- Modal de verificación de identidad -->
+<!-- Modal inicial: muestra resultado de búsqueda por cédula -->
 <PatientVerificationModal IsOpen="@_showVerificationModal"
                           IsLoading="@_searching"
-                          SearchResult="@_searchResult"
                           SearchResultType="@_searchResultType"
                           ErrorMessage="@_searchError"
                           OnRegisteredLogin="OnRegisteredLogin"
                           OnRegisteredGuestContinue="OnRegisteredGuestContinue"
-                          OnGuestConfirm="OnGuestConfirm"
+                          OnGuestContinue="OnGuestContinue"
                           OnNewPatientContinue="OnNewPatientContinue"
                           OnRetry="OnRetrySearch"
                           OnClose="OnVerificationModalClose" />
+
+<!-- Modal de validación de canal (FLUJO 2 y FLUJO 3) -->
+<ChannelValidationModal IsOpen="@_showChannelValidationModal"
+                        HasPhone="@Model.HasPhoneAvailable"
+                        HasEmail="@Model.HasEmailAvailable"
+                        MaskedPhone="@Model.MaskedPhone"
+                        MaskedEmail="@Model.MaskedEmail"
+                        IsLoading="@_channelValidationLoading"
+                        ExternalError="@_channelValidationError"
+                        OnSendOtp="SendChannelValidationOtpAsync"
+                        OnVerifyOtp="VerifyChannelValidationOtpAsync"
+                        OnConfirmData="OnChannelValidationConfirm"
+                        OnClose="OnChannelValidationModalClose" />

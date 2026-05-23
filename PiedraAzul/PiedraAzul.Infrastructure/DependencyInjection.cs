@@ -101,6 +101,9 @@ public static class DependencyInjection
         services.AddHttpClient("WhatsApp");
         services.AddScoped<IWhatsAppService, WhatsAppService>();
 
+        // SMS Service (Twilio)
+        services.AddScoped<IMessageService, TwilioSmsService>();
+
         // Guest OTP Service
         services.AddScoped<IGuestOtpService, GuestOtpService>();
 

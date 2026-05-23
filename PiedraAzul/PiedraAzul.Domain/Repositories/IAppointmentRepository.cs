@@ -5,6 +5,9 @@ namespace PiedraAzul.Domain.Repositories;
 public interface IAppointmentRepository
 {
     Task<Appointment?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>Obtiene la cita con tracking para poder mutarla (sin AsNoTracking).</summary>
+    Task<Appointment?> GetByIdForUpdateAsync(Guid id, CancellationToken cancellationToken = default);
     Task AddAsync(Appointment appointment, CancellationToken cancellationToken = default);
     Task UpdateAsync(Appointment appointment, CancellationToken cancellationToken = default);
     Task DeleteAsync(Appointment appointment, CancellationToken cancellationToken = default);

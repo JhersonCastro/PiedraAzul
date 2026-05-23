@@ -20,6 +20,12 @@ public class AppointmentRepository : IAppointmentRepository
             .FirstOrDefaultAsync(x => x.Id == id, ct);
     }
 
+    public async Task<Appointment?> GetByIdForUpdateAsync(Guid id, CancellationToken ct = default)
+    {
+        return await _context.Appointments
+            .FirstOrDefaultAsync(x => x.Id == id, ct);
+    }
+
     public async Task AddAsync(Appointment appointment, CancellationToken ct = default)
     {
         await _context.Appointments.AddAsync(appointment, ct);
@@ -45,7 +51,8 @@ public class AppointmentRepository : IAppointmentRepository
         return await _context.Appointments
             .AnyAsync(x =>
                 x.DoctorAvailabilitySlotId == doctorAvailabilitySlotId &&
-                x.Date == date,
+                x.Date == date &&
+                x.Status == Domain.Entities.Operations.AppointmentStatus.Active,
                 ct);
     }
 
@@ -55,7 +62,8 @@ public class AppointmentRepository : IAppointmentRepository
         CancellationToken ct = default)
     {
         var query = _context.Appointments
-            .Where(x => x.DoctorId == doctorId);
+            .Where(x => x.DoctorId == doctorId &&
+                        x.Status == Domain.Entities.Operations.AppointmentStatus.Active);
 
         if (date.HasValue)
             query = query.Where(x => x.Date == date.Value);
@@ -71,7 +79,8 @@ public class AppointmentRepository : IAppointmentRepository
         CancellationToken ct = default)
     {
         var query = _context.Appointments
-            .Where(x => x.PatientUserId == patientUserId);
+            .Where(x => x.PatientUserId == patientUserId &&
+                        x.Status == Domain.Entities.Operations.AppointmentStatus.Active);
 
         if (date.HasValue)
             query = query.Where(x => x.Date == date.Value);
@@ -87,7 +96,8 @@ public class AppointmentRepository : IAppointmentRepository
         CancellationToken ct = default)
     {
         var query = _context.Appointments
-            .Where(x => x.PatientGuestId == patientGuestId);
+            .Where(x => x.PatientGuestId == patientGuestId &&
+                        x.Status == Domain.Entities.Operations.AppointmentStatus.Active);
 
         if (date.HasValue)
             query = query.Where(x => x.Date == date.Value);

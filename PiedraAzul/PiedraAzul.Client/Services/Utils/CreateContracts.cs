@@ -8,13 +8,15 @@ public static class CreateContracts
         string patientName,
         string patientPhone,
         string patientIdentification,
-        string extraInfo)
+        string extraInfo,
+        string? email = null)
     {
         return new GuestPatientGqlInput(
             Identification: patientIdentification,
             Name: patientName,
             Phone: patientPhone,
-            ExtraInfo: extraInfo
+            ExtraInfo: extraInfo,
+            Email: email
         );
     }
 }

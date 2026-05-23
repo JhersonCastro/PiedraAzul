@@ -14,17 +14,20 @@ namespace PiedraAzul.Application.Features.Doctors.Queries.GetDoctorAppointments
     {
         private readonly IAppointmentRepository _appointmentRepository;
         private readonly IDoctorAvailabilitySlotRepository _slotRepository;
+        private readonly IDoctorRepository _doctorRepository;
         private readonly IIdentityService _identityService;
         private readonly IPatientGuestRepository _guestRepository;
 
         public GetDoctorAppointmentsHandler(
             IAppointmentRepository appointmentRepository,
             IDoctorAvailabilitySlotRepository slotRepository,
+            IDoctorRepository doctorRepository,
             IIdentityService identityService,
             IPatientGuestRepository guestRepository)
         {
             _appointmentRepository = appointmentRepository;
             _slotRepository = slotRepository;
+            _doctorRepository = doctorRepository;
             _identityService = identityService;
             _guestRepository = guestRepository;
         }
@@ -44,6 +47,15 @@ namespace PiedraAzul.Application.Features.Doctors.Queries.GetDoctorAppointments
             var slots = await _slotRepository.GetByIdsAsync(slotIds, cancellationToken);
             var slotDict = slots.ToDictionary(s => s.Id);
 
+            var doctorIds = appointments.Select(a => a.DoctorId).Distinct().ToList();
+            var doctorUsers = await _identityService.GetByIds(doctorIds);
+            var doctorUserDict = doctorUsers.ToDictionary(u => u.Id);
+
+            var doctorEntities = await Task.WhenAll(doctorIds.Select(id => _doctorRepository.GetByIdAsync(id, cancellationToken)));
+            var doctorEntityDict = doctorEntities
+                .Where(d => d is not null)
+                .ToDictionary(d => d!.Id);
+
             var userIds = appointments
                 .Where(a => a.PatientUserId != null)
                 .Select(a => a.PatientUserId!)
@@ -62,43 +74,52 @@ namespace PiedraAzul.Application.Features.Doctors.Queries.GetDoctorAppointments
             var guests = await _guestRepository.GetByIdsAsync(guestIds, cancellationToken);
             var guestDict = guests.ToDictionary(g => g.Id);
 
-            return appointments.Select(a =>
-            {
-                var slot = slotDict[a.DoctorAvailabilitySlotId];
-
-                var start = a.Date.ToDateTime(TimeOnly.MinValue)
-                    .Add(slot.StartTime);
-
-                string name;
-                string type;
-
-                if (a.PatientUserId != null)
+            return appointments
+                .Where(a => slotDict.ContainsKey(a.DoctorAvailabilitySlotId))
+                .Select(a =>
                 {
-                    var user = userDict[a.PatientUserId];
-                    name = user.Name;
-                    type = "Registered";
-                }
-                else
-                {
-                    var guest = guestDict[a.PatientGuestId!];
-                    name = guest.Name;
-                    type = "Guest";
-                }
+                    var slot = slotDict[a.DoctorAvailabilitySlotId];
 
-                return new AppointmentDto
-                {
-                    Id = a.Id,
-                    PatientUserId = a.PatientUserId,
-                    PatientGuestId = a.PatientGuestId,
+                    var start = a.Date.ToDateTime(TimeOnly.MinValue)
+                        .Add(slot.StartTime);
 
-                    PatientName = name,
-                    PatientType = type,
+                    string name;
+                    string type;
 
-                    SlotId = a.DoctorAvailabilitySlotId,
-                    Start = start,
-                    CreatedAt = a.CreatedAt
-                };
-            }).ToList();
+                    if (a.PatientUserId != null)
+                    {
+                        var user = userDict.GetValueOrDefault(a.PatientUserId);
+                        name = user?.Name ?? a.PatientUserId;
+                        type = "Registered";
+                    }
+                    else
+                    {
+                        var guest = guestDict.GetValueOrDefault(a.PatientGuestId!);
+                        name = guest?.Name ?? a.PatientGuestId ?? "";
+                        type = "Guest";
+                    }
+
+                    doctorUserDict.TryGetValue(a.DoctorId, out var doctorUser);
+                    doctorEntityDict.TryGetValue(a.DoctorId, out var doctorEntity);
+
+                    return new AppointmentDto
+                    {
+                        Id = a.Id,
+                        PatientUserId = a.PatientUserId,
+                        PatientGuestId = a.PatientGuestId,
+
+                        PatientName = name,
+                        PatientType = type,
+
+                        DoctorId = a.DoctorId,
+                        DoctorName = doctorUser?.Name ?? a.DoctorId,
+                        Specialty = doctorEntity?.Specialty.ToString() ?? "",
+
+                        SlotId = a.DoctorAvailabilitySlotId,
+                        Start = start,
+                        CreatedAt = a.CreatedAt
+                    };
+                }).ToList();
         }
     }
 }

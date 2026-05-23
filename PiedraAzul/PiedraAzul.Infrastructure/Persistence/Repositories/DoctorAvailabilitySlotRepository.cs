@@ -63,8 +63,9 @@ public class DoctorAvailabilitySlotRepository : IDoctorAvailabilitySlotRepositor
         if (ids == null || ids.Count == 0)
             return [];
 
+        // No filtramos IsDeleted: las citas existentes pueden referenciar slots ya eliminados
         return await _context.DoctorAvailabilitySlots
-            .Where(x => ids.Contains(x.Id) && !x.IsDeleted)
+            .Where(x => ids.Contains(x.Id))
             .AsNoTracking()
             .ToListAsync(ct);
     }

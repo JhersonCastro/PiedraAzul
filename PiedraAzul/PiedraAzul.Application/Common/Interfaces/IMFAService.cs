@@ -1,6 +1,6 @@
 namespace PiedraAzul.Application.Common.Interfaces;
 
-public record MFAStatus(bool EmailOTPEnabled, bool TOTPEnabled, bool HasBackupCodes);
+public record MFAStatus(bool EmailOTPEnabled, bool TOTPEnabled, bool HasBackupCodes, bool SMSOTPEnabled = false);
 
 public interface IMFAService
 {
@@ -24,4 +24,7 @@ public interface IMFAService
 
     // Email sending
     Task<bool> SendOTPEmailAsync(string userId, string email);
+
+    // SMS sending
+    Task<bool> SendOTPSmsAsync(string userId, string phoneNumber);
 }

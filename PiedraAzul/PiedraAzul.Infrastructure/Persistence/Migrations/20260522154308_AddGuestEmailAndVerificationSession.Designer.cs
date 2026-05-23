@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PiedraAzul.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using PiedraAzul.Infrastructure.Persistence;
 namespace PiedraAzul.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260522154308_AddGuestEmailAndVerificationSession")]
+    partial class AddGuestEmailAndVerificationSession
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -198,12 +201,6 @@ namespace PiedraAzul.Infrastructure.Persistence.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("character varying(450)");
 
-                    b.Property<Guid?>("RescheduledToId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
-
                     b.HasKey("Id");
 
                     b.HasIndex("DoctorAvailabilitySlotId");
@@ -286,31 +283,13 @@ namespace PiedraAzul.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("GuestId")
+                        .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
                     b.Property<string>("OtpCode")
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)");
-
-                    b.Property<int>("SessionType")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("UserEmail")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("UserId")
-                        .HasMaxLength(450)
-                        .HasColumnType("character varying(450)");
-
-                    b.Property<string>("UserName")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("UserPhone")
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
 
                     b.Property<bool>("Verified")
                         .HasColumnType("boolean");
@@ -320,8 +299,6 @@ namespace PiedraAzul.Infrastructure.Persistence.Migrations
                     b.HasIndex("ExpiresAt");
 
                     b.HasIndex("GuestId");
-
-                    b.HasIndex("UserId");
 
                     b.ToTable("GuestVerificationSessions");
                 });
@@ -663,7 +640,8 @@ namespace PiedraAzul.Infrastructure.Persistence.Migrations
                     b.HasOne("PiedraAzul.Domain.Entities.Profiles.Patients.GuestPatient", "Guest")
                         .WithMany()
                         .HasForeignKey("GuestId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Guest");
                 });

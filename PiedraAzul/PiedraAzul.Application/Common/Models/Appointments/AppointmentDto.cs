@@ -23,5 +23,7 @@ namespace PiedraAzul.Application.Common.Models.Appointments
         public DateTime Start { get; set; }
 
         public DateTime CreatedAt { get; set; }
+
+        public string Status { get; set; } = "Active";
     }
 }

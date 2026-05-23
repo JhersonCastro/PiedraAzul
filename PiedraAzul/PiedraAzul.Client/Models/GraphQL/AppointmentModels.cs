@@ -13,4 +13,5 @@ public class AppointmentGQL
     public string Specialty { get; set; } = "";
     public DateTime Start { get; set; }
     public DateTime CreatedAt { get; set; }
+    public string Status { get; set; } = "Active";
 }

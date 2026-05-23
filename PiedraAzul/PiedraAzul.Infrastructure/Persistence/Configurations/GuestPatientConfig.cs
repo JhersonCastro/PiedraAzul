@@ -14,6 +14,9 @@ namespace PiedraAzul.Infrastructure.Persistence.Configurations
 
             builder.Property(x => x.ExtraInfo)
                 .HasMaxLength(500);
+
+            builder.Property(x => x.Email)
+                .HasMaxLength(200);
         }
     }
 }

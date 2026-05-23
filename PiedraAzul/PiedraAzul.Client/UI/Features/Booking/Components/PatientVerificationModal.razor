@@ -1,6 +1,15 @@
 @using PiedraAzul.Client.Models.GraphQL
 
-@if (IsOpen)
+@*
+    Modal inicial que muestra el resultado de la búsqueda por cédula:
+    - REGISTERED: usuario con cuenta → Login o Continuar como invitado
+    - GUEST: guest existente → Continuar a validación
+    - NOT_FOUND: nuevo paciente → Continuar a completar datos
+    - NO_CONTACT: registrado pero sin email/teléfono → Error, contactar clínica
+    - ERROR: error de conexión → Reintentar o Continuar
+*@
+
+@if (IsOpen && (IsLoading || !string.IsNullOrEmpty(SearchResultType)))
 {
     <div class="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"></div>
 
@@ -10,7 +19,7 @@
             <!-- Header -->
             <div class="flex items-center justify-between px-6 py-4 bg-slate-50 border-b border-slate-100">
                 <h2 class="text-base font-bold text-slate-900">@GetTitle()</h2>
-                @if (!IsLoading)
+                @if (!IsLoading && !string.IsNullOrEmpty(SearchResultType))
                 {
                     <button @onclick="() => OnClose.InvokeAsync()"
                             class="text-slate-400 hover:text-slate-700 transition-colors">
@@ -24,7 +33,7 @@
             <!-- Body -->
             <div class="px-6 py-5">
 
-                @if (IsLoading)
+                @if (IsLoading || string.IsNullOrEmpty(SearchResultType))
                 {
                     <div class="flex flex-col items-center gap-4 py-6">
                         <svg class="w-10 h-10 animate-spin text-teal-600" fill="none" viewBox="0 0 24 24">
@@ -36,57 +45,36 @@
                 }
                 else if (SearchResultType == "REGISTERED")
                 {
-                    <div class="space-y-4">
-                        <div class="flex items-start gap-3 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
-                            <svg class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <p class="text-sm text-amber-800">
-                                Ya tienes una cuenta registrada en nuestra clínica. Puedes iniciar sesión o continuar como invitado.
-                            </p>
-                        </div>
-
-                        @if (SearchResult != null)
-                        {
-                            <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                                <p class="text-xs text-slate-500 font-medium mb-0.5">Cuenta registrada</p>
-                                <p class="text-sm font-semibold text-slate-900">@SearchResult.Name</p>
-                                @if (!string.IsNullOrEmpty(SearchResult.Phone))
-                                {
-                                    <p class="text-xs text-slate-500 mt-0.5">@SearchResult.Phone</p>
-                                }
-                            </div>
-                        }
+                    <div class="flex items-start gap-3 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
+                        <svg class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <p class="text-sm text-amber-800">
+                            Ya tienes una cuenta registrada. Puedes iniciar sesión o continuar como invitado (te verificaremos por OTP).
+                        </p>
                     </div>
                 }
                 else if (SearchResultType == "GUEST")
                 {
-                    <div class="space-y-4">
-                        <div class="flex items-start gap-3 rounded-xl bg-teal-50 border border-teal-200 px-4 py-3">
-                            <svg class="w-5 h-5 text-teal-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                            </svg>
-                            <p class="text-sm text-teal-800">
-                                Encontramos tus datos de una visita anterior.
-                            </p>
-                        </div>
-
-                        @if (SearchResult != null)
-                        {
-                            <div class="space-y-2">
-                                <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                                    <p class="text-xs text-slate-500 font-medium">Nombre</p>
-                                    <p class="text-sm font-semibold text-slate-900">@SearchResult.Name</p>
-                                </div>
-                                @if (!string.IsNullOrEmpty(SearchResult.Phone))
-                                {
-                                    <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                                        <p class="text-xs text-slate-500 font-medium">Teléfono</p>
-                                        <p class="text-sm font-semibold text-slate-900">@SearchResult.Phone</p>
-                                    </div>
-                                }
-                            </div>
-                        }
+                    <div class="flex items-start gap-3 rounded-xl bg-teal-50 border border-teal-200 px-4 py-3">
+                        <svg class="w-5 h-5 text-teal-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <p class="text-sm text-teal-800">
+                            Encontramos un registro con tu cédula. Para continuar, verifica tu identidad con un código OTP.
+                        </p>
+                    </div>
+                }
+                else if (SearchResultType == "NO_CONTACT")
+                {
+                    <div class="flex items-start gap-3 rounded-xl bg-orange-50 border border-orange-200 px-4 py-3">
+                        <svg class="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <p class="text-sm text-orange-800">
+                            Encontramos tu registro, pero no tienes datos de contacto (teléfono o email).
+                            Por favor contacta directamente con la clínica para agendar tu cita.
+                        </p>
                     </div>
                 }
                 else if (SearchResultType == "NOT_FOUND")
@@ -96,8 +84,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                         </svg>
                         <p class="text-sm text-slate-700">
-                            No encontramos tu identificación en nuestro sistema.
-                            En el siguiente paso ingresa tus datos para continuar.
+                            No encontramos tu identificación. En el siguiente paso ingresa tus datos para continuar.
                         </p>
                     </div>
                 }
@@ -110,11 +97,10 @@
                         <p class="text-sm text-red-700">@(ErrorMessage ?? "Error de conexión. Intenta de nuevo.")</p>
                     </div>
                 }
-
             </div>
 
             <!-- Footer -->
-            @if (!IsLoading)
+            @if (!IsLoading && !string.IsNullOrEmpty(SearchResultType))
             {
                 <div class="px-6 py-4 bg-slate-50 border-t border-slate-100">
 
@@ -133,9 +119,16 @@
                     }
                     else if (SearchResultType == "GUEST")
                     {
-                        <button @onclick="() => OnGuestConfirm.InvokeAsync()"
+                        <button @onclick="() => OnGuestContinue.InvokeAsync()"
                                 class="w-full py-2.5 bg-teal-700 hover:bg-teal-800 text-white text-sm font-bold rounded-lg transition">
-                            Continuar
+                            Verificar identidad
+                        </button>
+                    }
+                    else if (SearchResultType == "NO_CONTACT")
+                    {
+                        <button @onclick="() => OnClose.InvokeAsync()"
+                                class="w-full py-2.5 border border-slate-300 hover:bg-slate-100 text-slate-700 text-sm font-semibold rounded-lg transition">
+                            Entendido
                         </button>
                     }
                     else if (SearchResultType == "NOT_FOUND")
@@ -169,13 +162,12 @@
 @code {
     [Parameter] public bool IsOpen { get; set; }
     [Parameter] public bool IsLoading { get; set; }
-    [Parameter] public PatientSearchResultGQL? SearchResult { get; set; }
     [Parameter] public string? SearchResultType { get; set; }
     [Parameter] public string? ErrorMessage { get; set; }
 
     [Parameter] public EventCallback OnRegisteredLogin { get; set; }
     [Parameter] public EventCallback OnRegisteredGuestContinue { get; set; }
-    [Parameter] public EventCallback OnGuestConfirm { get; set; }
+    [Parameter] public EventCallback OnGuestContinue { get; set; }
     [Parameter] public EventCallback OnNewPatientContinue { get; set; }
     [Parameter] public EventCallback OnRetry { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
@@ -183,8 +175,9 @@
     private string GetTitle() => SearchResultType switch
     {
         "REGISTERED" => "Cuenta existente",
-        "GUEST"      => "Datos encontrados",
+        "GUEST"      => "Registro encontrado",
         "NOT_FOUND"  => "Nuevo paciente",
+        "NO_CONTACT" => "Datos incompletos",
         "ERROR"      => "Error de verificación",
         _            => "Verificando..."
     };
