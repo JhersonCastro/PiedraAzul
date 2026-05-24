@@ -196,6 +196,9 @@ internal static class AccountProfileTourSteps
     // ── DESKTOP: pasos originales con sidebar y sub-navegación ──
     private static object[] BuildDesktop(bool isPatient, bool isDoctor, bool isAdmin)
     {
+        // Prefijo para apuntar SOLO al contenido desktop y evitar el elemento del div mobile (md:hidden)
+        const string D = "#pa-desktop-main ";
+
         var steps = new List<object>
         {
             Step("[data-tour='sidebar-user-card']", null, "Tu perfil",
@@ -204,21 +207,21 @@ internal static class AccountProfileTourSteps
 
             Step("[data-tour='nav-perfil']", "perfil", "Mi Perfil",
                 "Haz clic aquí para gestionar tu información personal.", "right"),
-            Step("[data-tour='profile-info-card']", null, "Foto y nombre",
+            Step(D + "[data-tour='profile-info-card']", null, "Foto y nombre",
                 "Cambia tu foto de perfil haciendo clic en el ícono del lápiz sobre el avatar. También puedes editar tu nombre directamente aquí.", "top"),
-            Step("[data-tour='profile-email-card']", null, "Correo electrónico",
+            Step(D + "[data-tour='profile-email-card']", null, "Correo electrónico",
                 "Para cambiar tu email se envía un código de verificación. Esto mantiene tu cuenta segura.", "top"),
 
             Step("[data-tour='nav-seguridad']", "seguridad", "Seguridad",
                 "Administra tus métodos de acceso y autenticación.", "right"),
-            Step("[data-tour='security-passkeys-card']", null, "Passkeys",
+            Step(D + "[data-tour='security-passkeys-card']", null, "Passkeys",
                 "Registra una passkey (Face ID, huella o llave USB) para entrar sin contraseña desde dispositivos de confianza.", "top"),
-            Step("[data-tour='security-password-card']", null, "Contraseña",
+            Step(D + "[data-tour='security-password-card']", null, "Contraseña",
                 "Si prefieres usar contraseña, puedes cambiarla aquí cuando lo necesites.", "top"),
 
             Step("[data-tour='nav-2fa']", "autenticacion", "Autenticación 2FA",
                 "Añade una segunda capa de seguridad a tu cuenta.", "right"),
-            Step("[data-tour='twofa-settings']", null, "Configurar 2FA",
+            Step(D + "[data-tour='twofa-settings']", null, "Configurar 2FA",
                 "Activa o desactiva la autenticación de dos factores. Puedes usar tu email como segundo factor.", "top"),
         };
 
@@ -226,7 +229,7 @@ internal static class AccountProfileTourSteps
         {
             steps.Add(Step("[data-tour='nav-mis-citas']", "pac-citas", "Mis Citas",
                 "Consulta el historial y próximas citas médicas.", "right"));
-            steps.Add(Step("[data-tour='patient-appointments-header']", null, "Tus citas",
+            steps.Add(Step(D + "[data-tour='patient-appointments-header']", null, "Tus citas",
                 "Aquí verás todas tus citas: próximas, pasadas y su estado. Puedes cancelar las futuras si lo necesitas.", "bottom"));
         }
 
@@ -234,17 +237,17 @@ internal static class AccountProfileTourSteps
         {
             steps.Add(Step("[data-tour='nav-doc-dashboard']", "doc-dashboard", "Portal Doctor — Dashboard",
                 "Tu panel principal como médico.", "right"));
-            steps.Add(Step("[data-tour='doctor-profile-card']", null, "Tu perfil médico",
+            steps.Add(Step(D + "[data-tour='doctor-profile-card']", null, "Tu perfil médico",
                 "Aquí ves tu nombre, especialidad y estado de disponibilidad. Puedes cambiar entre activo e inactivo con un solo clic.", "bottom"));
-            steps.Add(Step("[data-tour='doctor-stats']", null, "Resumen del día",
+            steps.Add(Step(D + "[data-tour='doctor-stats']", null, "Resumen del día",
                 "De un vistazo ves el total de citas, cuántas ya completaste y cuántas están pendientes para hoy.", "top"));
             steps.Add(Step("[data-tour='nav-doc-agenda']", "doc-agenda", "Mi Agenda",
                 "Visualiza y gestiona todas tus citas programadas.", "right"));
-            steps.Add(Step("[data-tour='doctor-agenda-calendar']", null, "Calendario mensual",
+            steps.Add(Step(D + "[data-tour='doctor-agenda-calendar']", null, "Calendario mensual",
                 "Navega entre meses para ver tus citas. Las marcas de color indican los días con citas programadas.", "top"));
             steps.Add(Step("[data-tour='nav-agendar-manual']", "agendar-manual", "Agendar manualmente",
                 "Registra citas para tus pacientes directamente desde aquí.", "right"));
-            steps.Add(Step("[data-tour='manual-booking-header']", null, "Formulario de agendamiento",
+            steps.Add(Step(D + "[data-tour='manual-booking-header']", null, "Formulario de agendamiento",
                 "Completa los datos del paciente, elige el médico y el horario disponible para registrar la cita.", "bottom"));
         }
 
@@ -252,15 +255,15 @@ internal static class AccountProfileTourSteps
         {
             steps.Add(Step("[data-tour='nav-admin-usuarios']", "admin-usuarios", "Gestión de usuarios",
                 "Crea cuentas, asigna roles y gestiona el acceso de todos los usuarios de la clínica.", "right"));
-            steps.Add(Step("[data-tour='admin-user-management-header']", null, "Panel de usuarios",
+            steps.Add(Step(D + "[data-tour='admin-user-management-header']", null, "Panel de usuarios",
                 "Busca por nombre, email o teléfono y filtra por rol. Desde aquí también puedes crear nuevas cuentas.", "bottom"));
             steps.Add(Step("[data-tour='nav-admin-agenda']", "admin-agenda", "Agenda médica",
                 "Vista global de todas las citas. Puedes filtrar por médico, fecha o estado.", "right"));
-            steps.Add(Step("[data-tour='admin-agenda-filters']", null, "Filtros de agenda",
+            steps.Add(Step(D + "[data-tour='admin-agenda-filters']", null, "Filtros de agenda",
                 "Selecciona un especialista y una fecha para ver sus citas del día y gestionar el estado de cada una.", "bottom"));
             steps.Add(Step("[data-tour='nav-agendar-manual']", "agendar-manual", "Agendar manualmente",
                 "Registra citas para cualquier paciente asignándolas al médico y horario que prefieras.", "right"));
-            steps.Add(Step("[data-tour='manual-booking-header']", null, "Formulario de agendamiento",
+            steps.Add(Step(D + "[data-tour='manual-booking-header']", null, "Formulario de agendamiento",
                 "Completa los datos del paciente, elige el médico y el horario disponible para registrar la cita.", "bottom"));
         }
 
