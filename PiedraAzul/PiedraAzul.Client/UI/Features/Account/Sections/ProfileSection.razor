@@ -235,6 +235,16 @@ else
     {
         _avatarError = null; _avatarSuccess = false;
         var file = e.File;
+
+        // HEIC/HEIF photos from iPhone are not supported by the server.
+        // On iOS, Safari sometimes converts them to JPEG automatically, but not always.
+        var ext = System.IO.Path.GetExtension(file.Name).ToLowerInvariant();
+        if (ext is ".heic" or ".heif")
+        {
+            _avatarError = "Las fotos HEIC de iPhone no están soportadas. Ve a Ajustes → Cámara → Formatos → «Más compatible» para que tu iPhone guarde fotos en JPG.";
+            return;
+        }
+
         if (file.Size > 5 * 1024 * 1024) { _avatarError = "La imagen no puede superar 5 MB."; return; }
         try
         {
@@ -255,8 +265,33 @@ else
             memoryStream.Position = 0;
             content.Add(new StreamContent(memoryStream), "file", file.Name);
             var response = await Http.PostAsync("/api/avatar", content);
-            if (!response.IsSuccessStatusCode) { _avatarError = $"Error al subir (HTTP {response.StatusCode})"; return; }
-            var json = await response.Content.ReadFromJsonAsync<AvatarResponse>();
+
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                _avatarError = "Tu sesión ha expirado. Por favor recarga la página e inicia sesión de nuevo.";
+                return;
+            }
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorBody = await response.Content.ReadAsStringAsync();
+                _avatarError = errorBody.TrimStart().StartsWith('<')
+                    ? $"Error al subir (HTTP {(int)response.StatusCode})"
+                    : $"Error al subir: {errorBody}";
+                return;
+            }
+
+            // Read as string first to catch HTML responses (e.g. login redirect on iOS)
+            var raw = await response.Content.ReadAsStringAsync();
+            if (string.IsNullOrEmpty(raw) || raw.TrimStart().StartsWith('<'))
+            {
+                _avatarError = "El servidor devolvió una respuesta inesperada. Recarga la página e intenta de nuevo.";
+                return;
+            }
+
+            AvatarResponse? json;
+            try { json = System.Text.Json.JsonSerializer.Deserialize<AvatarResponse>(raw, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true }); }
+            catch { json = null; }
+
             if (json?.Url is null) { _avatarError = "Respuesta del servidor inválida."; return; }
             var updateResult = await AuthService.UpdateProfileAsync(_user!.Name, json.Url);
             if (updateResult.IsSuccess)
@@ -268,7 +303,7 @@ else
             }
             else { _avatarError = "Foto subida pero no se pudo guardar."; }
         }
-        catch (Exception ex) { _avatarError = $"Error: {ex.Message}"; }
+        catch (Exception ex) { _avatarError = $"Error inesperado: {ex.Message}"; }
     }
 
     private async Task ReloadUserAsync()
