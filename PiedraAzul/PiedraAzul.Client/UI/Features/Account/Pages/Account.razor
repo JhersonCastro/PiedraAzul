@@ -10,14 +10,153 @@
 @using PiedraAzul.Client.UI.Features.Admin
 @using PiedraAzul.Client.UI.Features.Appointments
 @using PiedraAzul.Client.UI.Features.Booking.Pages
+@using PiedraAzul.Client.UI.Features.Account.Components
+@using Microsoft.JSInterop
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@implements IDisposable
 @inject NavigationManager Nav
+@inject IJSRuntime js
+@inject PiedraAzul.Client.Services.DriverTourService DriverTourService
 @inject UserState UserState
 @inject AuthenticationService AuthService
 @inject GraphQLHttpClient GraphQL
 @inject OfflineCacheService OfflineCache
 
 <PageTitle>Mi cuenta | Piedra Azul</PageTitle>
+
+<HeadContent>
+    <style>
+        .pa-glass-nav {
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(226, 232, 240, 0.9);
+            box-shadow: 0 -2px 10px rgba(15, 23, 42, 0.05);
+        }
+        .pa-tab-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            flex: 1;
+            padding: 0.5rem 0.25rem;
+            color: #94A3B8;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            transition: color 0.18s;
+            position: relative;
+            font-family: 'DM Sans', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .pa-tab-btn:hover { color: #257D8D; }
+        .pa-tab-btn.pa-active {
+            color: #257D8D;
+        }
+        .pa-tab-btn.pa-active::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 28px;
+            height: 2.5px;
+            background: #257D8D;
+            border-radius: 0 0 3px 3px;
+        }
+        .pa-tab-label {
+            font-size: 10.5px;
+            font-weight: 600;
+            line-height: 1;
+            letter-spacing: -0.01em;
+        }
+
+        /* ── Sub-nav: fila de pills sobre el bottom nav ── */
+        .pa-subnav {
+            background: rgba(255, 255, 255, 0.72);
+            backdrop-filter: blur(24px) saturate(1.8);
+            -webkit-backdrop-filter: blur(24px) saturate(1.8);
+            border-top: 0.5px solid rgba(255, 255, 255, 0.75);
+            box-shadow: 0 -0.5px 0 rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+            padding: 7px 16px;
+            /* display se controla con clase Tailwind 'flex' para que md:hidden lo anule */
+            align-items: center;
+            gap: 7px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            animation: pa-slide-up 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .pa-subnav::-webkit-scrollbar { display: none; }
+
+        @@keyframes pa-slide-up {
+            from { transform: translateY(100%); opacity: 0; }
+            to   { transform: translateY(0);    opacity: 1; }
+        }
+
+        /* Pill individual — glass morphism iOS */
+        .pa-subnav-pill {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 12.5px;
+            font-weight: 600;
+            padding: 6px 14px;
+            border-radius: 100px;
+            border: 0.5px solid rgba(37, 125, 141, 0.18);
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+            color: #257D8D;
+            cursor: pointer;
+            white-space: nowrap;
+            flex-shrink: 0;
+            line-height: 1;
+            transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .pa-subnav-pill:active { transform: scale(0.94); }
+        .pa-subnav-pill.pa-pill-active {
+            background: #257D8D;
+            color: #ffffff;
+            border-color: #257D8D;
+            box-shadow: 0 2px 8px rgba(37, 125, 141, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+        }
+
+        /* ── Pill de logout (roja) ── */
+        .pa-subnav-pill-danger {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 12.5px;
+            font-weight: 600;
+            padding: 6px 14px;
+            border-radius: 100px;
+            border: 0.5px solid rgba(225, 29, 72, 0.2);
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+            color: #E11D48;
+            cursor: pointer;
+            white-space: nowrap;
+            flex-shrink: 0;
+            line-height: 1;
+            transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .pa-subnav-pill-danger:active { transform: scale(0.94); }
+        .pa-subnav-pill-danger:hover {
+            background: rgba(225, 29, 72, 0.08);
+        }
+    </style>
+    <script>
+        window.paScrollToSection = function (id) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            var top = el.getBoundingClientRect().top + window.scrollY - 52;
+            window.scrollTo({ top: top, behavior: 'smooth' });
+        };
+    </script>
+</HeadContent>
 
 @if (_loading)
 {
@@ -29,38 +168,26 @@ else
 {
     <div style="background:#F8FAFC;font-family:'DM Sans',sans-serif">
 
-        <!-- Mobile Header with Hamburger -->
-        <div class="flex md:hidden items-center gap-3 px-4 py-3 bg-white border-b border-[#E2E8F0]">
-            <button @onclick="() => _sidebarOpen = !_sidebarOpen"
-                    class="p-2 hover:bg-gray-100 rounded-lg transition">
-                <svg class="w-5 h-5 text-[#374151]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-                </svg>
-            </button>
-            <span class="text-[13px] font-bold text-[#0F172A]">@_breadcrumbItem</span>
+        <div class="flex md:hidden items-center px-4 py-3 bg-white border-b border-[#E2E8F0]">
+            <span class="text-[15px] font-bold text-[#0F172A]">@_mobileSectionTitle</span>
         </div>
 
-        <!-- Breadcrumb (desktop) -->
         <div class="hidden md:flex items-center gap-1.5 px-6 py-2 border-b border-[#E2E8F0] bg-white text-[13px] text-[#94A3B8] font-medium">
             <span>@_breadcrumbGroup</span>
             <span>›</span>
             <span class="text-[#0F172A] font-bold">@_breadcrumbItem</span>
         </div>
 
-        <!-- Mobile Overlay -->
-        @if (_sidebarOpen)
-        {
-            <div class="md:hidden fixed inset-0 bg-black/50 z-40" @onclick="() => _sidebarOpen = false"></div>
-        }
+        <TourHelpBanner TourId="@TourIds.AccountProfile"
+                        OnStartTour="StartTourAsync"
+                        OnSkipTour="StateHasChanged" />
 
         <div class="flex" style="min-height:calc(100vh - 120px)">
 
-            <!-- ══════════ SIDEBAR ══════════ -->
-            <aside class="md:flex w-60 bg-white border-r border-[#E2E8F0] flex-col flex-shrink-0 overflow-y-auto
-                         @(_sidebarOpen ? "fixed inset-y-0 left-0 z-50 md:relative md:inset-auto md:z-auto" : "hidden md:flex")">
+            <aside class="hidden md:flex w-60 bg-white border-r border-[#E2E8F0] flex-col flex-shrink-0 overflow-y-auto">
 
-                <!-- User card -->
-                <div class="px-4 py-5 border-b border-[#F1F5F9] text-center flex-shrink-0">
+                <div data-tour="sidebar-user-card"
+                     class="px-4 py-5 border-b border-[#F1F5F9] text-center flex-shrink-0">
                     <div class="relative mx-auto mb-3 h-14 w-14">
                         <img src="@AvatarSrc" alt="Avatar"
                              class="h-14 w-14 rounded-full object-cover border-2 border-[#E2E8F0]" />
@@ -76,51 +203,46 @@ else
                     </div>
                 </div>
 
-                <!-- Nav -->
-                <nav class="flex-1 py-2 overflow-y-auto">
+                <nav class="flex-1 py-2 overflow-y-auto flex flex-col">
 
-                    <!-- ── Mi Cuenta ── -->
                     @NavGroupHeader("Mi Cuenta", "mi-cuenta",
                         """<circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>""")
                     @if (IsGroupOpen("mi-cuenta"))
                     {
-                        @NavItem("perfil", "Mi perfil", "Mi Cuenta")
-                        @NavItem("seguridad", "Seguridad", "Mi Cuenta")
-                        @NavItem("autenticacion", "Autenticación 2FA", "Mi Cuenta")
+                        @NavItem("perfil", "Mi perfil", "Mi Cuenta", "nav-perfil")
+                        @NavItem("seguridad", "Seguridad", "Mi Cuenta", "nav-seguridad")
+                        @NavItem("autenticacion", "Autenticación 2FA", "Mi Cuenta", "nav-2fa")
                     }
                     <div class="h-2"></div>
 
-                    <!-- ── Portal Doctor ── -->
                     @if (IsDoctor)
                     {
                         @NavGroupHeader("Portal Doctor", "portal-doctor",
                             """<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>""")
                         @if (IsGroupOpen("portal-doctor"))
                         {
-                            @NavItem("doc-dashboard", "Dashboard", "Portal Doctor")
+                            @NavItem("doc-dashboard", "Dashboard", "Portal Doctor", "nav-doc-dashboard")
                             @NavItem("doc-pacientes", "Pacientes", "Portal Doctor")
-                            @NavItem("doc-agenda", "Mi Agenda", "Portal Doctor")
+                            @NavItem("doc-agenda", "Mi Agenda", "Portal Doctor", "nav-doc-agenda")
                             @NavItem("doc-cronograma", "Cronograma diario", "Portal Doctor")
                             @NavItem("doc-horario", "Mi Horario", "Portal Doctor")
                         }
                         <div class="h-2"></div>
                     }
 
-                    <!-- ── Administración ── -->
                     @if (IsAdmin)
                     {
                         @NavGroupHeader("Administración", "administracion",
                             """<path d="M12 3l8 3.5v5c0 4.5-3.5 8.5-8 10-4.5-1.5-8-5.5-8-10v-5L12 3z"/>""")
                         @if (IsGroupOpen("administracion"))
                         {
-                            @NavItem("admin-usuarios", "Gestión de usuarios", "Administración")
-                            @NavItem("admin-agenda", "Agenda médica", "Administración")
+                            @NavItem("admin-usuarios", "Gestión de usuarios", "Administración", "nav-admin-usuarios")
+                            @NavItem("admin-agenda", "Agenda médica", "Administración", "nav-admin-agenda")
                             @NavItem("admin-horario", "Configurar horarios", "Administración")
                         }
                         <div class="h-2"></div>
                     }
 
-                    <!-- ── Servicios ── -->
                     @if (IsDoctor || IsAdmin)
                     {
                         @NavGroupHeader("Servicios", "servicios",
@@ -128,90 +250,271 @@ else
                         @if (IsGroupOpen("servicios"))
                         {
                             @NavItem("exportar-citas", "Exportar citas (XLS)", "Servicios")
-                            @NavItem("agendar-manual", "Agendar manualmente", "Servicios")
+                            @NavItem("agendar-manual", "Agendar manualmente", "Servicios", "nav-agendar-manual")
                         }
                         <div class="h-2"></div>
                     }
 
-                    <!-- ── Portal Paciente ── -->
                     @if (IsPatient)
                     {
                         @NavGroupHeader("Mi Portal", "portal-paciente",
                             """<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M12 21v-4"/>""")
                         @if (IsGroupOpen("portal-paciente"))
                         {
-                            @NavItem("pac-citas", "Mis citas", "Mi Portal")
+                            @NavItem("pac-citas", "Mis citas", "Mi Portal", "nav-mis-citas")
                         }
                         <div class="h-2"></div>
                     }
 
+                    <div class="flex-1 mt-auto p-3 flex min-h-[140px]">
+                        <img src="/ad.jpg" alt="MacDonald's" class="w-full h-full object-cover rounded-xl shadow-sm" />
+                    </div>
                 </nav>
 
-                <!-- Logout -->
                 <div class="px-3 pb-3 pt-2 border-t border-[#F1F5F9] flex-shrink-0">
-                    <button @onclick="LogoutAsync"
+                    <button data-tour="logout-button"
+                            @onclick="ShowLogoutConfirm"
                             class="flex w-full items-center gap-2.5 rounded-xl border border-[#FEE2E2] bg-white px-3.5 py-2.5
-                                   text-[13px] font-bold text-[#E11D48] transition hover:bg-red-50">
+                        text-[13px] font-bold text-[#E11D48] transition hover:bg-red-50">
                         <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path d="M17 16l4-4m0 0l-4-4m4 4H7"/><path d="M9 20H6a2 2 0 01-2-2V6a2 2 0 012-2h3"/>
+                            <path d="M17 16l4-4m0 0l-4-4m4 4H7" />
+                            <path d="M9 20H6a2 2 0 01-2-2V6a2 2 0 012-2h3" />
                         </svg>
                         Cerrar sesión
                     </button>
                 </div>
             </aside>
 
-            <!-- ══════════════════ MAIN CONTENT ══════════════════ -->
-            <main class="flex-1 p-4 md:p-7 overflow-y-auto">
-                @switch (_tab)
-                {
-                    case "perfil":
-                        <ProfileSection OnUserUpdated="OnUserUpdated" />
-                        break;
-                    case "seguridad":
-                        <SecuritySection />
-                        break;
-                    case "autenticacion":
-                        <TwoFASection />
-                        break;
-                    case "doc-dashboard":
-                        <DoctorPanel />
-                        break;
-                    case "doc-pacientes":
-                        <DoctorPatients />
-                        break;
-                    case "doc-agenda":
-                        <DoctorAgenda />
-                        break;
-                    case "doc-cronograma":
-                        <DoctorDailySchedule />
-                        break;
-                    case "doc-horario":
-                        <DoctorScheduleConfig />
-                        break;
-                    case "admin-usuarios":
-                        <UserManagement />
-                        break;
-                    case "admin-agenda":
-                        <AdminAgenda />
-                        break;
-                    case "admin-horario":
-                        <AdminScheduleConfig />
-                        break;
-                    case "exportar-citas":
-                        <AppointmentExport />
-                        break;
-                    case "agendar-manual":
-                        <ManualBooking />
-                        break;
-                    case "pac-citas":
+            <main class="flex-1 overflow-y-auto">
+
+                @* ── MOBILE: secciones apiladas por módulo ── *@
+                <div class="md:hidden p-4 space-y-4" style="padding-bottom: @(MobileSubItems.ContainsKey(_mobileTab) ? "160px" : "112px")">
+                    @if (_mobileTab == "cuenta")
+                    {
+                        <div id="mobile-section-perfil"><ProfileSection OnUserUpdated="OnUserUpdated" /></div>
+                        <div id="mobile-section-seguridad"><SecuritySection /></div>
+                        <div id="mobile-section-2fa"><TwoFASection /></div>
+                    }
+                    else if (_mobileTab == "citas")
+                    {
                         <PatientAppointments />
-                        break;
-                    default:
-                        <ProfileSection OnUserUpdated="OnUserUpdated" />
-                        break;
-                }
+                    }
+                    else if (_mobileTab == "doctor")
+                    {
+                        <div id="mobile-section-doc-dashboard"><DoctorPanel /></div>
+                        <div id="mobile-section-doc-agenda"><DoctorAgenda /></div>
+                        <div id="mobile-section-doc-pacientes"><DoctorPatients /></div>
+                        <div id="mobile-section-doc-cronograma"><DoctorDailySchedule /></div>
+                        <div id="mobile-section-doc-horario"><DoctorScheduleConfig /></div>
+                    }
+                    else if (_mobileTab == "admin")
+                    {
+                        <div id="mobile-section-admin-usuarios"><UserManagement /></div>
+                        <div id="mobile-section-admin-agenda"><AdminAgenda /></div>
+                        <div id="mobile-section-admin-horario"><AdminScheduleConfig /></div>
+                    }
+                    else if (_mobileTab == "servicios")
+                    {
+                        <div id="mobile-section-exportar"><AppointmentExport /></div>
+                        <div id="mobile-section-manual"><ManualBooking /></div>
+                    }
+
+                </div>
+
+                @* ── DESKTOP: switch-case igual que antes ── *@
+                <div class="hidden md:block p-7">
+                    @switch (_tab)
+                    {
+                        case "perfil":
+                            <ProfileSection OnUserUpdated="OnUserUpdated" />
+                            break;
+                        case "seguridad":
+                            <SecuritySection />
+                            break;
+                        case "autenticacion":
+                            <TwoFASection />
+                            break;
+                        case "doc-dashboard":
+                            <DoctorPanel />
+                            break;
+                        case "doc-pacientes":
+                            <DoctorPatients />
+                            break;
+                        case "doc-agenda":
+                            <DoctorAgenda />
+                            break;
+                        case "doc-cronograma":
+                            <DoctorDailySchedule />
+                            break;
+                        case "doc-horario":
+                            <DoctorScheduleConfig />
+                            break;
+                        case "admin-usuarios":
+                            <UserManagement />
+                            break;
+                        case "admin-agenda":
+                            <AdminAgenda />
+                            break;
+                        case "admin-horario":
+                            <AdminScheduleConfig />
+                            break;
+                        case "exportar-citas":
+                            <AppointmentExport />
+                            break;
+                        case "agendar-manual":
+                            <ManualBooking />
+                            break;
+                        case "pac-citas":
+                            <PatientAppointments />
+                            break;
+                        default:
+                            <ProfileSection OnUserUpdated="OnUserUpdated" />
+                            break;
+                    }
+                </div>
+
             </main>
         </div>
+
+        @* ── Modal de confirmación de logout ── *@
+        @if (_showLogoutConfirm)
+        {
+            <div class="fixed inset-0 flex items-center justify-center px-5" style="z-index:300">
+                @* Overlay oscuro *@
+                <div class="absolute inset-0" style="background:rgba(15,23,42,0.45);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)"
+                     @onclick="() => _showLogoutConfirm = false"></div>
+
+                @* Card glass morphism *@
+                <div class="relative w-full max-w-sm rounded-2xl p-6 text-center"
+                     style="background:rgba(255,255,255,0.92);backdrop-filter:blur(24px) saturate(1.8);-webkit-backdrop-filter:blur(24px) saturate(1.8);
+                            border:0.5px solid rgba(255,255,255,0.8);box-shadow:0 20px 40px rgba(15,23,42,0.18),inset 0 1px 0 rgba(255,255,255,1)">
+
+                    @* Ícono de advertencia *@
+                    <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full"
+                         style="background:rgba(225,29,72,0.08);border:1.5px solid rgba(225,29,72,0.15)">
+                        <svg class="h-7 w-7 text-[#E11D48]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                            <path d="M17 16l4-4m0 0l-4-4m4 4H7"/>
+                            <path d="M9 20H6a2 2 0 01-2-2V6a2 2 0 012-2h3"/>
+                        </svg>
+                    </div>
+
+                    <h3 class="text-[17px] font-bold text-[#0F172A] mb-2">¿Cerrar sesión?</h3>
+                    <p class="text-[14px] text-[#64748B] leading-relaxed mb-6">
+                        Si cierras sesión tendrás que volver a iniciarla la próxima vez que uses la aplicación.
+                    </p>
+
+                    <div class="flex flex-col gap-2.5">
+                        <button @onclick="ConfirmLogoutAsync"
+                                class="w-full rounded-xl py-3 text-[14px] font-bold text-white transition"
+                                style="background:#E11D48;box-shadow:0 2px 8px rgba(225,29,72,0.3)">
+                            Sí, cerrar sesión
+                        </button>
+                        <button @onclick="() => _showLogoutConfirm = false"
+                                class="w-full rounded-xl border border-[#E2E8F0] bg-white py-3 text-[14px] font-semibold text-[#64748B] transition hover:bg-[#F8FAFC]">
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @* ── MOBILE: Sub-nav (pills de sección) encima del bottom nav ── *@
+        @if (MobileSubItems.TryGetValue(_mobileTab, out var activeSubItems))
+        {
+            <div data-tour="mobile-subnav"
+                 class="pa-subnav flex md:hidden fixed left-0 right-0" style="bottom:4.5rem;z-index:49">
+                @foreach (var (id, label) in activeSubItems)
+                {
+                    var capturedId = id;
+                    <button class="pa-subnav-pill @(_mobileActiveSub == id ? "pa-pill-active" : "")"
+                            @onclick="() => ScrollToSubSection(capturedId)">
+                        @label
+                    </button>
+                }
+                @* Pill de logout — solo visible en el tab "cuenta" *@
+                @if (_mobileTab == "cuenta")
+                {
+                    <button data-tour="mobile-logout-pill"
+                            class="pa-subnav-pill-danger"
+                            @onclick="ShowLogoutConfirm">
+                        <svg style="display:inline;vertical-align:-2px;margin-right:4px" width="12" height="12"
+                             fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path d="M17 16l4-4m0 0l-4-4m4 4H7"/>
+                            <path d="M9 20H6a2 2 0 01-2-2V6a2 2 0 012-2h3"/>
+                        </svg>
+                        Salir
+                    </button>
+                }
+            </div>
+        }
+
+        @* ── MOBILE: Bottom Nav Glass Morphism ── *@
+        <nav class="pa-glass-nav md:hidden fixed bottom-0 left-0 right-0 flex" style="height:4.5rem;z-index:50">
+
+            <button data-tour="mobile-tab-cuenta"
+                    class='pa-tab-btn @(_mobileTab == "cuenta" ? "pa-active" : "")'
+                    @onclick='() => SetMobileTab("cuenta", "Mi Cuenta")'>
+                <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                    <circle cx="12" cy="8" r="4"/>
+                    <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+                </svg>
+                <span class="pa-tab-label">Mi Cuenta</span>
+            </button>
+
+            @if (IsPatient)
+            {
+                <button data-tour="mobile-tab-citas"
+                        class='pa-tab-btn @(_mobileTab == "citas" ? "pa-active" : "")'
+                        @onclick='() => SetMobileTab("citas", "Mis Citas")'>
+                    <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="16" y1="2" x2="16" y2="6"/>
+                        <line x1="8" y1="2" x2="8" y2="6"/>
+                        <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                    <span class="pa-tab-label">Mis Citas</span>
+                </button>
+            }
+
+            @if (IsDoctor)
+            {
+                <button data-tour="mobile-tab-doctor"
+                        class='pa-tab-btn @(_mobileTab == "doctor" ? "pa-active" : "")'
+                        @onclick='() => SetMobileTab("doctor", "Portal Doctor")'>
+                    <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                        <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+                    </svg>
+                    <span class="pa-tab-label">Doctor</span>
+                </button>
+            }
+
+            @if (IsAdmin)
+            {
+                <button data-tour="mobile-tab-admin"
+                        class='pa-tab-btn @(_mobileTab == "admin" ? "pa-active" : "")'
+                        @onclick='() => SetMobileTab("admin", "Administración")'>
+                    <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                        <path d="M12 3l8 3.5v5c0 4.5-3.5 8.5-8 10-4.5-1.5-8-5.5-8-10v-5L12 3z"/>
+                    </svg>
+                    <span class="pa-tab-label">Admin</span>
+                </button>
+            }
+
+            @if (IsDoctor || IsAdmin)
+            {
+                <button data-tour="mobile-tab-servicios"
+                        class='pa-tab-btn @(_mobileTab == "servicios" ? "pa-active" : "")'
+                        @onclick='() => SetMobileTab("servicios", "Servicios")'>
+                    <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <path d="M3 9h18M9 21V9"/>
+                    </svg>
+                    <span class="pa-tab-label">Servicios</span>
+                </button>
+            }
+
+        </nav>
+
     </div>
 }
 
@@ -219,18 +522,52 @@ else
     private UserGQL? _user;
     private bool _loading = true;
     private string _tab = "perfil";
+    private string _mobileTab = "cuenta";
+    private string _mobileSectionTitle = "Mi Cuenta";
+    private string? _mobileActiveSub = "mobile-section-perfil";
+    private bool _showLogoutConfirm = false;
     private Dictionary<string, bool> _collapsed = new();
     private bool _sidebarOpen = false;
+
+    // Sub-secciones de cada tab mobile → para las pills de acceso rápido
+    private static readonly Dictionary<string, (string Id, string Label)[]> MobileSubItems = new()
+    {
+        ["cuenta"] =
+        [
+            ("mobile-section-perfil",    "Mi Perfil"),
+            ("mobile-section-seguridad", "Seguridad"),
+            ("mobile-section-2fa",       "2FA"),
+        ],
+        ["doctor"] =
+        [
+            ("mobile-section-doc-dashboard",  "Dashboard"),
+            ("mobile-section-doc-agenda",     "Mi Agenda"),
+            ("mobile-section-doc-pacientes",  "Pacientes"),
+            ("mobile-section-doc-cronograma", "Cronograma"),
+            ("mobile-section-doc-horario",    "Horario"),
+        ],
+        ["admin"] =
+        [
+            ("mobile-section-admin-usuarios", "Usuarios"),
+            ("mobile-section-admin-agenda",   "Agenda"),
+            ("mobile-section-admin-horario",  "Horarios"),
+        ],
+        ["servicios"] =
+        [
+            ("mobile-section-exportar", "Exportar"),
+            ("mobile-section-manual",   "Agendar"),
+        ],
+    };
 
     private string AvatarSrc => _user?.AvatarUrl is null or "default.png"
         ? "/Avatars/default.png" : _user.AvatarUrl;
 
-    private bool IsDoctor   => _user?.Roles.Contains("Doctor") == true;
-    private bool IsAdmin    => _user?.Roles.Contains("Admin") == true;
-    private bool IsPatient  => _user?.Roles.Contains("Patient") == true;
+    private bool IsDoctor => _user?.Roles.Contains("Doctor") == true;
+    private bool IsAdmin => _user?.Roles.Contains("Admin") == true;
+    private bool IsPatient => _user?.Roles.Contains("Patient") == true;
 
     private string _breadcrumbGroup = "Mi Cuenta";
-    private string _breadcrumbItem  = "Mi perfil";
+    private string _breadcrumbItem = "Mi perfil";
 
     protected override async Task OnInitializedAsync()
     {
@@ -250,6 +587,87 @@ else
         _ = OfflineCache.SyncAsync();
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var shouldShow = await DriverTourService.ShouldShowTourAsync(TourIds.AccountProfile);
+            if (shouldShow)
+                await StartTourAsync();
+        }
+    }
+
+    private DotNetObjectReference<Account>? _tourRef;
+
+    private async Task StartTourAsync()
+    {
+        _tourRef ??= DotNetObjectReference.Create(this);
+        await DriverTourService.StartTourAsync(TourIds.AccountProfile, _user?.Roles ?? [], _tourRef);
+    }
+
+    [JSInvokable]
+    public Task TourNavigateToTab(string tab)
+    {
+        var (group, label) = tab switch
+        {
+            "perfil"        => ("Mi Cuenta", "Mi perfil"),
+            "seguridad"     => ("Mi Cuenta", "Seguridad"),
+            "autenticacion" => ("Mi Cuenta", "Autenticación 2FA"),
+            "pac-citas"     => ("Mi Portal", "Mis citas"),
+            "doc-dashboard" => ("Portal Doctor", "Dashboard"),
+            "doc-pacientes" => ("Portal Doctor", "Pacientes"),
+            "doc-agenda"    => ("Portal Doctor", "Mi Agenda"),
+            "doc-cronograma"=> ("Portal Doctor", "Cronograma diario"),
+            "doc-horario"   => ("Portal Doctor", "Mi Horario"),
+            "admin-usuarios"=> ("Administración", "Gestión de usuarios"),
+            "admin-agenda"  => ("Administración", "Agenda médica"),
+            "admin-horario" => ("Administración", "Configurar horarios"),
+            "agendar-manual"=> ("Servicios", "Agendar manualmente"),
+            "exportar-citas"=> ("Servicios", "Exportar citas (XLS)"),
+            _               => ("Mi Cuenta", tab)
+        };
+
+        // En mobile: mapear sub-tab al grupo del bottom nav
+        var (mobileGroup, mobileTitle) = tab switch
+        {
+            "perfil" or "seguridad" or "autenticacion"
+                => ("cuenta", "Mi Cuenta"),
+            "pac-citas"
+                => ("citas", "Mis Citas"),
+            "doc-dashboard" or "doc-pacientes" or "doc-agenda" or "doc-cronograma" or "doc-horario"
+                => ("doctor", "Portal Doctor"),
+            "admin-usuarios" or "admin-agenda" or "admin-horario"
+                => ("admin", "Administración"),
+            "exportar-citas" or "agendar-manual"
+                => ("servicios", "Servicios"),
+            _ => (_mobileTab, _mobileSectionTitle)
+        };
+        _mobileTab = mobileGroup;
+        _mobileSectionTitle = mobileTitle;
+
+        Navigate(tab, group, label);
+        return Task.CompletedTask;
+    }
+
+    public void Dispose() => _tourRef?.Dispose();
+
+    private async void SetMobileTab(string tab, string title)
+    {
+        _mobileTab = tab;
+        _mobileSectionTitle = title;
+        // Marcar la primera sub-sección como activa (visual) al cambiar de tab
+        _mobileActiveSub = MobileSubItems.TryGetValue(tab, out var subs) ? subs[0].Id : null;
+        StateHasChanged();
+        try { await js.InvokeVoidAsync("window.scrollTo", 0, 0); } catch { }
+    }
+
+    private async Task ScrollToSubSection(string id)
+    {
+        _mobileActiveSub = id;
+        StateHasChanged();
+        try { await js.InvokeVoidAsync("paScrollToSection", id); } catch { }
+    }
+
     private void Navigate(string tab, string group, string item)
     {
         _tab = tab; _breadcrumbGroup = group; _breadcrumbItem = item;
@@ -265,11 +683,16 @@ else
 
     private void OnUserUpdated() { _user = UserState.User; StateHasChanged(); }
 
-    private async Task LogoutAsync()
+    private void ShowLogoutConfirm()
     {
+        _showLogoutConfirm = true;
+        StateHasChanged();
+    }
+
+    private async Task ConfirmLogoutAsync()
+    {
+        _showLogoutConfirm = false;
         await OfflineCache.ClearAsync();
-        // NavigateTo a /auth/sign-out — request HTTP directo del browser,
-        // SignOutAsync funciona correctamente en SSR y WASM.
         Nav.NavigateTo("/auth/sign-out", forceLoad: true);
     }
 
@@ -293,7 +716,7 @@ else
         __builder.CloseElement();
     };
 
-    private RenderFragment NavItem(string tab, string label, string group) => __builder =>
+    private RenderFragment NavItem(string tab, string label, string group, string? dataTour = null) => __builder =>
     {
         var active = _tab == tab;
         var capturedTab = tab; var capturedGroup = group; var capturedLabel = label;
@@ -304,11 +727,12 @@ else
                     : "border-transparent text-[#374151] hover:bg-gray-50"));
         __builder.AddAttribute(2, "onclick",
             EventCallback.Factory.Create(this, () => Navigate(capturedTab, capturedGroup, capturedLabel)));
-        __builder.OpenElement(3, "span");
-        __builder.AddAttribute(4, "class",
+        if (dataTour is not null) __builder.AddAttribute(3, "data-tour", dataTour);
+        __builder.OpenElement(4, "span");
+        __builder.AddAttribute(5, "class",
             $"h-1.5 w-1.5 rounded-full flex-shrink-0 " + (active ? "bg-[#257D8D]" : "bg-[#CBD5E1]"));
         __builder.CloseElement();
-        __builder.AddContent(5, label);
+        __builder.AddContent(6, label);
         __builder.CloseElement();
     };
 }
