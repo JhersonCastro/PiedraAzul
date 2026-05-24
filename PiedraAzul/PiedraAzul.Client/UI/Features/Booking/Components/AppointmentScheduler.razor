@@ -187,10 +187,10 @@ else
                 .Take(10)
                 .Select(d => new DayItem
                 {
-                    Date = d.ToLocalTime(),
-                    DayName = d.ToLocalTime().ToString("ddd").ToUpper(),
-                    DayNumber = d.ToLocalTime().ToString("dd"),
-                    Month = d.ToLocalTime().ToString("MMMM").ToUpper()
+                    Date = d,
+                    DayName = d.ToString("ddd").ToUpper(),
+                    DayNumber = d.ToString("dd"),
+                    Month = d.ToString("MMMM").ToUpper()
                 }).ToList();
         }
         else
