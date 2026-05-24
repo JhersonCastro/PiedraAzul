@@ -6,6 +6,33 @@ namespace PiedraAzul.Client.Services.GraphQLServices;
 
 public class GraphQLAvailabilityService(GraphQLHttpClient client)
 {
+    public async Task<Result<List<DateTime>>> GetDoctorAvailableDaysAsync(
+        string doctorId,
+        DateTime startDate,
+        int numberOfDays,
+        CancellationToken cancellationToken = default)
+    {
+        const string query = """
+            query GetDoctorAvailableDays($doctorId: String!, $startDate: DateTime!, $numberOfDays: Int!) {
+                doctorAvailableDays(doctorId: $doctorId, startDate: $startDate, numberOfDays: $numberOfDays)
+            }
+            """;
+
+        return await GraphQLExecutor.Execute(async () =>
+        {
+            var result = await client.ExecuteAsync<List<DateTime>>(
+                query,
+                new
+                {
+                    doctorId,
+                    startDate = startDate.ToUniversalTime().ToString("o"),
+                    numberOfDays
+                },
+                "doctorAvailableDays");
+            return result ?? new();
+        });
+    }
+
     public async Task<Result<List<SlotGQL>>> GetDoctorSlotsByDate(
         string doctorId,
         DateTime date,

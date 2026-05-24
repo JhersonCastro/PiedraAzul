@@ -1,4 +1,5 @@
 using Mediator;
+using PiedraAzul.Application.Features.Doctors.Queries.GetDoctorAvailableDays;
 using PiedraAzul.Application.Features.Doctors.Queries.GetDoctorByUserId;
 using PiedraAzul.Application.Features.Doctors.Queries.GetDoctorDaySlots;
 using PiedraAzul.Application.Features.Doctors.Queries.GetDoctorsBySpecialty;
@@ -58,6 +59,24 @@ public partial class Query
             End = date.Add(s.EndTime),
             IsAvailable = s.IsAvailable
         }).ToList();
+    }
+
+    /// <summary>
+    /// Devuelve los días (dentro del rango) que tienen al menos un slot libre.
+    /// Realiza solo 2 consultas a la BD en lugar de una por día.
+    /// </summary>
+    public async Task<List<DateTime>> GetDoctorAvailableDaysAsync(
+        string doctorId,
+        DateTime startDate,
+        int numberOfDays,
+        [Service] IMediator mediator)
+    {
+        var start = DateOnly.FromDateTime(startDate);
+        var days = await mediator.Send(
+            new GetDoctorAvailableDaysQuery(doctorId, start, numberOfDays));
+
+        // Return as UTC DateTime so the client deserializes correctly
+        return days.Select(d => d.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc)).ToList();
     }
 
     public async Task<ScheduleConfigType> GetScheduleConfigByDoctorIdAsync(
