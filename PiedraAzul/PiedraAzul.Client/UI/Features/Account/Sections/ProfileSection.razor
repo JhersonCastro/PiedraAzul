@@ -48,7 +48,7 @@ else
     }
 
     <!-- Personal info card -->
-    <div class="mb-5 rounded-2xl border border-[#E2E8F0] bg-white p-6">
+    <div data-tour="profile-info-card" class="mb-5 rounded-2xl border border-[#E2E8F0] bg-white p-6">
         <p class="mb-4 text-[13px] font-bold text-[#0F172A]">Información personal</p>
 
         <div class="mb-5 flex items-center gap-4 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-3.5">
@@ -75,7 +75,7 @@ else
             </div>
         </div>
 
-        <div>
+        <div data-tour="profile-name-field">
             <label class="mb-1.5 block text-xs font-semibold text-[#374151]">Nombre completo</label>
             <div class="flex gap-2.5">
                 <input @bind="_editName" @bind:event="oninput"
@@ -96,7 +96,7 @@ else
     </div>
 
     <!-- Email card -->
-    <div class="rounded-2xl border border-[#E2E8F0] bg-white p-6">
+    <div data-tour="profile-email-card" class="rounded-2xl border border-[#E2E8F0] bg-white p-6">
         <p class="mb-1 text-[13px] font-bold text-[#0F172A]">Correo electrónico</p>
         <p class="mb-4 text-[12px] text-[#64748B]">Para cambiar tu correo te enviaremos un código de verificación.</p>
         <EmailChange CurrentEmail="@(_user.Email ?? "")" GraphQL="@GraphQL" OnEmailChanged="ReloadUserAsync" />
