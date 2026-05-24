@@ -2,6 +2,7 @@
 using PiedraAzul.Application.Common.Interfaces;
 using PiedraAzul.Application.Common.Models.Appointments;
 using PiedraAzul.Domain.Entities.Operations;
+using PiedraAzul.Domain.Entities.Profiles.Doctor;
 using PiedraAzul.Domain.Repositories;
 using System;
 using System.Collections.Generic;
@@ -10,7 +11,7 @@ using System.Text;
 namespace PiedraAzul.Application.Features.Doctors.Queries.GetDoctorAppointments
 {
     public class GetDoctorAppointmentsHandler
-    : IRequestHandler<GetDoctorAppointmentsQuery, IReadOnlyList<AppointmentDto>>
+        : IRequestHandler<GetDoctorAppointmentsQuery, IReadOnlyList<AppointmentDto>>
     {
         private readonly IAppointmentRepository _appointmentRepository;
         private readonly IDoctorAvailabilitySlotRepository _slotRepository;
@@ -51,10 +52,15 @@ namespace PiedraAzul.Application.Features.Doctors.Queries.GetDoctorAppointments
             var doctorUsers = await _identityService.GetByIds(doctorIds);
             var doctorUserDict = doctorUsers.ToDictionary(u => u.Id);
 
-            var doctorEntities = await Task.WhenAll(doctorIds.Select(id => _doctorRepository.GetByIdAsync(id, cancellationToken)));
-            var doctorEntityDict = doctorEntities
-                .Where(d => d is not null)
-                .ToDictionary(d => d!.Id);
+            // ✅ CORRECCIÓN: ejecución secuencial en lugar de Task.WhenAll
+            var doctorEntities = new List<Doctor>();
+            foreach (var id in doctorIds)
+            {
+                var doctor = await _doctorRepository.GetByIdAsync(id, cancellationToken);
+                if (doctor is not null)
+                    doctorEntities.Add(doctor);
+            }
+            var doctorEntityDict = doctorEntities.ToDictionary(d => d.Id);
 
             var userIds = appointments
                 .Where(a => a.PatientUserId != null)
@@ -123,4 +129,3 @@ namespace PiedraAzul.Application.Features.Doctors.Queries.GetDoctorAppointments
         }
     }
 }
-

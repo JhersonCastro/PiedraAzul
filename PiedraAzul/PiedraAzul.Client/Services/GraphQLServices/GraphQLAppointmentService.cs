@@ -212,6 +212,25 @@ public class GraphQLAppointmentService(GraphQLHttpClient client)
         });
     }
 
+    /// <summary>Cancela una cita activa del paciente autenticado.</summary>
+    public async Task<Result<bool>> CancelAppointmentAsync(Guid appointmentId)
+    {
+        const string mutation = """
+            mutation CancelAppointment($appointmentId: UUID!) {
+                cancelAppointment(appointmentId: $appointmentId)
+            }
+            """;
+
+        return await GraphQLExecutor.Execute(async () =>
+        {
+            var result = await client.ExecuteAsync<bool>(
+                mutation,
+                new { appointmentId },
+                "cancelAppointment");
+            return result;
+        });
+    }
+
     /// <summary>Reagenda una cita para un paciente autenticado.</summary>
     public async Task<Result<AppointmentGQL>> RescheduleAppointmentAsync(
         Guid appointmentId, Guid newSlotId, DateTime newDate)

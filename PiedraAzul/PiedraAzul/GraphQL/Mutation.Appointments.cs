@@ -3,6 +3,7 @@ using HotChocolate.Authorization;
 using Mediator;
 using Microsoft.AspNetCore.Http;
 using PiedraAzul.Application.Common.Models.Patients;
+using PiedraAzul.Application.Features.Appointments.CancelAppointment;
 using PiedraAzul.Application.Features.Appointments.CreateAppointment;
 using PiedraAzul.Application.Features.Appointments.RescheduleAppointment;
 using PiedraAzul.GraphQL.Inputs;
@@ -101,6 +102,21 @@ public partial class Mutation
         );
 
         return AppointmentType.FromDomain(appointment);
+    }
+
+    /// <summary>
+    /// Cancela una cita activa. Solo el paciente dueño de la cita puede cancelarla.
+    /// </summary>
+    [Authorize(Roles = new[] { "Patient" })]
+    public async Task<bool> CancelAppointmentAsync(
+        Guid appointmentId,
+        [Service] IMediator mediator,
+        [Service] IHttpContextAccessor httpContextAccessor)
+    {
+        var userId = httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? throw new GraphQLException("No autenticado");
+
+        return await mediator.Send(new CancelAppointmentCommand(appointmentId, userId));
     }
 
     /// <summary>

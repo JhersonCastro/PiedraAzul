@@ -2,6 +2,7 @@
 using PiedraAzul.Application.Common.Interfaces;
 using PiedraAzul.Application.Common.Models.Appointments;
 using PiedraAzul.Domain.Entities.Operations;
+using PiedraAzul.Domain.Entities.Profiles.Doctor;
 using PiedraAzul.Domain.Repositories;
 
 namespace PiedraAzul.Application.Features.Patients.Queries.GetPatientAppointments
@@ -92,11 +93,15 @@ namespace PiedraAzul.Application.Features.Patients.Queries.GetPatientAppointment
             var doctorUsers = await _identityService.GetByIds(doctorIds);
             var doctorUserDict = doctorUsers.ToDictionary(u => u.Id);
 
-            var doctorEntities = await Task.WhenAll(
-                doctorIds.Select(id => _doctorRepository.GetByIdAsync(id, cancellationToken)));
-            var doctorEntityDict = doctorEntities
-                .Where(d => d is not null)
-                .ToDictionary(d => d!.Id);
+            // ✅ CORRECCIÓN: ejecución secuencial en lugar de Task.WhenAll para evitar concurrencia en DbContext
+            var doctorEntities = new List<Doctor>();
+            foreach (var id in doctorIds)
+            {
+                var doctor = await _doctorRepository.GetByIdAsync(id, cancellationToken);
+                if (doctor is not null)
+                    doctorEntities.Add(doctor);
+            }
+            var doctorEntityDict = doctorEntities.ToDictionary(d => d.Id);
 
             // 🔥 Obtener hora real del slot (StartTime)
             var slotIds = appointments

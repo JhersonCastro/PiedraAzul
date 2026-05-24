@@ -58,7 +58,7 @@ public partial class Query
     {
         var userId = httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)
             ?? throw new GraphQLException("No autenticado");
-
+        
         var result = await mediator.Send(new GetPatientAppointmentsQuery(userId, null));
         return result
             .OrderByDescending(a => a.Start)
