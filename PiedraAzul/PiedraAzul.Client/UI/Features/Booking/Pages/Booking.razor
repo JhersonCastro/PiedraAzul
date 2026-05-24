@@ -1,20 +1,30 @@
-﻿@page "/medical-booking"
+@page "/medical-booking"
 
 @using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.JSInterop
 @using PiedraAzul.Client.Models
 @using PiedraAzul.Client.Models.Booking
 @using PiedraAzul.Client.Models.UserProfiles
+@using PiedraAzul.Client.Services
 @using PiedraAzul.Client.Services.AuthServices
 @using PiedraAzul.Client.Services.GraphQLServices
-@using PiedraAzul.Client.Services
 @using PiedraAzul.Client.States
+@using PiedraAzul.Client.UI.Features.Account.Components
 @using PiedraAzul.Client.UI.Features.Booking.Components
 @using PiedraAzul.Client.UI.Shared.Components.StepTag
+@implements IDisposable
 @inject NavigationManager Navigation
 @inject GraphQLAppointmentService AppointmentService
 @inject AuthenticationService AuthService
 @inject UserState UserState
 @inject OfflineCacheService OfflineCache
+@inject DriverTourService DriverTourService
+@inject IJSRuntime JS
+
+<!-- Tour Banner -->
+<TourHelpBanner TourId="@TourIds.BookingTour"
+                OnStartTour="StartTourAsync"
+                OnSkipTour="StateHasChanged" />
 
 @if (isSuccess)
 {
@@ -22,14 +32,14 @@
 }
 else
 {
-    <EditForm  Model="@Model" class="flex justify-center">
+    <EditForm Model="@Model" class="flex justify-center">
 
         <DataAnnotationsValidator />
 
         <div class="mx-auto my-6 flex w-full max-w-6xl flex-col rounded-xl bg-white p-8 shadow-2xl">
             <Stepper @ref="Stepper" TModel="BookingModel" FinishText="Solicitar cita" OnFinish="HandlerSubmit">
 
-                    <!-- STEP 1 -->
+                    <!-- STEP 1: Especialidad + Doctor -->
                     <Step TModel="BookingModel"
                           Title="Selecciona un doctor"
                           Fields="@(new[] { nameof(Model.DoctorId)})">
@@ -39,30 +49,34 @@ else
 
                     </Step>
 
-                    <!-- STEP 2 -->
+                    <!-- STEP 2: Horario -->
                     <Step TModel="BookingModel"
-                          Title="Selecciona un doctor"
+                          Title="Selecciona un horario"
                           Fields="@(new[] { nameof(Model.SlotId)})">
 
-                    <AppointmentScheduler DoctorId="@Model.DoctorId" OnSelected="SelectSlot"/>
-                    <ValidationMessage For="() => Model.SlotId" />
+                        <div data-tour="booking-scheduler-section">
+                            <AppointmentScheduler DoctorId="@Model.DoctorId" OnSelected="SelectSlot"/>
+                        </div>
+                        <ValidationMessage For="() => Model.SlotId" />
 
                     </Step>
 
-                    <!-- STEP 3 -->
+                    <!-- STEP 3: Confirmación -->
                     <Step TModel="BookingModel" Title="Confirmación">
 
-                        <h2 class="mb-4 text-2xl font-bold">
-                            Confirmar datos
-                        </h2>
+                        <div data-tour="booking-confirmation">
+                            <h2 class="mb-4 text-2xl font-bold">
+                                Confirmar datos
+                            </h2>
 
-                        <div class="flex flex-col gap-2 text-lg">
+                            <div class="flex flex-col gap-2 text-lg">
 
-                            <p><b>Id:</b> @_patientId</p>
-                            <p><b>Date:</b> @Model.DayOfYear.ToUniversalTime()</p>
-                            <p><b>Doctor id:</b> @Model.DoctorId</p>
-                            <p><b>Slot id:</b> @Model.SlotId</p>
+                                <p><b>Id:</b> @_patientId</p>
+                                <p><b>Date:</b> @Model.DayOfYear.ToUniversalTime()</p>
+                                <p><b>Doctor id:</b> @Model.DoctorId</p>
+                                <p><b>Slot id:</b> @Model.SlotId</p>
 
+                            </div>
                         </div>
 
                     </Step>
@@ -76,8 +90,3 @@ else
         </div>
     </EditForm>
 }
-
-
-
-
-

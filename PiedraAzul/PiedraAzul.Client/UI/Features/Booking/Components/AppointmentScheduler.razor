@@ -175,38 +175,28 @@ else
             Logger.LogError(ex, "Error al iniciar SignalR");
         }
 
-        // Scan next 28 days in parallel, keep only those with at least one slot
+        // Una sola query al backend en lugar de 28 requests paralelos.
+        // GetDoctorAvailableDaysAsync hace 2 consultas a la BD y computa en memoria.
         var startDate = DateTime.Today.AddDays(1);
-        var scanTasks = Enumerable.Range(0, 28).Select(async i =>
+        var availableDaysResult = await AvailabilityClient.GetDoctorAvailableDaysAsync(
+            DoctorId, startDate, numberOfDays: 28);
+
+        if (availableDaysResult.IsSuccess)
         {
-            var date = startDate.AddDays(i);
-            try
-            {
-                var result = await AvailabilityClient.GetDoctorSlotsByDate(DoctorId, date, CancellationToken.None);
-                return (date, hasSlots: result.IsSuccess && result.Value?.Any() == true);
-            }
-            catch
-            {
-                return (date, hasSlots: false);
-            }
-        });
-
-        var scanResults = await Task.WhenAll(scanTasks);
-
-        Days = scanResults
-            .Where(r => r.hasSlots)
-            .Take(10)
-            .Select(r =>
-            {
-                var d = r.date;
-                return new DayItem
+            Days = (availableDaysResult.Value ?? [])
+                .Take(10)
+                .Select(d => new DayItem
                 {
-                    Date = d,
-                    DayName = d.ToString("ddd").ToUpper(),
-                    DayNumber = d.ToString("dd"),
-                    Month = d.ToString("MMMM").ToUpper()
-                };
-            }).ToList();
+                    Date = d.ToLocalTime(),
+                    DayName = d.ToLocalTime().ToString("ddd").ToUpper(),
+                    DayNumber = d.ToLocalTime().ToString("dd"),
+                    Month = d.ToLocalTime().ToString("MMMM").ToUpper()
+                }).ToList();
+        }
+        else
+        {
+            Logger.LogError("Error al obtener días disponibles: {Error}", availableDaysResult.Error);
+        }
 
         _scanningDays = false;
         await InvokeAsync(StateHasChanged);
