@@ -37,6 +37,10 @@ public static class SharedClientServicesExtensions
         services.AddScoped<OfflineCacheService>();
         #endregion
 
+        #region Tour
+        services.AddScoped<DriverTourService>();
+        #endregion
+
         #region Auth
         services.AddScoped<AuthenticationStateProvider, PersistentAuthenticationStateProvider>();
         services.AddAuthorizationCore();
