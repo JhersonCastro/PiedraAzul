@@ -361,7 +361,7 @@ else
             var mapped = slotStates.Select(s => new TimeSlot
             {
                 Id = s.SlotId,
-                Time = s.Start.ToLocalTime().ToString("hh:mm tt"),
+                Time = s.Start.ToString("hh:mm tt"),
                 Available = !s.IsReserved,
                 UnavailableReason = s.IsReserved ? "RESERVADO" : null
             }).ToList();
