@@ -1,7 +1,18 @@
 @page "/"
+@using PiedraAzul.Client.Services
+@using PiedraAzul.Client.UI.Features.Account.Components
+@using Microsoft.JSInterop
+@implements IDisposable
+@inject DriverTourService DriverTourService
+
 <PageTitle>Piedra Azul</PageTitle>
 
-<section class="mx-auto grid max-w-7xl items-center gap-10 px-6 py-16 md:grid-cols-2">
+<!-- Tour Banner -->
+<TourHelpBanner TourId="@TourIds.HomeWelcome"
+                OnStartTour="StartTourAsync"
+                OnSkipTour="StateHasChanged" />
+
+<section data-tour="home-hero" class="mx-auto grid max-w-7xl items-center gap-10 px-6 py-16 md:grid-cols-2">
     <div>
         <h1 class="mb-6 text-5xl font-bold leading-tight text-gray-900">Tu bienestar es nuestra prioridad</h1>
 
@@ -21,6 +32,7 @@
         <img src="https://images.unsplash.com/photo-1584515933487-779824d29309" class="rounded-xl border-4 border-transparent shadow-lg outline-2 outline-gray-200" />
     </div>
 </section>
+
 <!--Agenda tu cita Seccion-->
 <section class="bg-gray-100 py-16">
     <div class="mx-auto mb-12 max-w-7xl px-6 text-center">
@@ -30,7 +42,7 @@
     </div>
 
     <div class="mx-auto grid max-w-7xl gap-8 px-6 md:grid-cols-2">
-        <a href="/account" class="group block overflow-hidden rounded-2xl bg-white border-2 border-transparent shadow-sm hover:shadow-xl hover:border-primary hover:bg-slate-50 hover:-translate-y-1 transition-all duration-300">
+        <a data-tour="home-signin-card" href="/account" class="group block overflow-hidden rounded-2xl bg-white border-2 border-transparent shadow-sm hover:shadow-xl hover:border-primary hover:bg-slate-50 hover:-translate-y-1 transition-all duration-300">
             <div class="overflow-hidden">
                 <img src="https://images.unsplash.com/photo-1758983308742-f4ba1f8c8cb4?q=80&w=1364&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" class="h-56 w-full object-cover transition-transform duration-700 group-hover:scale-105" alt="Registro e Inicio Seguro" />
             </div>
@@ -47,7 +59,7 @@
             </div>
         </a>
 
-        <a href="/instant-medical-booking" class="group block overflow-hidden rounded-2xl bg-white border-2 border-transparent shadow-sm hover:shadow-xl hover:border-primary hover:bg-slate-50 hover:-translate-y-1 transition-all duration-300">
+        <a data-tour="home-quickbook-card" href="/instant-medical-booking" class="group block overflow-hidden rounded-2xl bg-white border-2 border-transparent shadow-sm hover:shadow-xl hover:border-primary hover:bg-slate-50 hover:-translate-y-1 transition-all duration-300">
             <div class="overflow-hidden">
                 <img src="https://images.unsplash.com/photo-1676311522524-fa7c0bffd644?q=80&w=800&auto=format&fit=crop" class="h-56 w-full object-cover transition-transform duration-700 group-hover:scale-105" alt="Reserva de Cita Rápida" />
             </div>
@@ -67,6 +79,7 @@
         </a>
     </div>
 </section>
+
 <!--Especialidades Medicas Seccion-->
 <section class="py-16">
     <div class="mx-auto mb-16 max-w-7xl px-6 text-center">
@@ -105,3 +118,28 @@
         </article>
     </div>
 </section>
+
+@code {
+    private DotNetObjectReference<Home>? _tourRef;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var shouldShow = await DriverTourService.ShouldShowTourAsync(TourIds.HomeWelcome);
+            if (shouldShow)
+                await StartTourAsync();
+        }
+    }
+
+    private async Task StartTourAsync()
+    {
+        _tourRef ??= DotNetObjectReference.Create(this);
+        await DriverTourService.StartTourAsync(TourIds.HomeWelcome, dotnetRef: _tourRef);
+    }
+
+    [JSInvokable]
+    public Task TourNavigateToTab(string tab) => Task.CompletedTask;
+
+    public void Dispose() => _tourRef?.Dispose();
+}

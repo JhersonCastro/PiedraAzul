@@ -17,6 +17,7 @@
                     </button>
 
                 <button type="button"
+                        data-tour="booking-next-btn"
                         class="bg-primary cursor-pointer rounded px-4 py-2 text-white"
                         @onclick="Next">
                     @(CurrentStep == Steps.Count-1 ? FinishText : "Siguiente")
@@ -83,6 +84,8 @@
 
         if (CurrentStep < Steps.Count - 1)
             CurrentStep++;
+
+        StateHasChanged();
     }
 
 
