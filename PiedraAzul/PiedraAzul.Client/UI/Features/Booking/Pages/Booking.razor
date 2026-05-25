@@ -71,10 +71,8 @@ else
 
                             <div class="flex flex-col gap-2 text-lg">
 
-                                <p><b>Id:</b> @_patientId</p>
-                                <p><b>Date:</b> @Model.DayOfYear.ToUniversalTime()</p>
-                                <p><b>Doctor id:</b> @Model.DoctorId</p>
-                                <p><b>Slot id:</b> @Model.SlotId</p>
+                            <p><b>Nombre de doctor:</b> @Model.Doctor?.Name</p>
+                            <p><b>A la fecha:</b> @Model.AppointmentSchedulerModel?.Date.ToShortDateString() @Model.AppointmentSchedulerModel?.Time</p>
 
                             </div>
                         </div>
