@@ -1,9 +1,13 @@
 ﻿using Fido2NetLib;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using PiedraAzul.Application.Common.Interfaces;
+using PiedraAzul.Infrastructure.DataProtection;
 using PiedraAzul.Infrastructure.Services;
 using PiedraAzul.Domain.Repositories;
 using PiedraAzul.Infrastructure.Caching;
@@ -21,9 +25,19 @@ public static class DependencyInjection
     {
         Console.WriteLine("INFRA OK");
 
-        // DbContext
+        var connectionString = configuration.GetConnectionString("DefaultConnection");
+
+        // DbContext (Scoped - para uso general)
         services.AddDbContext<AppDbContext>(options =>
-            options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
+            options.UseNpgsql(connectionString));
+
+        // 🔐 Data Protection - persistir keys en PostgreSQL para sobrevivir deploys
+        services.AddSingleton<PostgresXmlRepository>();
+        services.AddDataProtection()
+            .SetApplicationName("PiedraAzul");
+        services.AddOptions<KeyManagementOptions>()
+            .Configure<PostgresXmlRepository>((opts, repo) =>
+                opts.XmlRepository = repo);
 
         // Identity
         services.AddIdentityCore<ApplicationUser>()

@@ -6,6 +6,7 @@ using PiedraAzul.Domain.Entities.Operations;
 using PiedraAzul.Domain.Entities.Profiles.Doctor;
 using PiedraAzul.Domain.Entities.Profiles.Patients;
 using PiedraAzul.Infrastructure.Auth;
+using PiedraAzul.Infrastructure.DataProtection;
 using PiedraAzul.Infrastructure.Identity;
 
 
@@ -13,6 +14,7 @@ namespace PiedraAzul.Infrastructure.Persistence
 {
     public class AppDbContext : IdentityDbContext<ApplicationUser>
     {
+        public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
         public DbSet<SystemConfig> SystemConfigs => Set<SystemConfig>();
         public DbSet<Appointment> Appointments => Set<Appointment>();
         public DbSet<Doctor> Doctors => Set<Doctor>();
