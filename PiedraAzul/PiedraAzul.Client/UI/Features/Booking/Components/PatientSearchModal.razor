@@ -10,19 +10,19 @@
 
 @if (IsOpen)
 {
-    <div class="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" @onclick="HandleCancel"></div>
+    <div class="modal-backdrop" @onclick="HandleCancel"></div>
 
-    <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg border border-slate-100 overflow-hidden"
+    <div class="modal-container">
+        <div class="modal-panel-lg"
              @onclick:stopPropagation>
 
             <!-- Header -->
-            <div class="flex items-center justify-between px-6 py-4 bg-slate-50 border-b border-slate-100">
+            <div class="modal-header">
                 <h2 class="text-lg font-bold text-slate-900">
                     @(_view == "create" ? "Registrar nuevo paciente" : "Buscar paciente")
                 </h2>
                 <button @onclick="HandleCancel"
-                        class="text-slate-400 hover:text-slate-700 transition-colors">
+                        class="btn-close">
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
@@ -30,7 +30,7 @@
             </div>
 
             <!-- Body -->
-            <div class="px-6 py-5">
+            <div class="modal-body">
 
                 @if (_view == "search")
                 {
@@ -39,7 +39,7 @@
 
                         @if (!string.IsNullOrEmpty(_searchError))
                         {
-                            <div class="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-2.5">
+                            <div class="alert-error-inline">
                                 @_searchError
                             </div>
                         }
@@ -49,7 +49,7 @@
                             <input type="text"
                                    value="@_query"
                                    @oninput="OnSearchInput"
-                                   class="w-full border border-slate-200 rounded-lg px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/40 bg-slate-50"
+                                   class="input-slate pr-10"
                                    placeholder="Buscar por nombre o teléfono..." />
                             @if (_searching)
                             {
@@ -105,7 +105,7 @@
 
                         @if (!string.IsNullOrEmpty(_createError))
                         {
-                            <div class="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-2.5">
+                            <div class="alert-error-inline">
                                 @_createError
                             </div>
                         }
@@ -113,21 +113,21 @@
                         <div>
                             <label class="block text-sm font-semibold text-slate-700 mb-1.5">Nombre completo *</label>
                             <input type="text" @bind="_newName"
-                                   class="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/40 bg-slate-50"
+                                   class="input-slate"
                                    placeholder="Ej: María García" />
                         </div>
 
                         <div>
                             <label class="block text-sm font-semibold text-slate-700 mb-1.5">Correo electrónico *</label>
                             <input type="email" @bind="_newEmail"
-                                   class="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/40 bg-slate-50"
+                                   class="input-slate"
                                    placeholder="correo@ejemplo.com" />
                         </div>
 
                         <div>
                             <label class="block text-sm font-semibold text-slate-700 mb-1.5">Teléfono</label>
                             <input type="text" @bind="_newPhone"
-                                   class="w-full border border-slate-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/40 bg-slate-50"
+                                   class="input-slate"
                                    placeholder="300 123 4567" />
                         </div>
 
@@ -156,7 +156,7 @@
             </div>
 
             <!-- Footer -->
-            <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-3">
+            <div class="modal-footer flex items-center justify-between gap-3">
 
                 @if (_view == "search")
                 {
@@ -168,7 +168,7 @@
                         Crear nuevo paciente
                     </button>
                     <button @onclick="HandleCancel"
-                            class="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">
+                            class="btn-cancel">
                         Cancelar
                     </button>
                 }
@@ -181,11 +181,11 @@
                     </button>
                     <div class="flex gap-3">
                         <button @onclick="HandleCancel"
-                                class="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">
+                                class="btn-cancel">
                             Cancelar
                         </button>
                         <button @onclick="HandleCreatePatient" disabled="@_saving"
-                                class="px-5 py-2 bg-teal-700 hover:bg-teal-800 text-white text-sm font-bold rounded-lg transition-colors disabled:opacity-60 flex items-center gap-2">
+                                class="btn-action-inline">
                             @if (_saving)
                             {
                                 <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -202,7 +202,7 @@
                 {
                     <span></span>
                     <button @onclick="ConfirmCreatedPatient"
-                            class="px-5 py-2 bg-teal-700 hover:bg-teal-800 text-white text-sm font-bold rounded-lg transition-colors">
+                            class="btn-action-inline">
                         Entendido — Usar este paciente
                     </button>
                 }

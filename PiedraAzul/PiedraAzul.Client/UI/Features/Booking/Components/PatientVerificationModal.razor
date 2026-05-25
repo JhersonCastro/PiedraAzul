@@ -11,13 +11,13 @@
 
 @if (IsOpen && (IsLoading || !string.IsNullOrEmpty(SearchResultType)))
 {
-    <div class="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"></div>
+    <div class="modal-backdrop"></div>
 
-    <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md border border-slate-100 overflow-hidden">
+    <div class="modal-container">
+        <div class="modal-panel">
 
             <!-- Header -->
-            <div class="flex items-center justify-between px-6 py-4 bg-slate-50 border-b border-slate-100">
+            <div class="modal-header">
                 <h2 class="text-base font-bold text-slate-900">@GetTitle()</h2>
                 @if (!IsLoading && !string.IsNullOrEmpty(SearchResultType))
                 {
@@ -31,7 +31,7 @@
             </div>
 
             <!-- Body -->
-            <div class="px-6 py-5">
+            <div class="modal-body">
 
                 @if (IsLoading || string.IsNullOrEmpty(SearchResultType))
                 {
@@ -108,11 +108,11 @@
                     {
                         <div class="flex flex-col gap-2">
                             <button @onclick="() => OnRegisteredLogin.InvokeAsync()"
-                                    class="w-full py-2.5 bg-teal-700 hover:bg-teal-800 text-white text-sm font-bold rounded-lg transition">
+                                    class="btn-action">
                                 Iniciar sesión
                             </button>
                             <button @onclick="() => OnRegisteredGuestContinue.InvokeAsync()"
-                                    class="w-full py-2.5 border border-slate-300 hover:bg-slate-100 text-slate-700 text-sm font-semibold rounded-lg transition">
+                                    class="btn-secondary-sm">
                                 Continuar como invitado
                             </button>
                         </div>
@@ -120,21 +120,21 @@
                     else if (SearchResultType == "GUEST")
                     {
                         <button @onclick="() => OnGuestContinue.InvokeAsync()"
-                                class="w-full py-2.5 bg-teal-700 hover:bg-teal-800 text-white text-sm font-bold rounded-lg transition">
+                                class="btn-action">
                             Verificar identidad
                         </button>
                     }
                     else if (SearchResultType == "NO_CONTACT")
                     {
                         <button @onclick="() => OnClose.InvokeAsync()"
-                                class="w-full py-2.5 border border-slate-300 hover:bg-slate-100 text-slate-700 text-sm font-semibold rounded-lg transition">
+                                class="btn-secondary-sm">
                             Entendido
                         </button>
                     }
                     else if (SearchResultType == "NOT_FOUND")
                     {
                         <button @onclick="() => OnNewPatientContinue.InvokeAsync()"
-                                class="w-full py-2.5 bg-teal-700 hover:bg-teal-800 text-white text-sm font-bold rounded-lg transition">
+                                class="btn-action">
                             Continuar y completar datos
                         </button>
                     }

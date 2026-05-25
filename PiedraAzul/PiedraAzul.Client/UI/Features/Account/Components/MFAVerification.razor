@@ -10,7 +10,7 @@
 
 <EditForm Model="@mfaModel" OnValidSubmit="HandleVerifyMFA" class="mx-auto w-full max-w-lg">
     <DataAnnotationsValidator />
-    <div class="rounded-2xl border border-gray-100 bg-white p-6 shadow-xl md:p-8">
+    <div class="form-card">
 
         <!-- Header -->
         <h2 class="text-center text-2xl font-bold text-gray-800 md:text-left md:text-3xl">
@@ -22,7 +22,7 @@
         </p>
 
         <!-- Validation -->
-        <ValidationSummary class="mb-4 text-sm text-red-500" />
+        <ValidationSummary class="form-error-summary" />
 
         <!-- Toggle: OTP / Backup Code -->
         @if (MFARequired?.MFAMethod != "BackupCode")
@@ -50,8 +50,7 @@
                        @bind="mfaModel.OTP"
                        placeholder="XXXXXXXX"
                        maxlength="8"
-                       class="w-full rounded-lg border border-gray-300 px-4 py-3 text-center text-2xl tracking-widest text-gray-700
-                       transition focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-400"
+                       class="input text-center text-2xl tracking-widest"
                        autocomplete="off"
                        disabled="@_loading" />
             }
@@ -61,8 +60,7 @@
                        @bind="mfaModel.OTP"
                        placeholder="000000"
                        maxlength="8"
-                       class="w-full rounded-lg border border-gray-300 px-4 py-3 text-center text-2xl tracking-widest text-gray-700
-                       transition focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-400"
+                       class="input text-center text-2xl tracking-widest"
                        autocomplete="off"
                        disabled="@_loading" />
             }
@@ -88,8 +86,7 @@
         <div class="mt-6 space-y-3">
             <button type="submit"
                     disabled="@_loading"
-                    class="w-full rounded-lg bg-[#257D8D] py-3 font-semibold text-white shadow-md
-                    transition duration-200 hover:bg-[#1E5F6F] disabled:opacity-60">
+                    class="btn-primary">
                 @(_loading ? "Verificando..." : "Verificar código")
             </button>
 
@@ -98,7 +95,7 @@
                 @if (_resendCountdown > 0)
                 {
                     <button type="button" disabled
-                            class="w-full rounded-lg border border-gray-300 bg-gray-100 py-3 font-semibold text-gray-500">
+                            class="btn-ghost-disabled">
                         ⏱️ Reenviar en @_resendCountdown segundos
                     </button>
                 }
@@ -107,8 +104,7 @@
                     <button type="button"
                             @onclick="HandleResendOTP"
                             disabled="@(_resendLoading || _resendAttempts >= 3)"
-                            class="w-full rounded-lg border border-gray-300 bg-white py-3 font-semibold text-gray-700
-                            shadow-sm transition duration-200 hover:bg-gray-50 disabled:opacity-60">
+                            class="btn-ghost">
                         @(_resendLoading ? "Reenviando..." : "¿No recibiste el código? Reenviar")
                     </button>
                 }
@@ -116,8 +112,7 @@
 
             <button type="button"
                     @onclick="HandleBack"
-                    class="w-full rounded-lg border border-gray-300 bg-gray-100 py-3 font-semibold text-gray-700
-                    shadow-sm transition duration-200 hover:bg-gray-200">
+                    class="btn-secondary">
                 Volver
             </button>
         </div>

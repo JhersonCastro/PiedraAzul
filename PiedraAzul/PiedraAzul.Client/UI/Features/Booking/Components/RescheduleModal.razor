@@ -14,13 +14,13 @@
 
 @if (IsOpen)
 {
-    <div class="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"></div>
+    <div class="modal-backdrop"></div>
 
-    <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl border border-slate-100 flex flex-col max-h-[92vh]">
+    <div class="modal-container">
+        <div class="modal-panel-xl">
 
             <!-- Header -->
-            <div class="flex items-center justify-between px-6 py-4 bg-slate-50 border-b border-slate-100 flex-shrink-0">
+            <div class="modal-header flex-shrink-0">
                 <div class="flex items-center gap-3">
                     <!-- Step indicator -->
                     <div class="flex gap-1.5">
@@ -35,7 +35,7 @@
                 @if (!IsLoading)
                 {
                     <button @onclick="HandleClose"
-                            class="text-slate-400 hover:text-slate-700 transition-colors">
+                            class="btn-close">
                         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -44,7 +44,7 @@
             </div>
 
             <!-- Body -->
-            <div class="px-6 py-5 overflow-y-auto flex-1">
+            <div class="modal-body-scroll">
 
                 @if (!string.IsNullOrEmpty(_error))
                 {
@@ -81,7 +81,7 @@
                 {
                     <!-- Step 3: Confirm -->
                     <div class="space-y-4">
-                        <div class="flex items-start gap-3 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
+                        <div class="alert alert-amber">
                             <svg class="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.073 16.5c-.77.833.192 2.5 1.732 2.5z" />
                             </svg>
@@ -112,7 +112,7 @@
             </div>
 
             <!-- Footer -->
-            <div class="flex items-center justify-between px-6 py-4 bg-slate-50 border-t border-slate-100 flex-shrink-0 gap-3">
+            <div class="modal-footer flex items-center justify-between flex-shrink-0 gap-3">
                 @if (_stepIndex > 0)
                 {
                     <button type="button" @onclick="GoBack"

@@ -11,7 +11,7 @@
 <PageTitle>Mis Passkeys | Piedra Azul</PageTitle>
 
 <div class="mx-auto max-w-lg px-4 py-10">
-    <div class="rounded-2xl border border-gray-100 bg-white p-6 shadow-xl md:p-8">
+    <div class="form-card">
 
         <h2 class="text-2xl font-bold text-gray-800">Mis Passkeys</h2>
         <p class="mt-2 text-sm text-gray-500">
@@ -28,14 +28,13 @@
         {
             <div class="mt-6 space-y-4">
                 <div>
-                    <label class="mb-1 block text-sm font-semibold text-gray-700">
+                    <label class="label">
                         Nombre para esta passkey
                     </label>
                     <input @bind="_friendlyName"
                            type="text"
                            placeholder="Ej: Face ID iPhone, Windows Hello, YubiKey"
-                           class="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700
-                                  focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-400" />
+                           class="input" />
                 </div>
 
                 @if (!string.IsNullOrEmpty(_error))
@@ -49,17 +48,14 @@
                         Passkey registrada correctamente. Ya puedes usarla para ingresar.
                     </div>
                 }
-
                 <button @onclick="RegisterPasskeyAsync"
                         disabled="@_loading"
-                        class="w-full rounded-lg bg-[#257D8D] py-3 font-semibold text-white shadow-md
-                               transition duration-200 hover:bg-[#1E5F6F] disabled:opacity-60">
+                        class="btn-primary">
                     @(_loading ? "Registrando..." : "Registrar passkey")
                 </button>
 
                 <button @onclick='() => Nav.NavigateTo("/")'
-                        class="w-full rounded-lg bg-gray-100 py-3 font-semibold text-gray-700
-                               transition duration-200 hover:bg-gray-200">
+                        class="btn-secondary">
                     Volver
                 </button>
             </div>

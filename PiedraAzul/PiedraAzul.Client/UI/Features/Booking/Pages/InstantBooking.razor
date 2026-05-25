@@ -52,11 +52,11 @@ else
                                 <label class="text-lg font-semibold">Número de identificación</label>
                             </div>
 
-                            <InputText class="mt-2 rounded-md border-2 border-gray-300 px-4 py-3 focus:ring-primary focus:outline-none focus:ring-2"
+                            <InputText class="input-booking"
                                        @bind-Value="Model.PatientIdentification"
                                        placeholder="Ej: 1150064123" />
 
-                            <ValidationMessage For="@(() => Model.PatientIdentification)" class="text-red-500 text-sm mt-1" />
+                            <ValidationMessage For="@(() => Model.PatientIdentification)" class="form-error" />
                         </div>
 
                         <p class="text-center text-gray-500 text-sm">
@@ -95,12 +95,12 @@ else
                                 <label class="text-lg font-semibold">Nombre completo</label>
                             </div>
 
-                            <InputText class="@($"mt-2 rounded-md border-2 border-gray-300 px-4 py-3 focus:ring-primary focus:outline-none focus:ring-2 {(Model.IsPreVerifiedGuest ? "bg-gray-100 cursor-not-allowed" : "")}")"
+                            <InputText class="@(Model.IsPreVerifiedGuest ? "input-booking-readonly" : "input-booking")"
                                        @bind-Value="Model.PatientName"
                                        readonly="@Model.IsPreVerifiedGuest"
                                        placeholder="Ej: Juan López" />
 
-                            <ValidationMessage For="@(() => Model.PatientName)" class="text-red-500 text-sm mt-1" />
+                            <ValidationMessage For="@(() => Model.PatientName)" class="form-error" />
                         </div>
 
                         <!-- Teléfono -->
@@ -112,12 +112,12 @@ else
                                 <label class="text-lg font-semibold">Número de teléfono</label>
                             </div>
 
-                            <InputText class="@($"mt-2 rounded-md border-2 border-gray-300 px-4 py-3 focus:ring-primary focus:outline-none focus:ring-2 {(Model.IsPreVerifiedGuest ? "bg-gray-100 cursor-not-allowed" : "")}")"
+                            <InputText class="@(Model.IsPreVerifiedGuest ? "input-booking-readonly" : "input-booking")"
                                        @bind-Value="Model.PatientPhone"
                                        readonly="@Model.IsPreVerifiedGuest"
                                        placeholder="Ej: 301 123 4567" />
 
-                            <ValidationMessage For="@(() => Model.PatientPhone)" class="text-red-500 text-sm mt-1" />
+                            <ValidationMessage For="@(() => Model.PatientPhone)" class="form-error" />
                         </div>
 
                         <!-- Email (opcional, solo FLUJO 1; FLUJO 2 y 3 muestra readonly si hay) -->
@@ -130,12 +130,12 @@ else
                             </div>
 
                             <InputText type="email"
-                                       class="@($"mt-2 rounded-md border-2 border-gray-300 px-4 py-3 focus:ring-primary focus:outline-none focus:ring-2 {(Model.IsPreVerifiedGuest ? "bg-gray-100 cursor-not-allowed" : "")}")"
+                                       class="@(Model.IsPreVerifiedGuest ? "input-booking-readonly" : "input-booking")"
                                        @bind-Value="Model.PatientEmail"
                                        readonly="@Model.IsPreVerifiedGuest"
                                        placeholder="tucorreo@ejemplo.com" />
 
-                            <ValidationMessage For="@(() => Model.PatientEmail)" class="text-red-500 text-sm mt-1" />
+                            <ValidationMessage For="@(() => Model.PatientEmail)" class="form-error" />
                         </div>
 
                     </div>

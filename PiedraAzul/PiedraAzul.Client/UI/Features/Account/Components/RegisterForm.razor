@@ -28,63 +28,63 @@
 
                     <!-- Documento -->
                     <div>
-                        <label class="block text-lg font-semibold text-gray-800">
+                        <label class="label-lg">
                             Número de documento
                         </label>
-                        <p class="mb-2 text-sm text-gray-500">
+                        <p class="form-hint">
                             Ejemplo: cédula de ciudadanía
                         </p>
 
                         <InputText @bind-Value="registerModel.Document"
-                                   class="w-full rounded-lg border border-gray-300 px-4 py-3 text-lg focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-400"
+                                   class="input-lg"
                                    placeholder="Ingrese su documento" />
 
-                        <ValidationMessage For="@(() => registerModel.Document)" class="text-red-500 text-sm mt-1" />
+                        <ValidationMessage For="@(() => registerModel.Document)" class="form-error" />
                     </div>
 
                     <!-- Nombre -->
                     <div>
-                        <label class="block text-lg font-semibold text-gray-800">
+                        <label class="label-lg">
                             Nombre completo
                         </label>
-                        <p class="mb-2 text-sm text-gray-500">
+                        <p class="form-hint">
                             Tal como aparece en su documento
                         </p>
 
                         <InputText @bind-Value="registerModel.FullName"
-                                   class="w-full rounded-lg border border-gray-300 px-4 py-3 text-lg focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-400"
+                                   class="input-lg"
                                    placeholder="Ej: Juan Pérez" />
 
-                        <ValidationMessage For="@(() => registerModel.FullName)" class="text-red-500 text-sm mt-1" />
+                        <ValidationMessage For="@(() => registerModel.FullName)" class="form-error" />
                     </div>
 
                     <!-- Teléfono -->
                     <div>
-                        <label class="block text-lg font-semibold text-gray-800">
+                        <label class="label-lg">
                             Número de teléfono
                         </label>
-                        <p class="mb-2 text-sm text-gray-500">
+                        <p class="form-hint">
                             Para contactarlo sobre su cita
                         </p>
 
                         <InputText @bind-Value="registerModel.Phone"
-                                   class="w-full rounded-lg border border-gray-300 px-4 py-3 text-lg focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-400"
+                                   class="input-lg"
                                    placeholder="Ej: 301 123 4567" />
 
-                        <ValidationMessage For="@(() => registerModel.Phone)" class="text-red-500 text-sm mt-1" />
+                        <ValidationMessage For="@(() => registerModel.Phone)" class="form-error" />
                     </div>
 
                     <!-- Género -->
                     <div>
-                        <label class="block text-lg font-semibold text-gray-800">
+                        <label class="label-lg">
                             Género
                         </label>
-                        <p class="mb-2 text-sm text-gray-500">
+                        <p class="form-hint">
                             Seleccione una opción
                         </p>
 
                         <InputSelect @bind-Value="registerModel.Gender"
-                                     class="w-full rounded-lg border border-gray-300 px-4 py-3 text-lg focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-400">
+                                     class="input-lg">
 
                             <option value="@GenderType.NonSpecified">Seleccione género</option>
                             <option value="@GenderType.Male">Hombre</option>
@@ -93,7 +93,7 @@
 
                         </InputSelect>
 
-                        <ValidationMessage For="@(() => registerModel.Gender)" class="text-red-500 text-sm mt-1" />
+                        <ValidationMessage For="@(() => registerModel.Gender)" class="form-error" />
                     </div>
 
                 </div>
@@ -114,32 +114,32 @@
 
                     <!-- Fecha -->
                     <div>
-                        <label class="block text-lg font-semibold text-gray-800">
+                        <label class="label-lg">
                             Fecha de nacimiento
                         </label>
-                        <p class="mb-2 text-sm text-gray-500">
+                        <p class="form-hint">
                             Nos ayuda a personalizar su atención
                         </p>
 
                         <InputDate @bind-Value="registerModel.BirthDate"
-                                   class="w-full rounded-lg border border-gray-300 px-4 py-3 text-lg focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-400" />
+                                   class="input-lg" />
                     </div>
 
                     <!-- Email -->
                     <div>
-                        <label class="block text-lg font-semibold text-gray-800">
+                        <label class="label-lg">
                             Correo electrónico
                         </label>
-                        <p class="mb-2 text-sm text-gray-500">
+                        <p class="form-hint">
                             Para enviarle confirmaciones (opcional)
                         </p>
 
                         <InputText @bind-Value="registerModel.Email"
                                    type="email"
-                                   class="w-full rounded-lg border border-gray-300 px-4 py-3 text-lg focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-400"
+                                   class="input-lg"
                                    placeholder="ejemplo@gmail.com" />
 
-                        <ValidationMessage For="@(() => registerModel.Email)" class="text-red-500 text-sm mt-1" />
+                        <ValidationMessage For="@(() => registerModel.Email)" class="form-error" />
                     </div>
 
                 </div>
@@ -160,36 +160,36 @@
 
                     <!-- Password -->
                     <div>
-                        <label class="block text-lg font-semibold text-gray-800">
+                        <label class="label-lg">
                             Contraseña
                         </label>
-                        <p class="mb-2 text-sm text-gray-500">
+                        <p class="form-hint">
                             Mínimo 6 caracteres
                         </p>
 
                         <InputText @bind-Value="registerModel.Password"
                                    type="password"
-                                   class="w-full rounded-lg border border-gray-300 px-4 py-3 text-lg focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-400"
+                                   class="input-lg"
                                    placeholder="Ingrese su contraseña" />
 
-                        <ValidationMessage For="@(() => registerModel.Password)" class="text-red-500 text-sm mt-1" />
+                        <ValidationMessage For="@(() => registerModel.Password)" class="form-error" />
                     </div>
 
                     <!-- Confirm -->
                     <div>
-                        <label class="block text-lg font-semibold text-gray-800">
+                        <label class="label-lg">
                             Confirmar contraseña
                         </label>
-                        <p class="mb-2 text-sm text-gray-500">
+                        <p class="form-hint">
                             Repita la contraseña anterior
                         </p>
 
                         <InputText @bind-Value="registerModel.ConfirmPassword"
                                    type="password"
-                                   class="w-full rounded-lg border border-gray-300 px-4 py-3 text-lg focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-400"
+                                   class="input-lg"
                                    placeholder="Repita su contraseña" />
 
-                        <ValidationMessage For="@(() => registerModel.ConfirmPassword)" class="text-red-500 text-sm mt-1" />
+                        <ValidationMessage For="@(() => registerModel.ConfirmPassword)" class="form-error" />
                     </div>
 
                 </div>
@@ -201,7 +201,7 @@
         <!-- Login -->
         <button type="button"
                 @onclick="async () => await OnLoginClick.InvokeAsync()"
-                class="mt-8 w-full rounded-lg bg-gray-100 py-4 text-lg font-semibold text-gray-700 hover:bg-gray-200">
+                class="btn-secondary-lg mt-8">
             ¿Ya tiene una cuenta? Inicie sesión
         </button>
 

@@ -10,18 +10,18 @@
 
 @if (IsOpen)
 {
-    <div class="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"></div>
+    <div class="modal-backdrop"></div>
 
-    <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md border border-slate-100 overflow-hidden">
+    <div class="modal-container">
+        <div class="modal-panel">
 
             <!-- Header -->
-            <div class="flex items-center justify-between px-6 py-4 bg-slate-50 border-b border-slate-100">
+            <div class="modal-header">
                 <h2 class="text-base font-bold text-slate-900">@GetTitle()</h2>
                 @if (!IsLoading && _stage != Stage.ConfirmData)
                 {
                     <button @onclick="HandleClose"
-                            class="text-slate-400 hover:text-slate-700 transition-colors">
+                            class="btn-close">
                         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -30,7 +30,7 @@
             </div>
 
             <!-- Body -->
-            <div class="px-6 py-5">
+            <div class="modal-body">
 
                 @if (_stage == Stage.SelectChannel)
                 {
@@ -89,7 +89,7 @@
                         <button type="button"
                                 @onclick="HandleSendOtp"
                                 disabled="@(IsLoading || string.IsNullOrEmpty(_selectedChannel))"
-                                class="w-full py-2.5 bg-teal-700 hover:bg-teal-800 disabled:opacity-50 text-white text-sm font-bold rounded-lg transition">
+                                class="btn-action">
                             @(IsLoading ? "Enviando..." : "Enviar código")
                         </button>
                     </div>
@@ -117,7 +117,7 @@
                         <button type="button"
                                 @onclick="HandleVerifyOtp"
                                 disabled="@(_otpCode?.Length != 6 || IsLoading)"
-                                class="w-full py-2.5 bg-teal-700 hover:bg-teal-800 disabled:opacity-50 text-white text-sm font-bold rounded-lg transition">
+                                class="btn-action">
                             @(IsLoading ? "Verificando..." : "Verificar")
                         </button>
 
@@ -141,27 +141,27 @@
                         </div>
 
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Nombre completo</label>
+                            <label class="label-modal">Nombre completo</label>
                             <input type="text"
                                    @bind="_editName"
                                    @bind:event="oninput"
-                                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-teal-600 focus:outline-none" />
+                                   class="input-modal" />
                         </div>
 
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Teléfono</label>
+                            <label class="label-modal">Teléfono</label>
                             <input type="tel"
                                    @bind="_editPhone"
                                    @bind:event="oninput"
-                                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-teal-600 focus:outline-none" />
+                                   class="input-modal" />
                         </div>
 
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Email <span class="text-slate-400">(opcional)</span></label>
+                            <label class="label-modal">Email <span class="text-slate-400">(opcional)</span></label>
                             <input type="email"
                                    @bind="_editEmail"
                                    @bind:event="oninput"
-                                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-teal-600 focus:outline-none" />
+                                   class="input-modal" />
                         </div>
 
                         @if (!string.IsNullOrEmpty(_error))
@@ -172,7 +172,7 @@
                         <button type="button"
                                 @onclick="HandleConfirmData"
                                 disabled="@(IsLoading || string.IsNullOrWhiteSpace(_editName) || string.IsNullOrWhiteSpace(_editPhone))"
-                                class="w-full py-2.5 bg-teal-700 hover:bg-teal-800 disabled:opacity-50 text-white text-sm font-bold rounded-lg transition">
+                                class="btn-action">
                             Confirmar y continuar
                         </button>
                     </div>
