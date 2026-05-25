@@ -192,3 +192,7 @@ La documentación completa del proyecto se encuentra disponible en la carpeta co
 | Edier Fabian Dorado | Desarrollo, modelado |
 | Juan Fernando Portilla | Desarrollo, modelado, diseño |
 | Yezid Esteban Hernandez | Desarrollo, documentación |
+
+
+![Avatar](https://piedraazul.runasp.net/Avatars/36036de6-f075-414c-bec4-06202811c121-83e77285-2989-4cb3-a236-2f9930099c68.jpg)
+
