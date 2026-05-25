@@ -117,10 +117,16 @@ public class AppointmentServiceTests
         _patientRepository.Setup(x => x.GetByUserIdAsync("missing", It.IsAny<CancellationToken>())).ReturnsAsync((RegisteredPatient?)null);
 
         var request = new CreateAppointmentCommand(doctor.Id, slot.Id, NextDateFor(slot.DayOfWeek), "missing", null);
+        try
+        {
+            await _sut.Handle(request, CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
 
-        var ex = await Assert.ThrowsAsync<Exception>(() => _sut.Handle(request, CancellationToken.None).AsTask());
+            Assert.Equal("Patient not found", ex.Message);
+        }
 
-        Assert.Equal("Patient not found", ex.Message);
     }
 
     [Fact]
