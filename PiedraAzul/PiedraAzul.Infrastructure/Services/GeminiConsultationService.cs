@@ -62,7 +62,24 @@ public class GeminiConsultationService : IConsultationAIService
             var url = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}";
             var client = _httpFactory.CreateClient("Gemini");
 
-            var response = await client.PostAsJsonAsync(url, payload, cancellationToken);
+            // Reintento con backoff para manejar rate limiting (429)
+            HttpResponseMessage response = null!;
+            for (int attempt = 0; attempt < 3; attempt++)
+            {
+                response = await client.PostAsJsonAsync(url, payload, cancellationToken);
+                if (response.IsSuccessStatusCode)
+                    break;
+
+                // Si es 429 (TooManyRequests), espera y reintenta
+                if ((int)response.StatusCode == 429 && attempt < 2)
+                {
+                    await Task.Delay(1000 * (attempt + 1), cancellationToken);
+                    continue;
+                }
+
+                return FallbackRecommendation(request);
+            }
+
             if (!response.IsSuccessStatusCode)
                 return FallbackRecommendation(request);
 
