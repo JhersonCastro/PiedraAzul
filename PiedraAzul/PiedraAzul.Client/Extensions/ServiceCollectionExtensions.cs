@@ -30,6 +30,7 @@ public static class SharedClientServicesExtensions
         services.AddScoped<ScheduleConfigAdminService>();
         services.AddScoped<UserManagementService>();
         services.AddScoped<PatientSearchService>();
+        services.AddScoped<ConsultationService>();
         services.AddScoped<IScheduleConfigService, ScheduleConfigService>();
         #endregion
 

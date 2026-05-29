@@ -6,12 +6,20 @@ using PiedraAzul.Client.Services.Utils;
 using PiedraAzul.Client.States;
 using PiedraAzul.Client.UI.Shared.Components.StepTag;
 using Microsoft.AspNetCore.Components;
+using PiedraAzul.Contracts.Enums;
 
 namespace PiedraAzul.Client.UI.Features.Booking.Pages
 {
     public partial class InstantBooking
     {
         [Inject] private PatientSearchService PatientSearchService { get; set; } = default!;
+
+        /// <summary>Especialidad preseleccionada (viene de la consulta inteligente: ?specialty=OPTOMETRY).</summary>
+        [Parameter]
+        [SupplyParameterFromQuery(Name = "specialty")]
+        public string? Specialty { get; set; }
+
+        private DoctorType? _initialDoctorType;
 
         BookingModel Model = new();
         bool isLoading = false;
@@ -42,12 +50,19 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
         {
             await base.OnInitializedAsync();
 
+            _initialDoctorType = DoctorTypeGraphQLMapper.FromGraphQL(Specialty);
+
+            // Si el usuario está autenticado usa el flujo con cuenta, conservando la especialidad.
+            var redirectUrl = _initialDoctorType.HasValue
+                ? $"/medical-booking?specialty={Specialty}"
+                : "/medical-booking";
+
             if (UserState.User != null)
-                Navigation.NavigateTo("/medical-booking", forceLoad: false, replace: true);
+                Navigation.NavigateTo(redirectUrl, forceLoad: false, replace: true);
 
             var response = await AuthService.GetCurrentUserAsync();
             if (response.IsSuccess)
-                Navigation.NavigateTo("/medical-booking", forceLoad: false, replace: true);
+                Navigation.NavigateTo(redirectUrl, forceLoad: false, replace: true);
         }
 
         protected override void OnAfterRender(bool firstRender)

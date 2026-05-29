@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using PiedraAzul.Client.Models.Booking;
 using PiedraAzul.Client.Models.UserProfiles;
@@ -5,6 +6,7 @@ using PiedraAzul.Client.Services;
 using PiedraAzul.Client.Services.GraphQLServices;
 using PiedraAzul.Client.States;
 using PiedraAzul.Client.UI.Shared.Components.StepTag;
+using PiedraAzul.Contracts.Enums;
 
 namespace PiedraAzul.Client.UI.Features.Booking.Pages
 {
@@ -13,6 +15,13 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
         private string _patientId;
         BookingModel Model = new();
         string _errorMessage;
+
+        /// <summary>Especialidad preseleccionada (viene de la consulta inteligente: ?specialty=OPTOMETRY).</summary>
+        [Parameter]
+        [SupplyParameterFromQuery(Name = "specialty")]
+        public string? Specialty { get; set; }
+
+        private DoctorType? _initialDoctorType;
 
         public Stepper<BookingModel> Stepper { get; set; }
 
@@ -34,6 +43,8 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
         protected override async Task OnInitializedAsync()
         {
             await base.OnInitializedAsync();
+
+            _initialDoctorType = DoctorTypeGraphQLMapper.FromGraphQL(Specialty);
 
             if (UserState.User != null)
             {

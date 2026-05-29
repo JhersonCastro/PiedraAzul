@@ -148,7 +148,7 @@ else
                       Title="Selecciona un doctor"
                       Fields="@(new[] { nameof(Model.DoctorId) })">
 
-                    <MenuTypeMedic OnSelected="SelectedDoctor" />
+                    <MenuTypeMedic OnSelected="SelectedDoctor" InitialType="_initialDoctorType" />
                     <ValidationMessage For="() => Model.DoctorId" />
 
                 </Step>
