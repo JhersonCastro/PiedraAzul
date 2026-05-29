@@ -1,0 +1,368 @@
+@page "/consulta"
+@using Microsoft.AspNetCore.Components.Forms
+@using PiedraAzul.Client.Models.Consultation
+@using PiedraAzul.Client.Services.GraphQLServices
+@implements IDisposable
+@inject ConsultationService ConsultationService
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<PageTitle>Consulta · Piedra Azul</PageTitle>
+
+<section class="mx-auto max-w-3xl px-6 py-12">
+
+    <!-- Encabezado -->
+    <div class="mb-8 text-center">
+        <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#eef8f8] text-primary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+        </div>
+        <h1 class="text-3xl font-bold text-gray-900">¿No sabes con qué especialista ir?</h1>
+        <p class="mx-auto mt-2 max-w-xl text-gray-600">
+            Responde unas preguntas sencillas y cuéntanos qué te ocurre. Te orientaremos hacia el
+            especialista de Piedra Azul más adecuado para ti.
+        </p>
+    </div>
+
+    @if (_recommendation is null)
+    {
+        <!-- ENCUESTA -->
+        <EditForm Model="@Model" OnValidSubmit="SubmitAsync">
+            <DataAnnotationsValidator />
+
+            <div class="flex flex-col gap-6">
+
+                @foreach (var q in _questions)
+                {
+                    <div class="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+                        <h2 class="mb-4 text-lg font-bold text-gray-900">@q.Title</h2>
+
+                        <div class="grid gap-3 sm:grid-cols-2">
+                            @foreach (var choice in q.Choices)
+                            {
+                                var isSelected = q.Selected(Model) == choice.Label;
+                                <button type="button"
+                                        @onclick="() => q.Select(Model, choice.Label)"
+                                        class="flex items-center gap-3 rounded-xl border-2 p-4 text-left transition
+                                               @(isSelected ? "border-primary bg-primary/10" : "border-gray-200 hover:bg-gray-50")">
+                                    <span class="text-2xl">@choice.Emoji</span>
+                                    <span class="text-sm font-medium text-gray-700">@choice.Label</span>
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
+
+                <!-- Texto libre + voz -->
+                <div class="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+                    <h2 class="mb-1 text-lg font-bold text-gray-900">Cuéntanos con tus palabras</h2>
+                    <p class="mb-4 text-sm text-gray-500">
+                        Describe qué sientes, desde cuándo y cómo te afecta. Puedes escribir o usar el micrófono.
+                    </p>
+
+                    <div class="relative rounded-lg border transition
+                                @(_listening ? "border-red-300 ring-2 ring-red-200" : "border-gray-300 focus-within:border-teal-400 focus-within:ring-2 focus-within:ring-teal-400")">
+
+                        <InputTextArea @bind-Value="Model.Description"
+                                       rows="3"
+                                       placeholder="@(_listening ? "" : "Ej: Hace unos días me duele la cabeza y veo borroso cuando leo...")"
+                                       class="w-full resize-none rounded-t-lg border-0 bg-transparent px-4 pt-3 pr-14 pb-1 text-gray-700 outline-none focus:ring-0" />
+
+                        @if (_listening && !string.IsNullOrEmpty(_interimText))
+                        {
+                            <p class="px-4 pb-2 text-sm italic text-gray-400">@_interimText<span class="animate-pulse">▌</span></p>
+                        }
+                        else if (_listening && string.IsNullOrEmpty(_interimText))
+                        {
+                            <p class="px-4 pb-2 text-sm italic text-gray-400">Escuchando<span class="animate-pulse">...</span></p>
+                        }
+                        else
+                        {
+                            <div class="pb-2"></div>
+                        }
+
+                        @if (_speechSupported)
+                        {
+                            <button type="button"
+                                    @onclick="ToggleListeningAsync"
+                                    title="@(_listening ? "Detener" : "Hablar")"
+                                    class="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full transition
+                                           @(_listening ? "bg-red-500 text-white animate-pulse" : "bg-primary/10 text-primary hover:bg-primary/20")">
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8" />
+                                </svg>
+                            </button>
+                        }
+                    </div>
+
+                    <ValidationMessage For="@(() => Model.Description)" class="mt-2 text-sm text-red-500" />
+                </div>
+
+                @if (!string.IsNullOrEmpty(_errorMessage))
+                {
+                    <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                        @_errorMessage
+                    </div>
+                }
+
+                <button type="submit"
+                        disabled="@_isLoading"
+                        class="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-4 text-lg font-semibold text-white shadow-md transition hover:bg-[#1a5b67] disabled:opacity-60">
+                    @if (_isLoading)
+                    {
+                        <span class="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                        <span>Analizando tu consulta...</span>
+                    }
+                    else
+                    {
+                        <span>Ver mi recomendación</span>
+                    }
+                </button>
+
+                <p class="text-center text-xs text-gray-400">
+                    Esta orientación no reemplaza un diagnóstico médico profesional.
+                </p>
+            </div>
+        </EditForm>
+    }
+    else
+    {
+        <!-- RESULTADO -->
+        <div class="rounded-2xl border border-gray-100 bg-white p-8 shadow-xl">
+
+            <div class="flex flex-col items-center text-center">
+                <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#edf7f2] text-[#166534]">
+                    <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                </div>
+
+                <p class="text-sm font-medium text-gray-500">Te recomendamos</p>
+                <h2 class="mt-1 text-3xl font-bold text-primary">@_recommendation.SpecialtyLabel</h2>
+            </div>
+
+            <p class="mt-6 rounded-xl bg-[#eef8f8] px-5 py-4 text-center text-gray-700">
+                @_recommendation.Reasoning
+            </p>
+
+            <!-- Confianza -->
+            <div class="mt-6">
+                <div class="mb-1 flex items-center justify-between text-xs font-medium text-gray-500">
+                    <span>Confianza de la recomendación</span>
+                    <span>@_recommendation.ConfidencePercent%</span>
+                </div>
+                <div class="h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                    <div class="h-full rounded-full bg-primary transition-all" style="width:@(_recommendation.ConfidencePercent)%"></div>
+                </div>
+                <p class="mt-2 text-xs text-gray-400">
+                    @if (_recommendation.ConfidencePercent >= 80)
+                    {
+                        <span>✓ Muy confiable según los síntomas descritos.</span>
+                    }
+                    else if (_recommendation.ConfidencePercent >= 70)
+                    {
+                        <span>◐ Recomendación probable basada en lo que compartiste.</span>
+                    }
+                    else
+                    {
+                        <span>⊕ Recomendación inicial. Si los síntomas persisten, consulta directamente.</span>
+                    }
+                </p>
+            </div>
+
+            <!-- Acciones -->
+            <div class="mt-8 flex flex-col gap-3">
+                <button type="button"
+                        @onclick="GoToBooking"
+                        class="w-full rounded-lg bg-primary py-3.5 text-lg font-semibold text-white shadow-md transition hover:bg-[#1a5b67]">
+                    Agendar cita de @_recommendation.SpecialtyLabel
+                </button>
+                <button type="button"
+                        @onclick="Reset"
+                        class="w-full rounded-lg bg-gray-100 py-3 font-semibold text-gray-700 transition hover:bg-gray-200">
+                    Hacer otra consulta
+                </button>
+            </div>
+
+            <p class="mt-6 text-center text-xs text-gray-400">
+                Esta orientación no reemplaza un diagnóstico médico profesional.
+            </p>
+        </div>
+    }
+
+</section>
+
+@code {
+    private ConsultationModel Model = new();
+    private ConsultationRecommendation? _recommendation;
+    private bool _isLoading;
+    private string? _errorMessage;
+
+    // ── Voz ───────────────────────────────────────────────────────────────
+    private bool _speechSupported;
+    private bool _listening;
+    private string _interimText = "";
+    private DotNetObjectReference<Consultation>? _selfRef;
+
+    // ── Preguntas ABCD ──────────────────────────────────────────────────────
+    private sealed record Choice(string Emoji, string Label);
+
+    private sealed record SurveyQuestion(
+        string Title,
+        List<Choice> Choices,
+        Func<ConsultationModel, string?> Selected,
+        Action<ConsultationModel, string> Select);
+
+    private readonly List<SurveyQuestion> _questions = new()
+    {
+        new SurveyQuestion(
+            "¿Qué describe mejor lo que sientes?",
+            new()
+            {
+                new("👁️", "Molestias en los ojos o problemas para ver"),
+                new("🦴", "Dolor de espalda, cuello o articulaciones"),
+                new("🌿", "Cansancio, estrés o malestar general"),
+                new("🤕", "Dificultad para moverme o recuperarme de una lesión"),
+            },
+            m => m.SymptomArea,
+            (m, v) => m.SymptomArea = v),
+
+        new SurveyQuestion(
+            "¿Hace cuánto te sientes así?",
+            new()
+            {
+                new("📅", "Hace pocos días"),
+                new("🗓️", "Hace algunas semanas"),
+                new("⏳", "Hace varios meses"),
+                new("📆", "Hace más de un año"),
+            },
+            m => m.Duration,
+            (m, v) => m.Duration = v),
+
+        new SurveyQuestion(
+            "¿Qué tan fuerte es la molestia?",
+            new()
+            {
+                new("🙂", "Leve, casi no me afecta"),
+                new("😐", "Moderada, a veces me molesta"),
+                new("😣", "Fuerte, me cuesta hacer mis cosas"),
+                new("😖", "Muy fuerte, necesito ayuda pronto"),
+            },
+            m => m.Intensity,
+            (m, v) => m.Intensity = v),
+    };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                _speechSupported = await JS.InvokeAsync<bool>("PiedraSpeech.isSupported");
+                if (_speechSupported)
+                    StateHasChanged();
+            }
+            catch
+            {
+                _speechSupported = false;
+            }
+        }
+    }
+
+    // ── Voz ───────────────────────────────────────────────────────────────
+    private async Task ToggleListeningAsync()
+    {
+        if (_listening)
+        {
+            await JS.InvokeVoidAsync("PiedraSpeech.stop");
+            _listening = false;
+            _interimText = "";
+            return;
+        }
+
+        _selfRef ??= DotNetObjectReference.Create(this);
+        var started = await JS.InvokeAsync<bool>("PiedraSpeech.start", _selfRef);
+        _listening = started;
+    }
+
+    [JSInvokable]
+    public void OnSpeechInterim(string text)
+    {
+        _interimText = text;
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void OnSpeechResult(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return;
+
+        _interimText = "";
+        Model.Description = string.IsNullOrWhiteSpace(Model.Description)
+            ? text
+            : $"{Model.Description.TrimEnd()} {text}";
+
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void OnSpeechEnded()
+    {
+        _listening = false;
+        _interimText = "";
+        StateHasChanged();
+    }
+
+    // ── Envío ─────────────────────────────────────────────────────────────
+    private async Task SubmitAsync()
+    {
+        _errorMessage = null;
+        _isLoading = true;
+
+        if (_listening)
+        {
+            await JS.InvokeVoidAsync("PiedraSpeech.stop");
+            _listening = false;
+        }
+
+        var result = await ConsultationService.ProcessAsync(new ConsultationGqlInput(
+            SymptomArea: Model.SymptomArea ?? "",
+            Duration: Model.Duration ?? "",
+            Intensity: Model.Intensity ?? "",
+            Description: Model.Description));
+
+        _isLoading = false;
+
+        if (!result.IsSuccess || result.Value is null)
+        {
+            _errorMessage = "No pudimos procesar tu consulta en este momento. Inténtalo de nuevo.";
+            return;
+        }
+
+        _recommendation = result.Value;
+    }
+
+    private void GoToBooking()
+    {
+        var specialty = Uri.EscapeDataString(_recommendation!.RecommendedSpecialty);
+        Navigation.NavigateTo($"/instant-medical-booking?specialty={specialty}");
+    }
+
+    private void Reset()
+    {
+        Model = new ConsultationModel();
+        _recommendation = null;
+        _errorMessage = null;
+    }
+
+    public void Dispose()
+    {
+        if (_listening)
+        {
+            try { _ = JS.InvokeVoidAsync("PiedraSpeech.stop"); } catch { /* ignore */ }
+        }
+        _selfRef?.Dispose();
+    }
+}

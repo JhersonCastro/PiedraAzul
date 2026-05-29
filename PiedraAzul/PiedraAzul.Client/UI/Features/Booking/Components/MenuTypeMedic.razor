@@ -184,6 +184,10 @@
     [Parameter]
     public EventCallback OnChange { get; set; }
 
+    /// <summary>Especialidad preseleccionada al abrir (ej: desde la consulta inteligente).</summary>
+    [Parameter]
+    public DoctorType? InitialType { get; set; }
+
     DoctorType SelectedType = DoctorType.NaturalMedicine;
     Dictionary<DoctorType, List<DoctorModel>> MedicsByType = new();
     List<DoctorModel> _currentDoctors = new();
@@ -194,7 +198,7 @@
     protected override async Task OnInitializedAsync()
     {
         await OnSelected.InvokeAsync(null);
-        await LoadMedicsByDoctorType(DoctorType.NaturalMedicine);
+        await LoadMedicsByDoctorType(InitialType ?? DoctorType.NaturalMedicine);
     }
 
     async Task SelectDoctor(DoctorModel doctorModel)
