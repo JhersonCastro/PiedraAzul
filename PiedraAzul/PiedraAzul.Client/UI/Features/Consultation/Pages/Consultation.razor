@@ -150,12 +150,26 @@
             <!-- Confianza -->
             <div class="mt-6">
                 <div class="mb-1 flex items-center justify-between text-xs font-medium text-gray-500">
-                    <span>Nivel de coincidencia</span>
+                    <span>Confianza de la recomendación</span>
                     <span>@_recommendation.ConfidencePercent%</span>
                 </div>
                 <div class="h-2 w-full overflow-hidden rounded-full bg-gray-100">
                     <div class="h-full rounded-full bg-primary transition-all" style="width:@(_recommendation.ConfidencePercent)%"></div>
                 </div>
+                <p class="mt-2 text-xs text-gray-400">
+                    @if (_recommendation.ConfidencePercent >= 80)
+                    {
+                        <span>✓ Muy confiable según los síntomas descritos.</span>
+                    }
+                    else if (_recommendation.ConfidencePercent >= 70)
+                    {
+                        <span>◐ Recomendación probable basada en lo que compartiste.</span>
+                    }
+                    else
+                    {
+                        <span>⊕ Recomendación inicial. Si los síntomas persisten, consulta directamente.</span>
+                    }
+                </p>
             </div>
 
             <!-- Acciones -->

@@ -153,20 +153,35 @@ public class GeminiConsultationService : IConsultationAIService
         var text = $"{r.SymptomArea} {r.Description}".ToLowerInvariant();
 
         string code;
+        int confidence = 58; // Muy bajo por defecto
+
+        // Detectar especialidad y ajustar confianza según coincidencias claras
         if (ContainsAny(text, "ojo", "ojos", "vista", "ver", "visión", "vision", "lentes", "gafas", "borroso"))
+        {
             code = Optometry;
-        else if (ContainsAny(text, "espalda", "cuello", "columna", "articulacion", "articulación", "postura", "lumbar", "cervical"))
+            confidence = CountMatches(text, "ojo", "ojos", "vista", "borroso", "lentes") >= 2 ? 82 : 70;
+        }
+        else if (ContainsAny(text, "espalda", "cuello", "columna", "articulacion", "articulación", "postura", "lumbar", "cervical", "dolor"))
+        {
             code = Chiropractic;
+            confidence = CountMatches(text, "espalda", "cuello", "columna", "dolor") >= 2 ? 85 : 74;
+        }
         else if (ContainsAny(text, "lesion", "lesión", "rehabilitar", "rehabilitación", "movilidad", "músculo", "musculo", "esguince", "fractura", "recuperar"))
+        {
             code = Physiotherapy;
+            confidence = CountMatches(text, "lesion", "lesión", "fractura", "esguince", "rehabilit") >= 2 ? 88 : 78;
+        }
         else
+        {
             code = NaturalMedicine;
+            confidence = CountMatches(text, "cansancio", "estrés", "estres", "malestar", "débil", "debil") >= 2 ? 76 : 62;
+        }
 
         return new ConsultationRecommendation(
             code,
             LabelFor(code),
             "Según lo que nos cuentas, te recomendamos comenzar con este especialista. Estamos aquí para acompañarte.",
-            70);
+            confidence);
     }
 
     private static bool ContainsAny(string text, params string[] terms)
@@ -175,6 +190,15 @@ public class GeminiConsultationService : IConsultationAIService
             if (text.Contains(t))
                 return true;
         return false;
+    }
+
+    private static int CountMatches(string text, params string[] terms)
+    {
+        int count = 0;
+        foreach (var t in terms)
+            if (text.Contains(t))
+                count++;
+        return count;
     }
 
     private record GeminiResult
