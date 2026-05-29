@@ -59,14 +59,17 @@ public class GeminiConsultationService : IConsultationAIService
                 }
             };
 
-            var url = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}";
+            var url = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent";
             var client = _httpFactory.CreateClient("Gemini");
 
             // Reintento con backoff para manejar rate limiting (429)
             HttpResponseMessage response = null!;
             for (int attempt = 0; attempt < 3; attempt++)
             {
-                response = await client.PostAsJsonAsync(url, payload, cancellationToken);
+                var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
+                httpRequest.Headers.Add("X-goog-api-key", apiKey);
+                httpRequest.Content = JsonContent.Create(payload);
+                response = await client.SendAsync(httpRequest, cancellationToken);
                 if (response.IsSuccessStatusCode)
                     break;
 
