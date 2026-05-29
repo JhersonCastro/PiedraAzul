@@ -16,17 +16,23 @@ window.PiedraSpeech = (function () {
         recognition = new SR();
         recognition.lang = 'es-ES';
         recognition.continuous = true;
-        recognition.interimResults = false;
+        recognition.interimResults = true;
 
         recognition.onresult = function (e) {
             let finalText = '';
+            let interimText = '';
             for (let i = e.resultIndex; i < e.results.length; i++) {
                 if (e.results[i].isFinal) {
                     finalText += e.results[i][0].transcript;
+                } else {
+                    interimText += e.results[i][0].transcript;
                 }
             }
             if (finalText && dotnetRef) {
                 dotnetRef.invokeMethodAsync('OnSpeechResult', finalText.trim());
+            }
+            if (dotnetRef) {
+                dotnetRef.invokeMethodAsync('OnSpeechInterim', interimText.trim());
             }
         };
 
