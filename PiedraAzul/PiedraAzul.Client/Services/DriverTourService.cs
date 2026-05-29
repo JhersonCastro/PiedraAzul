@@ -304,9 +304,9 @@ internal static class HomeWelcomeTourSteps
             "right"),
 
         // ── Fin ──
-        Step("[data-tour='home-hero']",
+        Step("[data-tour='home-bottom-section']",
             "¡Está listo para comenzar!",
-            "Elija la opción que más le acomode. Nuestro equipo está listo para cuidarle.",
+            "Si tienes dudas, puedes darle clic al botón para hacer un pequeño cuestionario.",
             "bottom"),
     ];
 
