@@ -1,0 +1,260 @@
+@using PiedraAzul.Client.UI.Features.Booking.Pages
+@using PiedraAzul.Client.Models.Booking
+@using PiedraAzul.Client.Models.UserProfiles
+@implements IDisposable
+
+@* ═══════════════════════════════════════════════════════════════════
+   COMPONENTE PURAMENTE PRESENTACIONAL — Modo Fácil, Cita Autenticado
+   Toda la lógica de negocio vive en Booking (code-behind).
+   Este componente solo renderiza UI y llama métodos de la página.
+   ═══════════════════════════════════════════════════════════════════ *@
+
+<div style="max-width:680px;margin:0 auto;padding:1.5rem 1rem;font-family:'DM Sans',sans-serif">
+
+    @if (Page.isSuccess)
+    {
+        <!-- ── ÉXITO ── -->
+        <div style="text-align:center;padding:3rem 1rem">
+            <div style="font-size:4rem;margin-bottom:1rem">✅</div>
+            <h1 style="font-size:1.8rem;font-weight:800;color:#0F172A;margin:0 0 0.75rem">
+                ¡Su cita fue registrada!
+            </h1>
+            <p style="font-size:1.1rem;color:#475569;margin:0 0 0.5rem">
+                <strong>Doctor:</strong> @Page.Model.Doctor?.Name
+            </p>
+            <p style="font-size:1.1rem;color:#475569;margin:0 0 2rem">
+                <strong>Fecha:</strong> @Page.Model.AppointmentSchedulerModel?.Date.ToShortDateString()
+                &nbsp;a las&nbsp; @Page.Model.AppointmentSchedulerModel?.Time
+            </p>
+            <a href="/"
+               style="display:inline-block;background:#1E7A87;color:white;padding:0.9rem 2.5rem;
+                      border-radius:14px;font-size:1.1rem;font-weight:800;text-decoration:none">
+                Volver al inicio
+            </a>
+        </div>
+    }
+    else
+    {
+        <!-- ── INDICADOR DE PASOS ── -->
+        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:2rem">
+            @for (int i = 1; i <= TotalSteps; i++)
+            {
+                var stepNum = i;
+                var isActive = _step == stepNum;
+                var isDone = _step > stepNum;
+                <div style="display:flex;align-items:center;gap:0.5rem;flex:1">
+                    <div style="@($"width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.95rem;flex-shrink:0;" +
+                                  (isDone  ? "background:#1E7A87;color:white;" :
+                                   isActive ? "background:#1E7A87;color:white;box-shadow:0 0 0 4px rgba(30,122,135,0.2);" :
+                                             "background:#E2E8F0;color:#94A3B8;"))">
+                        @(isDone ? "✓" : stepNum.ToString())
+                    </div>
+                    @if (stepNum < TotalSteps)
+                    {
+                        <div style="flex:1;height:3px;border-radius:2px;background:@(isDone ? "#1E7A87" : "#E2E8F0")"></div>
+                    }
+                </div>
+            }
+        </div>
+
+        <!-- ── PASO 1: Elegir doctor ── -->
+        @if (_step == 1)
+        {
+            <h1 style="font-size:1.6rem;font-weight:800;color:#0F172A;margin:0 0 0.4rem">
+                ¿Con qué doctor quiere la cita?
+            </h1>
+            <p style="font-size:1rem;color:#64748B;margin:0 0 1.5rem">
+                Toque una especialidad para ver los doctores disponibles.
+            </p>
+
+            <MenuTypeMedicEasy OnSelected="OnDoctorSelected" InitialType="Page._initialDoctorType" />
+
+            @if (string.IsNullOrEmpty(Page.Model.DoctorId))
+            {
+                <p style="margin-top:1rem;font-size:0.95rem;color:#EF4444;font-weight:600">
+                    ⚠ Debe seleccionar un doctor para continuar.
+                </p>
+            }
+
+            <div style="margin-top:2rem;display:flex;justify-content:flex-end">
+                <button @onclick="NextStep"
+                        disabled="@string.IsNullOrEmpty(Page.Model.DoctorId)"
+                        style="@NextBtnStyle">
+                    Siguiente →
+                </button>
+            </div>
+        }
+
+        <!-- ── PASO 2: Elegir horario ── -->
+        else if (_step == 2)
+        {
+            <h1 style="font-size:1.6rem;font-weight:800;color:#0F172A;margin:0 0 0.4rem">
+                ¿Cuándo quiere la cita?
+            </h1>
+            <p style="font-size:1rem;color:#64748B;margin:0 0 1.5rem">
+                Primero elija el día y luego la hora disponible.
+            </p>
+
+            <AppointmentScheduler DoctorId="@Page.Model.DoctorId" OnSelected="OnSlotSelected" />
+
+            @if (Page.Model.SlotId is null)
+            {
+                <p style="margin-top:1rem;font-size:0.95rem;color:#EF4444;font-weight:600">
+                    ⚠ Debe seleccionar un horario para continuar.
+                </p>
+            }
+
+            <div style="margin-top:2rem;display:flex;justify-content:space-between;gap:1rem">
+                <button @onclick="PrevStep" style="@PrevBtnStyle">
+                    ← Anterior
+                </button>
+                <button @onclick="NextStep"
+                        disabled="@(Page.Model.SlotId is null)"
+                        style="@NextBtnStyle">
+                    Siguiente →
+                </button>
+            </div>
+        }
+
+        <!-- ── PASO 3: Confirmar ── -->
+        else if (_step == 3)
+        {
+            <h1 style="font-size:1.6rem;font-weight:800;color:#0F172A;margin:0 0 0.4rem">
+                Confirme su cita
+            </h1>
+            <p style="font-size:1rem;color:#64748B;margin:0 0 1.5rem">
+                Revise los datos y toque "Confirmar" para registrar su cita.
+            </p>
+
+            <!-- Resumen -->
+            <div style="background:white;border:2px solid #E2E8F0;border-radius:16px;padding:1.5rem;margin-bottom:1.5rem">
+                <div style="display:flex;flex-direction:column;gap:1rem">
+                    <div style="display:flex;align-items:center;gap:0.75rem">
+                        <span style="font-size:1.5rem">👨‍⚕️</span>
+                        <div>
+                            <p style="font-size:0.8rem;color:#94A3B8;font-weight:700;text-transform:uppercase;margin:0">Doctor</p>
+                            <p style="font-size:1.1rem;font-weight:800;color:#0F172A;margin:0">@Page.Model.Doctor?.Name</p>
+                        </div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:0.75rem">
+                        <span style="font-size:1.5rem">📅</span>
+                        <div>
+                            <p style="font-size:0.8rem;color:#94A3B8;font-weight:700;text-transform:uppercase;margin:0">Fecha</p>
+                            <p style="font-size:1.1rem;font-weight:800;color:#0F172A;margin:0">
+                                @Page.Model.AppointmentSchedulerModel?.Date.ToLongDateString()
+                            </p>
+                        </div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:0.75rem">
+                        <span style="font-size:1.5rem">🕐</span>
+                        <div>
+                            <p style="font-size:0.8rem;color:#94A3B8;font-weight:700;text-transform:uppercase;margin:0">Hora</p>
+                            <p style="font-size:1.1rem;font-weight:800;color:#0F172A;margin:0">
+                                @Page.Model.AppointmentSchedulerModel?.Time
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @if (_errorMessage is not null)
+            {
+                <div style="background:#FEF2F2;border:1.5px solid #FECACA;border-radius:12px;padding:1rem;margin-bottom:1rem;color:#B91C1C;font-weight:600;font-size:0.95rem">
+                    ⚠ @_errorMessage
+                </div>
+            }
+
+            <div style="display:flex;flex-direction:column;gap:0.75rem">
+                <button @onclick="ConfirmBooking"
+                        disabled="@_isLoading"
+                        style="width:100%;background:#1E7A87;color:white;padding:1rem;border:none;
+                               border-radius:14px;font-size:1.15rem;font-weight:800;cursor:pointer;
+                               opacity:@(_isLoading ? "0.7" : "1")">
+                    @(_isLoading ? "⏳ Confirmando..." : "✅ Confirmar cita")
+                </button>
+                <button @onclick="PrevStep"
+                        disabled="@_isLoading"
+                        style="@PrevBtnStyle">
+                    ← Volver
+                </button>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    // ── Cascade from parent page (owns all business logic) ───────────────────
+    [CascadingParameter] private Booking Page { get; set; } = default!;
+
+    // ── UI-only state ────────────────────────────────────────────────────────
+    private const int TotalSteps = 3;
+    private int _step = 1;
+    private bool _isLoading = false;
+    private string? _errorMessage;
+
+    private string NextBtnStyle =>
+        "background:#1E7A87;color:white;padding:0.85rem 2rem;border:none;border-radius:12px;" +
+        "font-size:1rem;font-weight:800;cursor:pointer;min-width:160px;min-height:50px;" +
+        $"opacity:{(CanGoNext ? "1" : "0.4")}";
+
+    private string PrevBtnStyle =>
+        "background:white;color:#475569;padding:0.85rem 2rem;border:2px solid #CBD5E1;" +
+        "border-radius:12px;font-size:1rem;font-weight:700;cursor:pointer;min-width:140px;min-height:50px";
+
+    private bool CanGoNext => _step switch
+    {
+        1 => !string.IsNullOrEmpty(Page.Model.DoctorId),
+        2 => Page.Model.SlotId is not null,
+        _ => true
+    };
+
+    protected override void OnInitialized()
+    {
+        Page.OnEasyStateChanged += OnPageStateChanged;
+    }
+
+    private void OnPageStateChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Page.OnEasyStateChanged -= OnPageStateChanged;
+
+    // ── UI actions ────────────────────────────────────────────────────────────
+
+    private async Task OnDoctorSelected(DoctorModel? doctor)
+    {
+        await Page.SelectedDoctor(doctor);
+    }
+
+    private async Task OnSlotSelected(AppointmentSchedulerModel slot)
+    {
+        await Page.SelectSlot(slot);
+    }
+
+    private void NextStep()
+    {
+        if (!CanGoNext) return;
+        _step = Math.Min(_step + 1, TotalSteps);
+        _errorMessage = null;
+    }
+
+    private void PrevStep()
+    {
+        _step = Math.Max(_step - 1, 1);
+        _errorMessage = null;
+    }
+
+    private async Task ConfirmBooking()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+        StateHasChanged();
+
+        await Page.HandlerSubmit();
+
+        _isLoading = false;
+
+        if (!Page.isSuccess)
+            _errorMessage = "No se pudo registrar la cita. Por favor, intente de nuevo.";
+
+        StateHasChanged();
+    }
+}
