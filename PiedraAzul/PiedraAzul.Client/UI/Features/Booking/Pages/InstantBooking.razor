@@ -14,6 +14,19 @@
 @inject GraphQLAppointmentService AppointmentService
 @inject AuthenticationService AuthService
 @inject UserState UserState
+@inject UIModeState UIModeState
+
+<CascadingValue Value="@this" IsFixed="false">
+
+@if (UIModeState.IsEasy)
+{
+    <!-- ── MODO FÁCIL (puramente presentacional, lógica en code-behind) ── -->
+    <InstantBookingEasyContent />
+}
+else
+{
+
+@* ── MODO MODERNO (diseño original) ─────────────────── *@
 
 @if (isSuccess)
 {
@@ -379,3 +392,7 @@ else
                         OnVerifyOtp="VerifyChannelValidationOtpAsync"
                         OnConfirmData="OnChannelValidationConfirm"
                         OnClose="OnChannelValidationModalClose" />
+
+} @* cierre del else (modo moderno) *@
+
+</CascadingValue>
