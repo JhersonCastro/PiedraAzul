@@ -1,0 +1,112 @@
+@using PiedraAzul.Client.States
+@using PiedraAzul.Client.Services
+@inject UIModeState UIModeState
+@inject UIModeService UIModeService
+@inject IJSRuntime JS
+
+@if (_show)
+{
+    <!-- Overlay -->
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,0.55);backdrop-filter:blur(4px);z-index:9000"
+         aria-hidden="true"></div>
+
+    <!-- Modal centrado -->
+    <div role="dialog"
+         aria-modal="true"
+         aria-labelledby="uimode-welcome-title"
+         style="position:fixed;inset:0;z-index:9001;display:flex;align-items:center;justify-content:center;padding:1.25rem">
+
+        <div style="background:white;border-radius:20px;padding:2rem 1.5rem;max-width:480px;width:100%;
+                    box-shadow:0 25px 60px rgba(0,0,0,0.25);text-align:center">
+
+            <!-- Ícono -->
+            <div style="font-size:2.5rem;margin-bottom:0.75rem" aria-hidden="true">🏥</div>
+
+            <!-- Título -->
+            <h2 id="uimode-welcome-title"
+                style="font-size:1.35rem;font-weight:800;color:#0F172A;margin:0 0 0.5rem">
+                ¿Cómo prefiere ver la aplicación?
+            </h2>
+            <p style="font-size:0.95rem;color:#64748B;margin:0 0 1.75rem;line-height:1.5">
+                Puede cambiar esto en cualquier momento desde el botón del menú.
+            </p>
+
+            <!-- Opción: Modo Fácil -->
+            <button @onclick="() => ChooseMode(UIMode.Easy)"
+                    style="width:100%;display:flex;align-items:center;gap:1rem;padding:1.1rem 1.25rem;
+                           border:2px solid #FCD34D;border-radius:14px;background:#FFFBEB;
+                           cursor:pointer;margin-bottom:0.75rem;text-align:left;transition:all .15s">
+                <span style="font-size:2rem;flex-shrink:0" aria-hidden="true">😊</span>
+                <div>
+                    <p style="font-size:1.05rem;font-weight:800;color:#92400E;margin:0 0 0.2rem">
+                        Modo Sencillo
+                    </p>
+                    <p style="font-size:0.85rem;color:#92400E;opacity:.8;margin:0;line-height:1.4">
+                        Letras grandes, botones grandes,<br>fácil de usar
+                    </p>
+                </div>
+                <svg style="margin-left:auto;flex-shrink:0;color:#D97706" width="20" height="20"
+                     fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                    <path d="m9 18 6-6-6-6"/>
+                </svg>
+            </button>
+
+            <!-- Opción: Modo Moderno -->
+            <button @onclick="() => ChooseMode(UIMode.Modern)"
+                    style="width:100%;display:flex;align-items:center;gap:1rem;padding:1.1rem 1.25rem;
+                           border:2px solid #99F6E4;border-radius:14px;background:#F0FDFA;
+                           cursor:pointer;text-align:left;transition:all .15s">
+                <span style="font-size:2rem;flex-shrink:0" aria-hidden="true">✨</span>
+                <div>
+                    <p style="font-size:1.05rem;font-weight:800;color:#0F766E;margin:0 0 0.2rem">
+                        Modo Normal
+                    </p>
+                    <p style="font-size:0.85rem;color:#0F766E;opacity:.8;margin:0;line-height:1.4">
+                        Vista estándar con todas<br>las opciones disponibles
+                    </p>
+                </div>
+                <svg style="margin-left:auto;flex-shrink:0;color:#0D9488" width="20" height="20"
+                     fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                    <path d="m9 18 6-6-6-6"/>
+                </svg>
+            </button>
+
+        </div>
+    </div>
+}
+
+@code {
+    private const string SetupKey = "uiModeSetup";
+
+    private bool _show = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        try
+        {
+            var alreadyChosen = await JS.InvokeAsync<string?>("localStorage.getItem", SetupKey);
+            if (alreadyChosen is null)
+            {
+                _show = true;
+                StateHasChanged();
+            }
+        }
+        catch
+        {
+            // localStorage not available — skip silently
+        }
+    }
+
+    private async Task ChooseMode(UIMode mode)
+    {
+        _show = false;
+        await UIModeService.SetModeAsync(mode);
+        try
+        {
+            await JS.InvokeVoidAsync("localStorage.setItem", SetupKey, "true");
+        }
+        catch { }
+    }
+}

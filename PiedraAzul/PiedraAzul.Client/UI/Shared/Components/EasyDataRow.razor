@@ -1,0 +1,18 @@
+@* Helper para mostrar una fila de datos en el resumen de Easy Mode *@
+<div style="display:flex;align-items:center;gap:0.75rem">
+    <span style="font-size:1.4rem;flex-shrink:0" aria-hidden="true">@Icon</span>
+    <div>
+        <p style="font-size:0.78rem;color:#94A3B8;font-weight:700;text-transform:uppercase;margin:0;letter-spacing:.05em">
+            @Label
+        </p>
+        <p style="font-size:1.05rem;font-weight:700;color:#0F172A;margin:0">
+            @(Value ?? "—")
+        </p>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Icon { get; set; } = "";
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public string? Value { get; set; }
+}
