@@ -1,4 +1,5 @@
 @using PiedraAzul.Client.Services.AuthServices
+@using PiedraAzul.Client.Services
 @using PiedraAzul.Client.States
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
@@ -6,7 +7,10 @@
 @inject UserState UserState
 @inject AuthenticationStateProvider AuthStateProvider
 @inject AuthenticationService AuthService
+@inject NavigationManager Navigation
+@inject DriverTourService DriverTourService
 @inherits LayoutComponentBase
+@implements IDisposable
 
 <div class="flex min-h-screen flex-col bg-gray-50">
 
@@ -283,6 +287,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        Navigation.LocationChanged += OnLocationChanged;
+
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var principal = authState.User;
 
@@ -300,5 +306,15 @@
         }
 
         _isLoaded = true;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        _ = DriverTourService.DestroyAsync();
+    }
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= OnLocationChanged;
     }
 }
