@@ -18,7 +18,8 @@ public static class GraphQLExtensions
             .AddType<PatientTypeEnum>()
             .AddType<GuestLookupResultType>()
             .AddType<GuestDataType>()
-            .AddAuthorization();
+            .AddAuthorization()
+            .AddDiagnosticEventListener<GraphQLDiagnosticEventListener>();
 
         return services;
     }
