@@ -52,11 +52,15 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
                 return;
             }
 
+            var redirectUrl = _initialDoctorType.HasValue
+                ? $"/instant-medical-booking?specialty={Specialty}"
+                : "/instant-medical-booking";
+
             var response = await AuthService.GetCurrentUserAsync();
 
             if (!response.IsSuccess)
             {
-                Navigation.NavigateTo("/instant-medical-booking", forceLoad: false, replace: true);
+                Navigation.NavigateTo(redirectUrl, forceLoad: false, replace: true);
                 return;
             }
 
