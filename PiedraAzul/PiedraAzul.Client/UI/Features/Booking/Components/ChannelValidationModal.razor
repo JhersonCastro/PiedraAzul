@@ -193,8 +193,8 @@
     [Parameter] public bool IsLoading { get; set; }
     [Parameter] public string? ExternalError { get; set; }
 
-    /// <summary>Callback que envía OTP. Recibe el canal seleccionado.</summary>
-    [Parameter] public EventCallback<string> OnSendOtp { get; set; }
+    /// <summary>Callback que envía OTP. Recibe el canal seleccionado. Retorna true si el envío fue exitoso.</summary>
+    [Parameter] public Func<string, Task<bool>>? OnSendOtp { get; set; }
 
     /// <summary>
     /// Callback que verifica OTP. Recibe (canal, código).
@@ -249,12 +249,12 @@
 
     private async Task HandleSendOtp()
     {
-        if (string.IsNullOrEmpty(_selectedChannel)) return;
+        if (string.IsNullOrEmpty(_selectedChannel) || OnSendOtp is null) return;
         _error = null;
-        await OnSendOtp.InvokeAsync(_selectedChannel);
 
-        // Si no hubo error externo, avanzar a EnterOtp
-        if (string.IsNullOrEmpty(ExternalError))
+        var success = await OnSendOtp(_selectedChannel);
+
+        if (success)
             _stage = Stage.EnterOtp;
     }
 

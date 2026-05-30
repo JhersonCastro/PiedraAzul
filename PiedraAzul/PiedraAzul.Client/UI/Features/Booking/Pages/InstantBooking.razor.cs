@@ -190,7 +190,7 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
 
         // ── Channel Validation Modal Callbacks (FLUJO 2 y FLUJO 3) ────────
 
-        private async Task SendChannelValidationOtpAsync(string channel)
+        private async Task<bool> SendChannelValidationOtpAsync(string channel)
         {
             _channelValidationError = null;
             _channelValidationLoading = true;
@@ -205,6 +205,7 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
                 _channelValidationError = result.Error?.Message ?? "No se pudo enviar el código.";
 
             StateHasChanged();
+            return result.IsSuccess;
         }
 
         private async Task<GuestDataGQL?> VerifyChannelValidationOtpAsync(string channel, string code)
