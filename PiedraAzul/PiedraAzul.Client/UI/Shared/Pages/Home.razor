@@ -1,11 +1,20 @@
 @page "/"
 @using PiedraAzul.Client.Services
+@using PiedraAzul.Client.States
 @using PiedraAzul.Client.UI.Features.Account.Components
 @using Microsoft.JSInterop
 @implements IDisposable
 @inject DriverTourService DriverTourService
+@inject UIModeState UIModeState
 
 <PageTitle>Piedra Azul</PageTitle>
+
+@if (UIModeState.IsEasy)
+{
+    <HomeEasyContent />
+}
+else
+{
 
 <!-- Tour Banner -->
 <TourHelpBanner TourId="@TourIds.HomeWelcome"
@@ -118,6 +127,8 @@
         </article>
     </div>
 </section>
+
+} @* fin else modo moderno *@
 
 @code {
     private DotNetObjectReference<Home>? _tourRef;
