@@ -2,12 +2,25 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using PiedraAzul.Client.Models.Consultation
 @using PiedraAzul.Client.Services.GraphQLServices
+@using PiedraAzul.Client.States
+@using PiedraAzul.Client.UI.Features.Consultation.Components
 @implements IDisposable
 @inject ConsultationService ConsultationService
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
+@inject UIModeState UIModeState
 
 <PageTitle>Consulta · Piedra Azul</PageTitle>
+
+<CascadingValue Value="@this" IsFixed="false">
+
+@if (UIModeState.IsEasy)
+{
+    <!-- ── MODO FÁCIL ─────────────────────────────────────── -->
+    <ConsultationEasyContent />
+}
+else
+{
 
 <section class="mx-auto max-w-3xl px-6 py-12">
 
@@ -194,28 +207,32 @@
 
 </section>
 
+} @* fin else modo moderno *@
+
+</CascadingValue>
+
 @code {
-    private ConsultationModel Model = new();
-    private ConsultationRecommendation? _recommendation;
-    private bool _isLoading;
-    private string? _errorMessage;
+    internal ConsultationModel Model = new();
+    internal ConsultationRecommendation? _recommendation;
+    internal bool _isLoading;
+    internal string? _errorMessage;
 
     // ── Voz ───────────────────────────────────────────────────────────────
-    private bool _speechSupported;
-    private bool _listening;
-    private string _interimText = "";
+    internal bool _speechSupported;
+    internal bool _listening;
+    internal string _interimText = "";
     private DotNetObjectReference<Consultation>? _selfRef;
 
     // ── Preguntas ABCD ──────────────────────────────────────────────────────
-    private sealed record Choice(string Emoji, string Label);
+    internal sealed record Choice(string Emoji, string Label);
 
-    private sealed record SurveyQuestion(
+    internal sealed record SurveyQuestion(
         string Title,
         List<Choice> Choices,
         Func<ConsultationModel, string?> Selected,
         Action<ConsultationModel, string> Select);
 
-    private readonly List<SurveyQuestion> _questions = new()
+    internal readonly List<SurveyQuestion> _questions = new()
     {
         new SurveyQuestion(
             "¿Qué describe mejor lo que sientes?",
@@ -254,6 +271,16 @@
             (m, v) => m.Intensity = v),
     };
 
+    // ── Easy content notification ─────────────────────────────────────────
+    /// <summary>
+    /// Fired after every state change so ConsultationEasyContent
+    /// (which lives in a CascadingValue) can call StateHasChanged on itself.
+    /// </summary>
+    public event Action? OnEasyStateChanged;
+
+    /// <summary>Calls StateHasChanged for the Modern UI AND fires OnEasyStateChanged.</summary>
+    internal void NotifyState() { StateHasChanged(); OnEasyStateChanged?.Invoke(); }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -272,7 +299,7 @@
     }
 
     // ── Voz ───────────────────────────────────────────────────────────────
-    private async Task ToggleListeningAsync()
+    internal async Task ToggleListeningAsync()
     {
         if (_listening)
         {
@@ -291,7 +318,7 @@
     public void OnSpeechInterim(string text)
     {
         _interimText = text;
-        StateHasChanged();
+        NotifyState();
     }
 
     [JSInvokable]
@@ -304,7 +331,7 @@
             ? text
             : $"{Model.Description.TrimEnd()} {text}";
 
-        StateHasChanged();
+        NotifyState();
     }
 
     [JSInvokable]
@@ -312,11 +339,11 @@
     {
         _listening = false;
         _interimText = "";
-        StateHasChanged();
+        NotifyState();
     }
 
     // ── Envío ─────────────────────────────────────────────────────────────
-    private async Task SubmitAsync()
+    internal async Task SubmitAsync()
     {
         _errorMessage = null;
         _isLoading = true;
@@ -338,23 +365,26 @@
         if (!result.IsSuccess || result.Value is null)
         {
             _errorMessage = "No pudimos procesar tu consulta en este momento. Inténtalo de nuevo.";
+            NotifyState();
             return;
         }
 
         _recommendation = result.Value;
+        NotifyState();
     }
 
-    private void GoToBooking()
+    internal void GoToBooking()
     {
         var specialty = Uri.EscapeDataString(_recommendation!.RecommendedSpecialty);
         Navigation.NavigateTo($"/instant-medical-booking?specialty={specialty}");
     }
 
-    private void Reset()
+    internal void Reset()
     {
         Model = new ConsultationModel();
         _recommendation = null;
         _errorMessage = null;
+        NotifyState();
     }
 
     public void Dispose()
