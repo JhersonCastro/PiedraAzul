@@ -12,8 +12,8 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
 {
     public partial class Booking
     {
-        private string _patientId;
-        BookingModel Model = new();
+        internal string _patientId;
+        internal BookingModel Model = new();
         string _errorMessage;
 
         /// <summary>Especialidad preseleccionada (viene de la consulta inteligente: ?specialty=OPTOMETRY).</summary>
@@ -21,12 +21,12 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
         [SupplyParameterFromQuery(Name = "specialty")]
         public string? Specialty { get; set; }
 
-        private DoctorType? _initialDoctorType;
+        internal DoctorType? _initialDoctorType;
 
         public Stepper<BookingModel> Stepper { get; set; }
 
         bool isLoading = false;
-        bool isSuccess = false;
+        internal bool isSuccess = false;
 
         // ── Tour ──────────────────────────────────────────────
         private DotNetObjectReference<Booking>? _tourRef;
@@ -39,6 +39,16 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
         /// </summary>
         private int _tourStepsDone = 0;
         // ──────────────────────────────────────────────────────
+
+        // ── Easy content notification ─────────────────────────────────────────
+        /// <summary>
+        /// Fired after every state change so BookingEasyContent
+        /// (which lives in a CascadingValue) can call StateHasChanged on itself.
+        /// </summary>
+        public event Action? OnEasyStateChanged;
+
+        /// <summary>Calls StateHasChanged for the Modern UI AND fires OnEasyStateChanged.</summary>
+        private void NotifyState() { StateHasChanged(); OnEasyStateChanged?.Invoke(); }
 
         protected override async Task OnInitializedAsync()
         {
@@ -95,7 +105,7 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
 
         // ── Booking callbacks ──────────────────────────────────
 
-        private async Task SelectedDoctor(DoctorModel args)
+        internal async Task SelectedDoctor(DoctorModel args)
         {
             if (args == null) return;
             Model.DoctorId = args.Id;
@@ -106,16 +116,20 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
             if (_tourActive && _tourStepsDone == 0)
             {
                 _tourStepsDone = 1;
-                StateHasChanged();
+                NotifyState();
                 await Stepper.Next();
                 // waitForContentAndAdvance hace DOS avances del driver:
                 //   1. Inmediato → muestra el paso "Un momento… buscando horarios"
                 //   2. Cuando booking-scheduler-section ya no tiene spinner → muestra el paso de selección
                 await JS.InvokeVoidAsync("DriverTour.waitForContentAndAdvance", "[data-tour='booking-scheduler-section']");
             }
+            else
+            {
+                NotifyState();
+            }
         }
 
-        private async Task HandlerSubmit()
+        internal async Task HandlerSubmit()
         {
             // Clean up the tour before switching to the success view
             if (_tourActive)
@@ -135,17 +149,19 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
             if (!result.IsSuccess)
             {
                 _errorMessage = "Ocurrió un error al crear la cita. Por favor, inténtelo de nuevo.";
+                NotifyState();
                 return;
             }
 
             isLoading = false;
             isSuccess = true;
-            Stepper.GoToStep(0);
+            Stepper?.GoToStep(0);
 
             _ = OfflineCache.SyncAsync();
+            NotifyState();
         }
 
-        private async Task SelectSlot(AppointmentSchedulerModel args)
+        internal async Task SelectSlot(AppointmentSchedulerModel args)
         {
             if (args == null) return;
 
@@ -164,10 +180,14 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
             if (_tourActive && _tourStepsDone == 1)
             {
                 _tourStepsDone = 2;
-                StateHasChanged();
+                NotifyState();
                 await Stepper.Next();
                 // Esperar a que booking-confirmation esté en el DOM antes de avanzar
                 await JS.InvokeVoidAsync("DriverTour.advanceTour", "[data-tour='booking-confirmation']");
+            }
+            else
+            {
+                NotifyState();
             }
         }
     }

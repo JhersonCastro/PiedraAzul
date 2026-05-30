@@ -17,74 +17,86 @@
 @inject GraphQLAppointmentService AppointmentService
 @inject AuthenticationService AuthService
 @inject UserState UserState
+@inject UIModeState UIModeState
 @inject OfflineCacheService OfflineCache
 @inject DriverTourService DriverTourService
 @inject IJSRuntime JS
 
-<!-- Tour Banner -->
-<TourHelpBanner TourId="@TourIds.BookingTour"
-                OnStartTour="StartTourAsync"
-                OnSkipTour="StateHasChanged" />
+<CascadingValue Value="@this" IsFixed="false">
 
-@if (isSuccess)
+@if (UIModeState.IsEasy)
 {
-    <SummaryAppointment Model="Model"></SummaryAppointment>
+    <!-- ── MODO FÁCIL ─────────────────────────────────────── -->
+    <BookingEasyContent />
 }
 else
 {
-    <EditForm Model="@Model" class="flex justify-center">
+    <!-- ── MODO MODERNO (diseño original) ─────────────────── -->
 
-        <DataAnnotationsValidator />
+    <!-- Tour Banner -->
+    <TourHelpBanner TourId="@TourIds.BookingTour"
+                    OnStartTour="StartTourAsync"
+                    OnSkipTour="StateHasChanged" />
 
-        <div class="mx-auto my-6 flex w-full max-w-6xl flex-col rounded-xl bg-white p-8 shadow-2xl">
-            <Stepper @ref="Stepper" TModel="BookingModel" FinishText="Solicitar cita" OnFinish="HandlerSubmit">
+    @if (isSuccess)
+    {
+        <SummaryAppointment Model="Model"></SummaryAppointment>
+    }
+    else
+    {
+        <EditForm Model="@Model" class="flex justify-center">
 
-                    <!-- STEP 1: Especialidad + Doctor -->
-                    <Step TModel="BookingModel"
-                          Title="Selecciona un doctor"
-                          Fields="@(new[] { nameof(Model.DoctorId)})">
+            <DataAnnotationsValidator />
 
-                        <MenuTypeMedic OnSelected="SelectedDoctor" InitialType="_initialDoctorType" />
-                        <ValidationMessage For="() => Model.DoctorId" />
+            <div class="mx-auto my-6 flex w-full max-w-6xl flex-col rounded-xl bg-white p-8 shadow-2xl">
+                <Stepper @ref="Stepper" TModel="BookingModel" FinishText="Solicitar cita" OnFinish="HandlerSubmit">
 
-                    </Step>
+                        <!-- STEP 1: Especialidad + Doctor -->
+                        <Step TModel="BookingModel"
+                              Title="Selecciona un doctor"
+                              Fields="@(new[] { nameof(Model.DoctorId)})">
 
-                    <!-- STEP 2: Horario -->
-                    <Step TModel="BookingModel"
-                          Title="Selecciona un horario"
-                          Fields="@(new[] { nameof(Model.SlotId)})">
+                            <MenuTypeMedic OnSelected="SelectedDoctor" InitialType="_initialDoctorType" />
+                            <ValidationMessage For="() => Model.DoctorId" />
 
-                        <div data-tour="booking-scheduler-section">
-                            <AppointmentScheduler DoctorId="@Model.DoctorId" OnSelected="SelectSlot"/>
-                        </div>
-                        <ValidationMessage For="() => Model.SlotId" />
+                        </Step>
 
-                    </Step>
+                        <!-- STEP 2: Horario -->
+                        <Step TModel="BookingModel"
+                              Title="Selecciona un horario"
+                              Fields="@(new[] { nameof(Model.SlotId)})">
 
-                    <!-- STEP 3: Confirmación -->
-                    <Step TModel="BookingModel" Title="Confirmación">
-
-                        <div data-tour="booking-confirmation">
-                            <h2 class="mb-4 text-2xl font-bold">
-                                Confirmar datos
-                            </h2>
-
-                            <div class="flex flex-col gap-2 text-lg">
-
-                            <p><b>Nombre de doctor:</b> @Model.Doctor?.Name</p>
-                            <p><b>A la fecha:</b> @Model.AppointmentSchedulerModel?.Date.ToShortDateString() @Model.AppointmentSchedulerModel?.Time</p>
-
+                            <div data-tour="booking-scheduler-section">
+                                <AppointmentScheduler DoctorId="@Model.DoctorId" OnSelected="SelectSlot"/>
                             </div>
-                        </div>
+                            <ValidationMessage For="() => Model.SlotId" />
 
-                    </Step>
+                        </Step>
 
+                        <!-- STEP 3: Confirmación -->
+                        <Step TModel="BookingModel" Title="Confirmación">
+
+                            <div data-tour="booking-confirmation">
+                                <h2 class="mb-4 text-2xl font-bold">
+                                    Confirmar datos
+                                </h2>
+
+                                <div class="flex flex-col gap-2 text-lg">
+                                    <p><b>Nombre de doctor:</b> @Model.Doctor?.Name</p>
+                                    <p><b>A la fecha:</b> @Model.AppointmentSchedulerModel?.Date.ToShortDateString() @Model.AppointmentSchedulerModel?.Time</p>
+                                </div>
+                            </div>
+
+                        </Step>
 
                         <p class="text-md text-primary mt-4 text-center">
                             ¿Necesitas ayuda para hacer una cita? Llame al +57 301 123 4567
                         </p>
-            </Stepper>
+                </Stepper>
 
-        </div>
-    </EditForm>
+            </div>
+        </EditForm>
+    }
 }
+
+</CascadingValue>
