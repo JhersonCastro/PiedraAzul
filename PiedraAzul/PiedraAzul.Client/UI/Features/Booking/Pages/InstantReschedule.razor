@@ -300,15 +300,17 @@
 
     // ─── Channel OTP modal callbacks ──────────────────────────────────────────
 
-    private async Task SendOtpByHashAsync(string channel)
+    private async Task<bool> SendOtpByHashAsync(string channel)
     {
         _channelLoading = true;
         StateHasChanged();
 
-        await AppointmentService.SendGuestOtpByHashAsync(_verificationHash!, channel);
+        var result = await AppointmentService.SendGuestOtpByHashAsync(_verificationHash!, channel);
 
         _channelLoading = false;
         StateHasChanged();
+
+        return result.IsSuccess;
     }
 
     private async Task<GuestDataGQL?> VerifyOtpByHashAsync(string channel, string code)
