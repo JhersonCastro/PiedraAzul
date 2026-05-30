@@ -1,0 +1,211 @@
+@using PiedraAzul.Client.Models.GraphQL
+@using PiedraAzul.Client.Services
+@using PiedraAzul.Client.Services.AuthServices
+@using PiedraAzul.Client.States
+@using PiedraAzul.Client.UI.Features.Account.Sections
+@using PiedraAzul.Client.UI.Features.Appointments
+
+@inject UserState UserState
+@inject AuthenticationService AuthService
+@inject OfflineCacheService OfflineCache
+@inject NavigationManager Nav
+
+@* Modo Fácil — Cuenta / Perfil de paciente (diseño simplificado) *@
+
+<div style="max-width:680px;margin:0 auto;padding:1.5rem 1rem;font-family:'DM Sans',sans-serif">
+
+    @if (_loading)
+    {
+        <div style="text-align:center;padding:3rem 0">
+            <div style="display:inline-block;width:40px;height:40px;border:4px solid #E2E8F0;
+                        border-top-color:#1E7A87;border-radius:50%;animation:spin 0.8s linear infinite"></div>
+        </div>
+    }
+    else if (_user is null)
+    {
+        <div style="text-align:center;padding:3rem 0">
+            <p style="color:#EF4444;font-size:1rem;font-weight:600">
+                ⚠ No se pudo cargar su cuenta. Por favor recargue la página.
+            </p>
+        </div>
+    }
+    else
+    {
+        <!-- Saludo -->
+        <div style="display:flex;align-items:center;gap:1rem;margin-bottom:2rem;background:white;
+                    border:2px solid #E2E8F0;border-radius:16px;padding:1.25rem">
+            <div style="width:56px;height:56px;border-radius:50%;background:#E0F2FE;display:flex;
+                        align-items:center;justify-content:center;font-size:1.4rem;font-weight:800;
+                        color:#1E7A87;flex-shrink:0">
+                @(_user.Name?.Split(' ') is { Length: >= 2 } parts
+                    ? $"{parts[0][0]}{parts[1][0]}"
+                    : _user.Name?[..1] ?? "U")
+            </div>
+            <div>
+                <p style="font-size:1.15rem;font-weight:800;color:#0F172A;margin:0 0 0.2rem">
+                    ¡Hola, @(_user.Name?.Split(' ')[0])!
+                </p>
+                <p style="font-size:0.88rem;color:#64748B;margin:0">@_user.Email</p>
+            </div>
+        </div>
+
+        <!-- Sección activa -->
+        @if (_section == "citas")
+        {
+            <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1.25rem">
+                <button @onclick='() => _section = "menu"'
+                        style="background:white;border:2px solid #CBD5E1;border-radius:10px;
+                               padding:0.5rem 1rem;font-size:0.95rem;font-weight:700;
+                               color:#475569;cursor:pointer">
+                    ← Volver
+                </button>
+                <h2 style="font-size:1.3rem;font-weight:800;color:#0F172A;margin:0">Mis Citas</h2>
+            </div>
+            <PatientAppointments />
+        }
+        else if (_section == "perfil")
+        {
+            <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1.25rem">
+                <button @onclick='() => _section = "menu"'
+                        style="background:white;border:2px solid #CBD5E1;border-radius:10px;
+                               padding:0.5rem 1rem;font-size:0.95rem;font-weight:700;
+                               color:#475569;cursor:pointer">
+                    ← Volver
+                </button>
+                <h2 style="font-size:1.3rem;font-weight:800;color:#0F172A;margin:0">Mi Perfil</h2>
+            </div>
+            <ProfileSection OnUserUpdated="OnUserUpdated" />
+        }
+        else
+        {
+            <!-- Menú principal -->
+            <div style="display:flex;flex-direction:column;gap:1rem">
+
+                <EasyMenuCard Icon="📅"
+                              Title="Mis Citas"
+                              Description="Ver, reagendar o cancelar sus citas médicas"
+                              OnClick='() => _section = "citas"' />
+
+                <EasyMenuCard Icon="👤"
+                              Title="Mi Perfil"
+                              Description="Cambiar su nombre, teléfono o contraseña"
+                              OnClick='() => _section = "perfil"' />
+
+                <a href="/medical-booking"
+                   style="display:flex;align-items:center;gap:1rem;background:#F0FDFA;
+                          border:2.5px solid #99F6E4;border-radius:16px;padding:1.25rem;
+                          text-decoration:none;cursor:pointer">
+                    <span style="font-size:2rem;flex-shrink:0">➕</span>
+                    <div>
+                        <p style="font-size:1.05rem;font-weight:800;color:#0F172A;margin:0 0 0.2rem">
+                            Agendar Nueva Cita
+                        </p>
+                        <p style="font-size:0.88rem;color:#64748B;margin:0">
+                            Reserve una cita con un doctor disponible
+                        </p>
+                    </div>
+                    <svg style="margin-left:auto;flex-shrink:0;color:#0D9488" width="20" height="20"
+                         fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path d="m9 18 6-6-6-6"/>
+                    </svg>
+                </a>
+
+                @if (_user.Roles.Contains("Doctor") || _user.Roles.Contains("Admin"))
+                {
+                    <a href="/account"
+                       @onclick:preventDefault
+                       @onclick="SwitchToModernForPortal"
+                       style="display:flex;align-items:center;gap:1rem;background:#FFF7ED;
+                              border:2.5px solid #FED7AA;border-radius:16px;padding:1.25rem;
+                              text-decoration:none;cursor:pointer">
+                        <span style="font-size:2rem;flex-shrink:0">🖥️</span>
+                        <div>
+                            <p style="font-size:1.05rem;font-weight:800;color:#0F172A;margin:0 0 0.2rem">
+                                Portal Profesional
+                            </p>
+                            <p style="font-size:0.88rem;color:#64748B;margin:0">
+                                Acceder al panel de doctor / administrador
+                            </p>
+                        </div>
+                    </a>
+                }
+
+                <!-- Cerrar sesión -->
+                @if (_showLogoutConfirm)
+                {
+                    <div style="background:#FEF2F2;border:2px solid #FECACA;border-radius:16px;padding:1.25rem">
+                        <p style="font-size:1rem;font-weight:700;color:#0F172A;margin:0 0 1rem;text-align:center">
+                            ¿Está seguro de que quiere cerrar sesión?
+                        </p>
+                        <div style="display:flex;gap:0.75rem">
+                            <button @onclick="ConfirmLogout"
+                                    style="flex:1;background:#DC2626;color:white;border:none;border-radius:12px;
+                                           padding:0.8rem;font-size:1rem;font-weight:800;cursor:pointer">
+                                Sí, salir
+                            </button>
+                            <button @onclick="() => _showLogoutConfirm = false"
+                                    style="flex:1;background:white;color:#475569;border:2px solid #CBD5E1;
+                                           border-radius:12px;padding:0.8rem;font-size:1rem;font-weight:700;cursor:pointer">
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <button @onclick="() => _showLogoutConfirm = true"
+                            style="width:100%;background:white;border:2px solid #FECACA;border-radius:16px;
+                                   padding:1.1rem;font-size:1rem;font-weight:800;color:#DC2626;
+                                   cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.5rem">
+                        🚪 Cerrar sesión
+                    </button>
+                }
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private UserGQL? _user;
+    private bool _loading = true;
+    private string _section = "menu";
+    private bool _showLogoutConfirm = false;
+
+    [Inject] private UIModeService UIModeService { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (UserState.User is not null)
+        {
+            _user = UserState.User;
+            _loading = false;
+        }
+        else
+        {
+            var result = await AuthService.GetCurrentUserAsync();
+            if (result.IsSuccess) { _user = result.Value; UserState.User = _user; }
+            _loading = false;
+        }
+
+        _ = OfflineCache.SyncAsync();
+    }
+
+    private void OnUserUpdated()
+    {
+        _user = UserState.User;
+        StateHasChanged();
+    }
+
+    private async Task SwitchToModernForPortal()
+    {
+        // Switch to Modern so the full doctor/admin portal is visible
+        await UIModeService.SetModeAsync(UIMode.Modern);
+    }
+
+    private async Task ConfirmLogout()
+    {
+        _showLogoutConfirm = false;
+        await OfflineCache.ClearAsync();
+        Nav.NavigateTo("/auth/sign-out", forceLoad: true);
+    }
+}
