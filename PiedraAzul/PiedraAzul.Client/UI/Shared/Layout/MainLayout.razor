@@ -9,6 +9,7 @@
 @inject AuthenticationService AuthService
 @inject NavigationManager Navigation
 @inject DriverTourService DriverTourService
+@inject OfflineCacheService OfflineCache
 @inherits LayoutComponentBase
 @implements IDisposable
 
@@ -175,7 +176,7 @@
                        class="flex items-center gap-3 w-full px-3 py-3 text-[15px] font-medium text-gray-700 rounded-lg hover:bg-gray-100 hover:text-gray-900 transition-colors">
                     Mi cuenta
                 </a>
-                <button class="flex items-center gap-3 w-full px-3 py-3 text-[15px] font-medium text-red-500 rounded-lg hover:bg-red-50 transition-colors text-left">
+                <button @onclick="ShowLogoutConfirmAsync" class="flex items-center gap-3 w-full px-3 py-3 text-[15px] font-medium text-red-500 rounded-lg hover:bg-red-50 transition-colors text-left">
                     Cerrar sesión
                 </button>
             }
@@ -246,6 +247,39 @@
 
 </div>
 
+<!-- LOGOUT CONFIRMATION MODAL -->
+@if (_showLogoutConfirm)
+{
+    <div class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100]"></div>
+    <div class="fixed inset-0 flex items-center justify-center z-[101] p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-8">
+            <div class="flex justify-center mb-4">
+                <div class="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center">
+                    <svg class="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                </div>
+            </div>
+
+            <h3 class="text-xl font-bold text-center text-gray-900 mb-2">¿Cerrar sesión?</h3>
+            <p class="text-center text-gray-600 mb-6 leading-relaxed">
+                Si cierras sesión tendrás que volver a iniciarla la próxima vez que uses la aplicación.
+            </p>
+
+            <div class="flex flex-col gap-3">
+                <button @onclick="ConfirmLogoutAsync"
+                        class="w-full rounded-lg bg-red-500 hover:bg-red-600 text-white py-3 font-semibold transition">
+                    Sí, cerrar sesión
+                </button>
+                <button @onclick="() => _showLogoutConfirm = false"
+                        class="w-full rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 font-semibold transition">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
 <!-- ERROR UI -->
 <div id="blazor-error-ui"
      data-nosnippet
@@ -281,9 +315,23 @@
     private bool _isAuthenticated = false;
     private string? _userName;
     private bool _mobileMenuOpen = false;
+    private bool _showLogoutConfirm = false;
 
     private void ToggleMobileMenu() => _mobileMenuOpen = !_mobileMenuOpen;
     private void CloseMobileMenu() => _mobileMenuOpen = false;
+
+    private async Task ShowLogoutConfirmAsync()
+    {
+        _showLogoutConfirm = true;
+        StateHasChanged();
+    }
+
+    private async Task ConfirmLogoutAsync()
+    {
+        _showLogoutConfirm = false;
+        await OfflineCache.ClearAsync();
+        Navigation.NavigateTo("/auth/sign-out", forceLoad: true);
+    }
 
     protected override async Task OnInitializedAsync()
     {
