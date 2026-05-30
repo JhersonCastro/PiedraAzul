@@ -10,6 +10,7 @@ public class TwilioSmsService : IMessageService
 {
     private readonly IConfiguration _configuration;
     private readonly ILogger<TwilioSmsService> _logger;
+    private readonly bool _ready;
 
     public TwilioSmsService(IConfiguration configuration, ILogger<TwilioSmsService> logger)
     {
@@ -20,13 +21,23 @@ public class TwilioSmsService : IMessageService
         var authToken = _configuration["Twilio:AuthToken"];
 
         if (string.IsNullOrEmpty(accountSid) || string.IsNullOrEmpty(authToken))
-            throw new InvalidOperationException("Twilio credentials not configured");
+        {
+            _logger.LogWarning("Twilio credentials not configured — SMS will be disabled");
+            return;
+        }
 
         TwilioClient.Init(accountSid, authToken);
+        _ready = true;
     }
 
     public async Task<bool> SMSAsync(string phoneNumber, string message)
     {
+        if (!_ready)
+        {
+            _logger.LogWarning("SMS not sent to {PhoneNumber} — Twilio is not configured", phoneNumber);
+            return false;
+        }
+
         try
         {
             var fromNumber = _configuration["Twilio:PhoneNumber"];
