@@ -3,9 +3,17 @@
 @using System.Globalization
 @using PiedraAzul.Client.Models.GraphQL
 @using PiedraAzul.Client.Services.GraphQLServices
+@using PiedraAzul.Client.States
 @using PiedraAzul.Client.UI.Features.Booking.Components
-@inject GraphQLAppointmentService AppointmentService
-@inject PatientSearchService PatientSearchService
+
+<CascadingValue Value="@this" IsFixed="false">
+
+@if (UIModeState.IsEasy)
+{
+    <InstantRescheduleEasyContent />
+}
+else
+{
 
 <div class="min-h-screen bg-gradient-to-b from-[#F0FDFA] to-white py-8 px-4">
     <div class="mx-auto max-w-xl">
@@ -149,7 +157,7 @@
                           OnGuestContinue="OnGuestContinue"
                           OnNewPatientContinue="OnNotFound"
                           OnRetry="OnRetrySearch"
-                          OnClose="() => _showVerificationModal = false" />
+                          OnClose="OnVerificationModalClose" />
 
 <!-- ChannelValidationModal -->
 <ChannelValidationModal IsOpen="_showChannelModal"
@@ -171,255 +179,6 @@
                  OnConfirm="HandleRescheduleConfirm"
                  OnClose="() => { _showRescheduleModal = false; _selectedAppt = null; }" />
 
-@code {
-    private enum Stage { Identification, Appointments }
+} @* fin else modo moderno *@
 
-    private Stage _stage = Stage.Identification;
-    private string? _identification;
-    private string? _error;
-    private bool _isSuccess;
-
-    // Lookup / verification
-    private bool _searching;
-    private bool _showVerificationModal;
-    private GuestLookupResultGQL? _searchResult;
-    private string? _searchResultType;
-    private string? _searchError;
-    private string? _verificationHash;
-
-    // Channel OTP modal
-    private bool _showChannelModal;
-    private bool _channelLoading;
-
-    // Appointments
-    private bool _loadingAppointments;
-    private List<AppointmentGQL> _appointments = [];
-
-    // Reschedule
-    private bool _showRescheduleModal;
-    private bool _rescheduleLoading;
-    private AppointmentGQL? _selectedAppt;
-
-    // ─── ID lookup ────────────────────────────────────────────────────────────
-
-    private async Task OnIdKeyDown(KeyboardEventArgs e)
-    {
-        if (e.Key == "Enter" && !_searching && !string.IsNullOrWhiteSpace(_identification))
-            await StartSearchAsync();
-    }
-
-    // Outer handler: manages loading state
-    private async Task StartSearchAsync()
-    {
-        if (string.IsNullOrWhiteSpace(_identification) || _searching) return;
-
-        _searching = true;
-        _showVerificationModal = false;
-        _searchError = null;
-        _searchResult = null;
-        _searchResultType = null;
-        StateHasChanged();
-
-        await DoSearchAsync(_identification);
-
-        _searching = false;
-        _showVerificationModal = true;
-        StateHasChanged();
-    }
-
-    // Inner handler: only does the search and sets the result type
-    private async Task DoSearchAsync(string identification)
-    {
-        var result = await PatientSearchService.LookupByIdentificationAsync(identification);
-
-        if (!result.IsSuccess)
-        {
-            _searchError = result.Error?.Message ?? "Error de conexión";
-            _searchResultType = "ERROR";
-            return;
-        }
-
-        if (result.Value is not null)
-        {
-            _searchResult = result.Value;
-            _verificationHash = result.Value.VerificationHash;
-            _searchResultType = result.Value.Type.ToUpperInvariant() switch
-            {
-                "REGISTERED" => "REGISTERED",
-                "GUEST"      => "GUEST",
-                "NOCONTACT" or "NO_CONTACT" => "NO_CONTACT",
-                _            => "NOT_FOUND"
-            };
-        }
-        else
-        {
-            _searchResultType = "NOT_FOUND";
-        }
-    }
-
-    // ─── Verification modal callbacks ─────────────────────────────────────────
-
-    private void OnRegisteredLogin()
-    {
-        _showVerificationModal = false;
-        // For reschedule, registered users should log in and use the account area
-        _error = "Para reagendar tu cita, inicia sesión en tu cuenta y ve a 'Mis citas'.";
-        _stage = Stage.Identification;
-    }
-
-    private void OnGuestContinue()
-    {
-        _showVerificationModal = false;
-        _showChannelModal = true;
-        StateHasChanged();
-    }
-
-    private void OnNotFound()
-    {
-        _showVerificationModal = false;
-        _error = "No encontramos citas asociadas a ese número de identificación.";
-        StateHasChanged();
-    }
-
-    private async Task OnRetrySearch()
-    {
-        if (string.IsNullOrWhiteSpace(_identification)) return;
-
-        _searching = true;
-        _showVerificationModal = false;
-        _searchError = null;
-        _searchResultType = null;
-        StateHasChanged();
-
-        await DoSearchAsync(_identification);
-
-        _searching = false;
-        _showVerificationModal = true;
-        StateHasChanged();
-    }
-
-    // ─── Channel OTP modal callbacks ──────────────────────────────────────────
-
-    private async Task<bool> SendOtpByHashAsync(string channel)
-    {
-        _channelLoading = true;
-        StateHasChanged();
-
-        var result = await AppointmentService.SendGuestOtpByHashAsync(_verificationHash!, channel);
-
-        _channelLoading = false;
-        StateHasChanged();
-
-        return result.IsSuccess;
-    }
-
-    private async Task<GuestDataGQL?> VerifyOtpByHashAsync(string channel, string code)
-    {
-        _channelLoading = true;
-        StateHasChanged();
-
-        var result = await AppointmentService.VerifyGuestOtpByHashAsync(_verificationHash!, code);
-
-        _channelLoading = false;
-        StateHasChanged();
-
-        return result.IsSuccess ? result.Value : null;
-    }
-
-    private async Task OnChannelConfirm((GuestDataGQL Data, string OtpCode) payload)
-    {
-        _channelLoading = true;
-        StateHasChanged();
-
-        // Persist any updated data
-        await AppointmentService.VerifyGuestOtpByHashAsync(
-            _verificationHash!, payload.OtpCode, payload.Data.Name, payload.Data.Phone, payload.Data.Email);
-
-        _channelLoading = false;
-        _showChannelModal = false;
-
-        // Load appointments
-        await LoadGuestAppointmentsAsync();
-        _stage = Stage.Appointments;
-        StateHasChanged();
-    }
-
-    private void OnChannelModalClose()
-    {
-        _showChannelModal = false;
-        StateHasChanged();
-    }
-
-    // ─── Appointments ─────────────────────────────────────────────────────────
-
-    private async Task LoadGuestAppointmentsAsync()
-    {
-        _loadingAppointments = true;
-        _appointments = [];
-        StateHasChanged();
-
-        var result = await AppointmentService.GetGuestUpcomingAppointmentsAsync(_verificationHash!);
-
-        _loadingAppointments = false;
-
-        if (!result.IsSuccess)
-        {
-            _error = "No se pudieron cargar las citas. Intenta de nuevo.";
-            return;
-        }
-
-        _appointments = result.Value ?? [];
-        StateHasChanged();
-    }
-
-    // ─── Reschedule ───────────────────────────────────────────────────────────
-
-    private void OpenRescheduleModal(AppointmentGQL appt)
-    {
-        _selectedAppt = appt;
-        _showRescheduleModal = true;
-        _error = null;
-    }
-
-    private async Task HandleRescheduleConfirm((string DoctorId, string SlotId, DateTime Date) selection)
-    {
-        if (_selectedAppt is null) return;
-
-        _rescheduleLoading = true;
-        StateHasChanged();
-
-        var result = await AppointmentService.RescheduleAppointmentByHashAsync(
-            _verificationHash!,
-            Guid.Parse(_selectedAppt.Id),
-            Guid.Parse(selection.SlotId),
-            selection.Date.ToUniversalTime());
-
-        _rescheduleLoading = false;
-
-        if (!result.IsSuccess)
-        {
-            _error = result.Error?.Message ?? "No se pudo reagendar la cita. Intenta de nuevo.";
-            _showRescheduleModal = false;
-            _selectedAppt = null;
-            StateHasChanged();
-            return;
-        }
-
-        _showRescheduleModal = false;
-        _selectedAppt = null;
-        _isSuccess = true;
-        StateHasChanged();
-    }
-
-    private void ResetAll()
-    {
-        _isSuccess = false;
-        _stage = Stage.Identification;
-        _identification = null;
-        _verificationHash = null;
-        _searchResult = null;
-        _appointments = [];
-        _error = null;
-        StateHasChanged();
-    }
-}
+</CascadingValue>
