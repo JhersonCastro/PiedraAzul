@@ -10,6 +10,7 @@
     --color-red-50: oklch(97.1% 0.013 17.38);
     --color-red-100: oklch(93.6% 0.032 17.717);
     --color-red-200: oklch(88.5% 0.062 18.334);
+    --color-red-300: oklch(80.8% 0.114 19.571);
     --color-red-400: oklch(70.4% 0.191 22.216);
     --color-red-500: oklch(63.7% 0.237 25.331);
     --color-red-600: oklch(57.7% 0.245 27.325);
@@ -580,6 +581,9 @@
   .hidden {
     display: none;
   }
+  .inline {
+    display: inline;
+  }
   .inline-block {
     display: inline-block;
   }
@@ -1128,6 +1132,10 @@
   .rounded-xl {
     border-radius: var(--radius-xl);
   }
+  .rounded-t-lg {
+    border-top-left-radius: var(--radius-lg);
+    border-top-right-radius: var(--radius-lg);
+  }
   .border {
     border-style: var(--tw-border-style);
     border-width: 1px;
@@ -1288,6 +1296,9 @@
   }
   .border-red-200 {
     border-color: var(--color-red-200);
+  }
+  .border-red-300 {
+    border-color: var(--color-red-300);
   }
   .border-rose-100 {
     border-color: var(--color-rose-100);
@@ -1739,6 +1750,9 @@
   .pt-2 {
     padding-top: calc(var(--spacing) * 2);
   }
+  .pt-3 {
+    padding-top: calc(var(--spacing) * 3);
+  }
   .pt-6 {
     padding-top: calc(var(--spacing) * 6);
   }
@@ -1762,6 +1776,9 @@
   }
   .pr-14 {
     padding-right: calc(var(--spacing) * 14);
+  }
+  .pb-1 {
+    padding-bottom: calc(var(--spacing) * 1);
   }
   .pb-1\.5 {
     padding-bottom: calc(var(--spacing) * 1.5);
@@ -2227,6 +2244,10 @@
     --tw-ring-shadow: var(--tw-ring-inset,) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor);
     box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
   }
+  .ring-2 {
+    --tw-ring-shadow: var(--tw-ring-inset,) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor);
+    box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
+  }
   .shadow-green-500\/20 {
     --tw-shadow-color: color-mix(in srgb, oklch(72.3% 0.219 149.579) 20%, transparent);
     @supports (color: color-mix(in lab, red, red)) {
@@ -2286,6 +2307,9 @@
     @supports (color: color-mix(in lab, red, red)) {
       --tw-shadow-color: color-mix(in oklab, color-mix(in oklab, var(--color-slate-900) 20%, transparent) var(--tw-shadow-alpha), transparent);
     }
+  }
+  .ring-red-200 {
+    --tw-ring-color: var(--color-red-200);
   }
   .ring-teal-600\/20 {
     --tw-ring-color: color-mix(in srgb, oklch(60% 0.118 184.704) 20%, transparent);
@@ -2584,6 +2608,22 @@
       border-right-width: 0px;
     }
   }
+  .focus-within\:border-teal-400 {
+    &:focus-within {
+      border-color: var(--color-teal-400);
+    }
+  }
+  .focus-within\:ring-2 {
+    &:focus-within {
+      --tw-ring-shadow: var(--tw-ring-inset,) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor);
+      box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
+    }
+  }
+  .focus-within\:ring-teal-400 {
+    &:focus-within {
+      --tw-ring-color: var(--color-teal-400);
+    }
+  }
   .hover\:-translate-y-0\.5 {
     &:hover {
       @media (hover: hover) {
@@ -2703,6 +2743,13 @@
     &:hover {
       @media (hover: hover) {
         background-color: #e8f5f3;
+      }
+    }
+  }
+  .hover\:bg-amber-100 {
+    &:hover {
+      @media (hover: hover) {
+        background-color: var(--color-amber-100);
       }
     }
   }
@@ -3073,11 +3120,6 @@
       border-color: var(--color-primary);
     }
   }
-  .focus\:border-teal-400 {
-    &:focus {
-      border-color: var(--color-teal-400);
-    }
-  }
   .focus\:border-teal-500 {
     &:focus {
       border-color: var(--color-teal-500);
@@ -3086,6 +3128,12 @@
   .focus\:border-teal-600 {
     &:focus {
       border-color: var(--color-teal-600);
+    }
+  }
+  .focus\:ring-0 {
+    &:focus {
+      --tw-ring-shadow: var(--tw-ring-inset,) 0 0 0 calc(0px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentcolor);
+      box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
     }
   }
   .focus\:ring-2 {
@@ -3116,11 +3164,6 @@
       @supports (color: color-mix(in lab, red, red)) {
         --tw-ring-color: color-mix(in oklab, var(--color-primary) 10%, transparent);
       }
-    }
-  }
-  .focus\:ring-teal-400 {
-    &:focus {
-      --tw-ring-color: var(--color-teal-400);
     }
   }
   .focus\:ring-teal-500\/50 {
@@ -3968,6 +4011,48 @@
     background-color: var(--color-slate-50);
     padding-inline: calc(var(--spacing) * 6);
     padding-block: calc(var(--spacing) * 4);
+  }
+  .easy-modal .modal-panel {
+    max-width: var(--container-lg);
+  }
+  .easy-modal .modal-header {
+    padding-inline: calc(var(--spacing) * 6);
+    padding-block: calc(var(--spacing) * 5);
+  }
+  .easy-modal .modal-header h2 {
+    font-size: var(--text-xl);
+    line-height: var(--tw-leading, var(--text-xl--line-height));
+  }
+  .easy-modal .modal-body {
+    padding-inline: calc(var(--spacing) * 6);
+    padding-block: calc(var(--spacing) * 6);
+  }
+  .easy-modal .modal-body p, .easy-modal .modal-body span, .easy-modal .modal-body label {
+    font-size: var(--text-base);
+    line-height: var(--tw-leading, var(--text-base--line-height));
+    --tw-leading: var(--leading-relaxed);
+    line-height: var(--leading-relaxed);
+  }
+  .easy-modal .btn-action {
+    padding-block: calc(var(--spacing) * 4);
+    font-size: var(--text-base);
+    line-height: var(--tw-leading, var(--text-base--line-height));
+  }
+  .easy-modal .btn-secondary-sm {
+    padding-block: calc(var(--spacing) * 4);
+    font-size: var(--text-base);
+    line-height: var(--tw-leading, var(--text-base--line-height));
+  }
+  .easy-modal .btn-action-inline {
+    padding-block: calc(var(--spacing) * 3);
+    font-size: var(--text-base);
+    line-height: var(--tw-leading, var(--text-base--line-height));
+  }
+  .easy-modal .alert {
+    padding-inline: calc(var(--spacing) * 4);
+    padding-block: calc(var(--spacing) * 4);
+    font-size: var(--text-base);
+    line-height: var(--tw-leading, var(--text-base--line-height));
   }
   .alert {
     display: flex;

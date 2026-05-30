@@ -219,6 +219,50 @@
 
 
   /* =============================================
+     EASY MODE — Overrides para modales accesibles
+     Aplicar clase .easy-modal al modal-container.
+     ============================================= */
+
+  .easy-modal .modal-panel {
+    @apply max-w-lg;
+  }
+
+  .easy-modal .modal-header {
+    @apply py-5 px-6;
+  }
+
+  .easy-modal .modal-header h2 {
+    @apply text-xl;
+  }
+
+  .easy-modal .modal-body {
+    @apply py-6 px-6;
+  }
+
+  .easy-modal .modal-body p,
+  .easy-modal .modal-body span,
+  .easy-modal .modal-body label {
+    @apply text-base leading-relaxed;
+  }
+
+  .easy-modal .btn-action {
+    @apply py-4 text-base;
+  }
+
+  .easy-modal .btn-secondary-sm {
+    @apply py-4 text-base;
+  }
+
+  .easy-modal .btn-action-inline {
+    @apply py-3 text-base;
+  }
+
+  .easy-modal .alert {
+    @apply text-base py-4 px-4;
+  }
+
+
+  /* =============================================
      ALERTAS / BANNERS
      ============================================= */
 
