@@ -1,7 +1,9 @@
 @using PiedraAzul.Client.Models.Booking
 @using PiedraAzul.Client.Models.UserProfiles
 @using PiedraAzul.Client.Services.GraphQLServices
+@using PiedraAzul.Client.States
 @using PiedraAzul.Contracts.Enums
+@inject UIModeState UIModeState
 
 @*
     Modal de reagendamiento: 3 pasos internos, reutilizando los componentes
@@ -16,7 +18,7 @@
 {
     <div class="modal-backdrop"></div>
 
-    <div class="modal-container">
+    <div class="modal-container @(UIModeState.IsEasy ? "easy-modal" : "")">
         <div class="modal-panel-xl">
 
             <!-- Header -->

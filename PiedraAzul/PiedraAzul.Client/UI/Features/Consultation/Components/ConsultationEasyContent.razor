@@ -1,0 +1,177 @@
+@using PiedraAzul.Client.Models.Consultation
+@using PiedraAzul.Client.UI.Features.Consultation.Pages
+@implements IDisposable
+
+@* ═══════════════════════════════════════════════════════════════════
+   COMPONENTE PURAMENTE PRESENTACIONAL — Modo Fácil, Consulta Inteligente
+   Toda la lógica de negocio vive en Consultation (code-behind inline).
+   Este componente solo renderiza UI y llama métodos de la página.
+   ═══════════════════════════════════════════════════════════════════ *@
+
+<div style="max-width:680px;margin:0 auto;padding:1.5rem 1rem;font-family:'DM Sans',sans-serif">
+
+    @if (Page._recommendation is not null)
+    {
+        <!-- ── RESULTADO ── -->
+        <div style="text-align:center;padding:2rem 0 1.5rem">
+            <div style="font-size:3.5rem;margin-bottom:0.75rem">🩺</div>
+            <p style="font-size:1rem;color:#64748B;font-weight:600;margin:0 0 0.25rem">Te recomendamos</p>
+            <h1 style="font-size:2rem;font-weight:800;color:#1E7A87;margin:0 0 1.25rem">
+                @Page._recommendation.SpecialtyLabel
+            </h1>
+        </div>
+
+        <div style="background:#EEF8F8;border-radius:16px;padding:1.25rem 1.5rem;margin-bottom:1.5rem;
+                    font-size:1.05rem;color:#334155;line-height:1.65;text-align:center">
+            @Page._recommendation.Reasoning
+        </div>
+
+        <!-- Confianza -->
+        <div style="background:white;border:2px solid #E2E8F0;border-radius:14px;padding:1.25rem;margin-bottom:1.5rem">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
+                <span style="font-size:0.9rem;font-weight:700;color:#64748B">Confianza</span>
+                <span style="font-size:1rem;font-weight:800;color:#1E7A87">@Page._recommendation.ConfidencePercent%</span>
+            </div>
+            <div style="height:10px;background:#E2E8F0;border-radius:99px;overflow:hidden">
+                <div style="height:100%;background:#1E7A87;border-radius:99px;width:@(Page._recommendation.ConfidencePercent)%;transition:width 0.5s ease"></div>
+            </div>
+            <p style="margin-top:0.5rem;font-size:0.85rem;color:#94A3B8">
+                @if (Page._recommendation.ConfidencePercent >= 80)
+                {
+                    <span>✓ Muy confiable según los síntomas descritos.</span>
+                }
+                else if (Page._recommendation.ConfidencePercent >= 70)
+                {
+                    <span>◐ Recomendación probable basada en lo que compartiste.</span>
+                }
+                else
+                {
+                    <span>⊕ Recomendación inicial. Si persisten los síntomas, consulta directamente.</span>
+                }
+            </p>
+        </div>
+
+        <!-- Acciones -->
+        <div style="display:flex;flex-direction:column;gap:0.75rem">
+            <button @onclick="Page.GoToBooking"
+                    style="width:100%;background:#1E7A87;color:white;padding:1rem;border:none;
+                           border-radius:14px;font-size:1.15rem;font-weight:800;cursor:pointer;min-height:56px">
+                📅 Ir a agendar cita
+            </button>
+            <button @onclick="Page.Reset"
+                    style="width:100%;background:white;color:#475569;padding:1rem;
+                           border:2px solid #CBD5E1;border-radius:14px;font-size:1rem;
+                           font-weight:700;cursor:pointer;min-height:50px">
+                🔄 Hacer otra consulta
+            </button>
+        </div>
+
+        <p style="text-align:center;font-size:0.8rem;color:#94A3B8;margin-top:1.25rem">
+            Esta orientación no reemplaza un diagnóstico médico profesional.
+        </p>
+    }
+    else
+    {
+        <!-- ── ENCUESTA ── -->
+        <div style="text-align:center;margin-bottom:1.75rem">
+            <h1 style="font-size:1.7rem;font-weight:800;color:#0F172A;margin:0 0 0.4rem">
+                ¿Qué le está pasando?
+            </h1>
+            <p style="font-size:1.05rem;color:#64748B;margin:0;line-height:1.5">
+                Responda las preguntas y cuéntenos cómo se siente.<br>
+                Le diremos con qué especialista ir.
+            </p>
+        </div>
+
+        <!-- Preguntas con tarjetas grandes -->
+        @foreach (var q in Page._questions)
+        {
+            <div style="background:white;border:2px solid #E2E8F0;border-radius:16px;padding:1.25rem;margin-bottom:1.25rem">
+                <h2 style="font-size:1.1rem;font-weight:800;color:#0F172A;margin:0 0 1rem">
+                    @q.Title
+                </h2>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+                    @foreach (var choice in q.Choices)
+                    {
+                        var isSelected = q.Selected(Page.Model) == choice.Label;
+                        <button @onclick="() => { q.Select(Page.Model, choice.Label); StateHasChanged(); }"
+                                style="@($"display:flex;align-items:center;gap:0.75rem;padding:0.9rem 1rem;" +
+                                          "border-radius:12px;border:2px solid;text-align:left;cursor:pointer;background:white;" +
+                                          "font-family:'DM Sans',sans-serif;" +
+                                          (isSelected
+                                              ? "border-color:#1E7A87;background:#EEF8F8;"
+                                              : "border-color:#E2E8F0;"))">
+                            <span style="font-size:1.6rem;flex-shrink:0">@choice.Emoji</span>
+                            <span style="font-size:0.9rem;font-weight:@(isSelected ? "800" : "600");color:@(isSelected ? "#1E7A87" : "#374151");line-height:1.3">
+                                @choice.Label
+                            </span>
+                        </button>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- Descripción libre (textarea simple) -->
+        <div style="background:white;border:2px solid #E2E8F0;border-radius:16px;padding:1.25rem;margin-bottom:1.25rem">
+            <h2 style="font-size:1.1rem;font-weight:800;color:#0F172A;margin:0 0 0.5rem">
+                Cuéntenos con sus palabras
+            </h2>
+            <p style="font-size:0.95rem;color:#64748B;margin:0 0 0.75rem">
+                Describa qué siente, desde cuándo y cómo le afecta.
+            </p>
+            <textarea @bind="Page.Model.Description"
+                      @bind:event="oninput"
+                      rows="4"
+                      placeholder="Ej: Hace unos días me duele la cabeza y veo borroso cuando leo..."
+                      style="width:100%;padding:0.85rem 1rem;font-size:1rem;font-weight:500;color:#0F172A;
+                             border:2px solid #CBD5E1;border-radius:12px;outline:none;resize:none;
+                             box-sizing:border-box;font-family:'DM Sans',sans-serif;line-height:1.5">
+            </textarea>
+            @if (string.IsNullOrWhiteSpace(Page.Model.Description))
+            {
+                <p style="margin-top:0.4rem;font-size:0.85rem;color:#EF4444;font-weight:600">
+                    ⚠ Escriba al menos unas palabras para poder ayudarle.
+                </p>
+            }
+        </div>
+
+        @if (!string.IsNullOrEmpty(Page._errorMessage))
+        {
+            <div style="background:#FEF2F2;border:1.5px solid #FECACA;border-radius:12px;padding:1rem;
+                        margin-bottom:1rem;color:#B91C1C;font-weight:600;font-size:0.95rem">
+                ⚠ @Page._errorMessage
+            </div>
+        }
+
+        <button @onclick="SubmitAsync"
+                disabled="@(Page._isLoading || string.IsNullOrWhiteSpace(Page.Model.Description))"
+                style="width:100%;background:#1E7A87;color:white;padding:1rem;border:none;
+                       border-radius:14px;font-size:1.15rem;font-weight:800;cursor:pointer;min-height:56px;
+                       opacity:@(Page._isLoading || string.IsNullOrWhiteSpace(Page.Model.Description) ? "0.55" : "1")">
+            @(Page._isLoading ? "⏳ Analizando su consulta..." : "🔍 Ver mi recomendación")
+        </button>
+
+        <p style="text-align:center;font-size:0.8rem;color:#94A3B8;margin-top:1rem">
+            Esta orientación no reemplaza un diagnóstico médico profesional.
+        </p>
+    }
+</div>
+
+@code {
+    // ── Cascade from parent page (owns all business logic) ───────────────────
+    [CascadingParameter] private Consultation Page { get; set; } = default!;
+
+    protected override void OnInitialized()
+    {
+        Page.OnEasyStateChanged += OnPageStateChanged;
+    }
+
+    private void OnPageStateChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Page.OnEasyStateChanged -= OnPageStateChanged;
+
+    private async Task SubmitAsync()
+    {
+        await Page.SubmitAsync();
+    }
+}

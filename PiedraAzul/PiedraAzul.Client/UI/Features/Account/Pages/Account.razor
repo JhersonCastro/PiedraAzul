@@ -6,11 +6,11 @@
 @using PiedraAzul.Client.Services
 @using PiedraAzul.Client.States
 @using PiedraAzul.Client.UI.Features.Account.Sections
+@using PiedraAzul.Client.UI.Features.Account.Components
 @using PiedraAzul.Client.UI.Features.Doctor
 @using PiedraAzul.Client.UI.Features.Admin
 @using PiedraAzul.Client.UI.Features.Appointments
 @using PiedraAzul.Client.UI.Features.Booking.Pages
-@using PiedraAzul.Client.UI.Features.Account.Components
 @using Microsoft.JSInterop
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @implements IDisposable
@@ -18,11 +18,19 @@
 @inject IJSRuntime js
 @inject PiedraAzul.Client.Services.DriverTourService DriverTourService
 @inject UserState UserState
+@inject UIModeState UIModeState
 @inject AuthenticationService AuthService
 @inject GraphQLHttpClient GraphQL
 @inject OfflineCacheService OfflineCache
 
 <PageTitle>Mi cuenta | Piedra Azul</PageTitle>
+
+@if (UIModeState.IsEasy)
+{
+    <AccountEasyContent />
+}
+else
+{
 
 <HeadContent>
     <style>
@@ -518,6 +526,8 @@ else
 
     </div>
 }
+
+} @* fin else modo moderno *@
 
 @code {
     private UserGQL? _user;

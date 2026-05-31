@@ -1,0 +1,143 @@
+@* Modo Fácil — Página de inicio accesible *@
+<div style="font-family:'DM Sans',sans-serif">
+
+    <!-- HERO -->
+    <section style="background:linear-gradient(135deg,#F0FDFA 0%,#E0F2FE 100%);padding:3rem 1.25rem 2.5rem;text-align:center">
+        <h1 style="font-size:2rem;font-weight:800;color:#0F172A;line-height:1.2;margin:0 0 1rem">
+            Bienvenido a su Clínica
+        </h1>
+        <p style="font-size:1.1rem;color:#475569;max-width:500px;margin:0 auto 2rem;line-height:1.6">
+            Atención médica profesional y cálida,<br>pensada especialmente en usted.
+        </p>
+        <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:1rem">
+            <a href="/instant-medical-booking"
+               style="display:flex;align-items:center;gap:0.6rem;background:#1E7A87;color:white;
+                      padding:1rem 2rem;border-radius:14px;font-size:1.1rem;font-weight:800;
+                      text-decoration:none;min-height:56px">
+                📅 Agendar Cita Sin Cuenta
+            </a>
+            <a href="/account/auth"
+               style="display:flex;align-items:center;gap:0.6rem;background:white;color:#1E7A87;
+                      padding:1rem 2rem;border-radius:14px;font-size:1.1rem;font-weight:800;
+                      text-decoration:none;border:2.5px solid #1E7A87;min-height:56px">
+                👤 Entrar a Mi Cuenta
+            </a>
+        </div>
+    </section>
+
+    <!-- CÓMO AGENDAR -->
+    <section style="padding:2.5rem 1.25rem;max-width:820px;margin:0 auto">
+        <h2 style="font-size:1.5rem;font-weight:800;color:#0F172A;text-align:center;margin:0 0 1.5rem">
+            ¿Cómo quiere agendar su cita?
+        </h2>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.25rem">
+
+            <!-- Opción: Sin Cuenta -->
+            <a href="/instant-medical-booking"
+               style="display:flex;gap:1rem;align-items:center;background:white;border:2.5px solid #99F6E4;
+                      border-radius:18px;padding:1.5rem;text-decoration:none;transition:box-shadow .15s">
+                <span style="font-size:2.5rem;flex-shrink:0">⚡</span>
+                <div>
+                    <p style="font-size:1.05rem;font-weight:800;color:#0F172A;margin:0 0 0.3rem">
+                        Reserva Rápida
+                    </p>
+                    <p style="font-size:0.9rem;color:#64748B;margin:0;line-height:1.4">
+                        Sin cuenta. Solo necesita su cédula. Fácil y rápido.
+                    </p>
+                </div>
+            </a>
+
+            <!-- Opción: Con Cuenta -->
+            <a href="/account"
+               style="display:flex;gap:1rem;align-items:center;background:white;border:2.5px solid #BAE6FD;
+                      border-radius:18px;padding:1.5rem;text-decoration:none">
+                <span style="font-size:2.5rem;flex-shrink:0">👤</span>
+                <div>
+                    <p style="font-size:1.05rem;font-weight:800;color:#0F172A;margin:0 0 0.3rem">
+                        Con Mi Cuenta
+                    </p>
+                    <p style="font-size:0.9rem;color:#64748B;margin:0;line-height:1.4">
+                        Vea su historial y gestione sus citas anteriores.
+                    </p>
+                </div>
+            </a>
+
+            <!-- Opción: Reagendar -->
+            <a href="/reagendar"
+               style="display:flex;gap:1rem;align-items:center;background:white;border:2.5px solid #FDE68A;
+                      border-radius:18px;padding:1.5rem;text-decoration:none">
+                <span style="font-size:2.5rem;flex-shrink:0">🔄</span>
+                <div>
+                    <p style="font-size:1.05rem;font-weight:800;color:#0F172A;margin:0 0 0.3rem">
+                        Reagendar Cita
+                    </p>
+                    <p style="font-size:0.9rem;color:#64748B;margin:0;line-height:1.4">
+                        Cambie la fecha de una cita existente.
+                    </p>
+                </div>
+            </a>
+
+        </div>
+    </section>
+
+    <!-- ESPECIALIDADES -->
+    <section style="background:#F8FAFC;padding:2.5rem 1.25rem">
+        <div style="max-width:820px;margin:0 auto">
+            <h2 style="font-size:1.5rem;font-weight:800;color:#0F172A;text-align:center;margin:0 0 1.5rem">
+                Nuestros Servicios Médicos
+            </h2>
+
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.25rem">
+
+                <div style="background:white;border-radius:16px;padding:1.5rem;text-align:center;border:1.5px solid #E2E8F0">
+                    <div style="font-size:2.5rem;margin-bottom:0.75rem">🌿</div>
+                    <h3 style="font-size:1rem;font-weight:800;color:#0F172A;margin:0 0 0.4rem">Terapia Natural</h3>
+                    <p style="font-size:0.88rem;color:#64748B;margin:0;line-height:1.5">
+                        Tratamientos naturales para fortalecer su salud y reducir el estrés.
+                    </p>
+                </div>
+
+                <div style="background:white;border-radius:16px;padding:1.5rem;text-align:center;border:1.5px solid #E2E8F0">
+                    <div style="font-size:2.5rem;margin-bottom:0.75rem">🦴</div>
+                    <h3 style="font-size:1rem;font-weight:800;color:#0F172A;margin:0 0 0.4rem">Quiropraxia</h3>
+                    <p style="font-size:0.88rem;color:#64748B;margin:0;line-height:1.5">
+                        Alivio de dolores de espalda, cuello y articulaciones.
+                    </p>
+                </div>
+
+                <div style="background:white;border-radius:16px;padding:1.5rem;text-align:center;border:1.5px solid #E2E8F0">
+                    <div style="font-size:2.5rem;margin-bottom:0.75rem">💪</div>
+                    <h3 style="font-size:1rem;font-weight:800;color:#0F172A;margin:0 0 0.4rem">Fisioterapia</h3>
+                    <p style="font-size:0.88rem;color:#64748B;margin:0;line-height:1.5">
+                        Recupere su movilidad y fuerza con terapia personalizada.
+                    </p>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- CONTACTO -->
+    <section style="padding:2.5rem 1.25rem;text-align:center">
+        <h2 style="font-size:1.35rem;font-weight:800;color:#0F172A;margin:0 0 0.5rem">
+            ¿Necesita hablar con alguien?
+        </h2>
+        <p style="font-size:1rem;color:#64748B;margin:0 0 1.5rem">
+            Estamos aquí para ayudarle.
+        </p>
+        <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:1rem">
+            <a href="tel:+573011234567"
+               style="display:flex;align-items:center;gap:0.6rem;background:#1E7A87;color:white;
+                      padding:0.9rem 1.75rem;border-radius:14px;text-decoration:none;font-weight:800;font-size:1rem">
+                📞 Llamar: (301) 123-4567
+            </a>
+            <a href="https://wa.me/573128883241" target="_blank"
+               style="display:flex;align-items:center;gap:0.6rem;background:#25D366;color:white;
+                      padding:0.9rem 1.75rem;border-radius:14px;text-decoration:none;font-weight:800;font-size:1rem">
+                💬 WhatsApp
+            </a>
+        </div>
+    </section>
+
+</div>

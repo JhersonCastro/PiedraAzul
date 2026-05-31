@@ -1,19 +1,59 @@
 ﻿@page "/account/auth"
 @rendermode @(new InteractiveAutoRenderMode(prerender: false))
 @using PiedraAzul.Client.UI.Features.Account.Components
+@using PiedraAzul.Client.States
 @inject NavigationManager NavigationManager
+@inject UIModeState UIModeState
+
 <PageTitle>@(isLoginForm ? "Ingresar" : "Registrarse") | Piedra Azul</PageTitle>
 
-<div class="my-auto flex flex-col items-center">
-    @if (isLoginForm)
-    {
-        <LoginForm OnRegisterClick="() => { isLoginForm = false; }" ReturnUrl="@_returnUrl" />
-    }
-    else
-    {
-        <RegisterForm OnLoginClick="() => {isLoginForm = true;  } " />
-    }
-</div>
+@if (UIModeState.IsEasy)
+{
+    <!-- MODO FÁCIL: título grande + mismo formulario con más padding -->
+    <div style="max-width:480px;margin:2rem auto;padding:0 1.25rem;font-family:'DM Sans',sans-serif">
+
+        <div style="text-align:center;margin-bottom:2rem">
+            <div style="font-size:2.5rem;margin-bottom:0.5rem">🔐</div>
+            <h1 style="font-size:1.6rem;font-weight:800;color:#0F172A;margin:0 0 0.4rem">
+                @(isLoginForm ? "Ingresar a mi cuenta" : "Crear mi cuenta")
+            </h1>
+            <p style="font-size:1rem;color:#64748B;margin:0">
+                @(isLoginForm ? "Ingrese sus datos para acceder." : "Llene el formulario para registrarse.")
+            </p>
+        </div>
+
+        @if (isLoginForm)
+        {
+            <LoginForm OnRegisterClick="() => { isLoginForm = false; }" ReturnUrl="@_returnUrl" />
+        }
+        else
+        {
+            <RegisterForm OnLoginClick="() => { isLoginForm = true; }" />
+        }
+
+        <div style="text-align:center;margin-top:1.5rem">
+            <button @onclick="() => isLoginForm = !isLoginForm"
+                    style="background:none;border:none;color:#1E7A87;font-size:1rem;font-weight:700;
+                           cursor:pointer;text-decoration:underline;padding:0.5rem">
+                @(isLoginForm ? "¿No tiene cuenta? Regístrese aquí" : "¿Ya tiene cuenta? Ingresar")
+            </button>
+        </div>
+    </div>
+}
+else
+{
+    <!-- MODO MODERNO: diseño original -->
+    <div class="my-auto flex flex-col items-center">
+        @if (isLoginForm)
+        {
+            <LoginForm OnRegisterClick="() => { isLoginForm = false; }" ReturnUrl="@_returnUrl" />
+        }
+        else
+        {
+            <RegisterForm OnLoginClick="() => {isLoginForm = true;  } " />
+        }
+    </div>
+}
 
 @code {
     private bool isLoginForm { get; set; } = true;

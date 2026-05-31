@@ -19,32 +19,44 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
         [SupplyParameterFromQuery(Name = "specialty")]
         public string? Specialty { get; set; }
 
-        private DoctorType? _initialDoctorType;
+        // ── Shared state (internal = accessible to InstantBookingEasyContent) ─
+        internal DoctorType? _initialDoctorType;
+        internal BookingModel Model = new();
+        internal bool isSuccess = false;
 
-        BookingModel Model = new();
-        bool isLoading = false;
-        bool isSuccess = false;
+        // ── Search / Verification ─────────────────────────────────────────────
+        internal bool _showVerificationModal;
+        internal bool _searching;
+        internal GuestLookupResultGQL? _searchResult;
+        internal string? _searchResultType;
+        internal string? _searchError;
 
-        Stepper<BookingModel> Stepper { get; set; }
+        // ── OTP FLUJO 1 (nuevo usuario) ───────────────────────────────────────
+        internal bool _otpSent = false;
+        internal bool _otpLoading = false;
+        internal string? _otpError = null;
 
-        string? _errorMessage;
+        // ── Channel Validation Modal (FLUJO 2 y FLUJO 3) ─────────────────────
+        internal bool _showChannelValidationModal;
+        internal bool _channelValidationLoading;
+        internal string? _channelValidationError;
 
-        // ── Patient Search / Verification Modal ───────────────────────────
-        private bool _showVerificationModal;
-        private bool _searching;
-        private GuestLookupResultGQL? _searchResult;
-        private string? _searchResultType;
-        private string? _searchError;
+        // ── Modern-only state (Stepper, used only in the inline modern UI) ────
+        private bool isLoading = false;
+        internal string? _errorMessage;
+        private Stepper<BookingModel> Stepper { get; set; }
 
-        // ── OTP final (FLUJO 1 - nuevo usuario) ───────────────────────────
-        bool _otpSent = false;
-        bool _otpLoading = false;
-        string? _otpError = null;
+        // ── Easy content notification ─────────────────────────────────────────
+        /// <summary>
+        /// Fired after every state change so InstantBookingEasyContent
+        /// (which lives in a CascadingValue) can call StateHasChanged on itself.
+        /// </summary>
+        public event Action? OnEasyStateChanged;
 
-        // ── Channel Validation Modal (FLUJO 2 y FLUJO 3) ──────────────────
-        private bool _showChannelValidationModal;
-        private bool _channelValidationLoading;
-        private string? _channelValidationError;
+        /// <summary>Calls StateHasChanged for the Modern UI AND fires OnEasyStateChanged.</summary>
+        private void NotifyState() { StateHasChanged(); OnEasyStateChanged?.Invoke(); }
+
+        // ── Lifecycle ─────────────────────────────────────────────────────────
 
         protected override async Task OnInitializedAsync()
         {
@@ -52,7 +64,6 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
 
             _initialDoctorType = DoctorTypeGraphQLMapper.FromGraphQL(Specialty);
 
-            // Si el usuario está autenticado usa el flujo con cuenta, conservando la especialidad.
             var redirectUrl = _initialDoctorType.HasValue
                 ? $"/medical-booking?specialty={Specialty}"
                 : "/medical-booking";
@@ -81,21 +92,18 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
                         StateHasChanged();
 
                         await Task.Yield();
-
                         await SearchPatientByIdentificationAsync(Model.PatientIdentification!);
 
                         _searching = false;
                         StateHasChanged();
-
                         return false;
                     }
-
                     return true;
                 };
             }
         }
 
-        // ── Patient Search ────────────────────────────────────────────────
+        // ── Core search (shared) ──────────────────────────────────────────────
 
         private async Task SearchPatientByIdentificationAsync(string identification)
         {
@@ -112,8 +120,6 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
             {
                 var lookup = result.Value;
                 _searchResult = lookup;
-
-                // Guardar datos enmascarados y canales disponibles
                 Model.VerificationHash = lookup.VerificationHash;
                 Model.HasPhoneAvailable = lookup.HasPhone;
                 Model.HasEmailAvailable = lookup.HasEmail;
@@ -123,9 +129,9 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
                 _searchResultType = lookup.Type.ToUpperInvariant() switch
                 {
                     "REGISTERED" => "REGISTERED",
-                    "GUEST" => "GUEST",
+                    "GUEST"      => "GUEST",
                     "NOCONTACT" or "NO_CONTACT" => "NO_CONTACT",
-                    _ => "NOT_FOUND"
+                    _            => "NOT_FOUND"
                 };
             }
             else
@@ -135,108 +141,124 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
             }
         }
 
-        // ── Modal Callbacks (PatientVerificationModal) ────────────────────
+        /// <summary>Entry point for Easy mode: opens the modal and runs the search.</summary>
+        internal async Task EasySearchByIdentificationAsync(string cedula)
+        {
+            _searching = true;
+            _showVerificationModal = true;
+            _searchError = null;
+            _searchResult = null;
+            _searchResultType = null;
+            Model.PatientIdentification = cedula.Trim();
+            NotifyState();
 
-        private void OnRegisteredLogin()
+            await Task.Yield();
+            await SearchPatientByIdentificationAsync(Model.PatientIdentification);
+
+            _searching = false;
+            NotifyState();
+        }
+
+        // ── Modal callbacks (shared by Modern and Easy) ───────────────────────
+
+        internal void OnRegisteredLogin()
         {
             _showVerificationModal = false;
             Navigation.NavigateTo($"/login?returnUrl=/instant-medical-booking");
         }
 
-        /// <summary>FLUJO 2: Usuario registrado continúa como invitado → abrir modal de validación</summary>
-        private void OnRegisteredGuestContinue()
+        internal void OnRegisteredGuestContinue()
         {
             _showVerificationModal = false;
             Model.IsRegisteredContinuingAsGuest = true;
             _showChannelValidationModal = true;
-            StateHasChanged();
+            NotifyState();
         }
 
-        /// <summary>FLUJO 3: Guest existente → abrir modal de validación</summary>
-        private void OnGuestContinue()
+        internal void OnGuestContinue()
         {
             _showVerificationModal = false;
             Model.IsRegisteredContinuingAsGuest = false;
             _showChannelValidationModal = true;
-            StateHasChanged();
+            NotifyState();
         }
 
-        /// <summary>FLUJO 1: Nuevo paciente</summary>
+        /// <summary>Modern mode only: also advances the Stepper.</summary>
         private void OnNewPatientContinue()
         {
             _showVerificationModal = false;
             Model.IsNewPatient = true;
             Stepper.GoToStep(1);
-            StateHasChanged();
+            NotifyState();
         }
 
-        private async Task OnRetrySearch()
+        /// <summary>Easy mode: sets IsNewPatient; Easy content manages its own step.</summary>
+        internal void OnNewPatientContinueEasy()
+        {
+            _showVerificationModal = false;
+            Model.IsNewPatient = true;
+            NotifyState();
+        }
+
+        internal async Task OnRetrySearch()
         {
             _searching = true;
             _searchError = null;
             _searchResultType = null;
-            StateHasChanged();
+            NotifyState();
 
             await SearchPatientByIdentificationAsync(Model.PatientIdentification!);
 
             _searching = false;
-            StateHasChanged();
+            NotifyState();
         }
 
-        private void OnVerificationModalClose()
+        internal void OnVerificationModalClose()
         {
             _showVerificationModal = false;
+            NotifyState();
         }
 
-        // ── Channel Validation Modal Callbacks (FLUJO 2 y FLUJO 3) ────────
+        // ── Channel Validation (shared) ───────────────────────────────────────
 
-        private async Task<bool> SendChannelValidationOtpAsync(string channel)
+        internal async Task<bool> SendChannelValidationOtpAsync(string channel)
         {
             _channelValidationError = null;
             _channelValidationLoading = true;
-            StateHasChanged();
+            NotifyState();
 
-            var result = await AppointmentService.SendGuestOtpByHashAsync(
-                Model.VerificationHash!, channel);
+            var result = await AppointmentService.SendGuestOtpByHashAsync(Model.VerificationHash!, channel);
 
             _channelValidationLoading = false;
-
             if (!result.IsSuccess)
                 _channelValidationError = result.Error?.Message ?? "No se pudo enviar el código.";
 
-            StateHasChanged();
+            NotifyState();
             return result.IsSuccess;
         }
 
-        private async Task<GuestDataGQL?> VerifyChannelValidationOtpAsync(string channel, string code)
+        internal async Task<GuestDataGQL?> VerifyChannelValidationOtpAsync(string channel, string code)
         {
             _channelValidationError = null;
             _channelValidationLoading = true;
-            StateHasChanged();
+            NotifyState();
 
-            // Solo verificar el OTP (sin actualizar datos aún - usuario verá los datos primero)
-            var result = await AppointmentService.VerifyGuestOtpByHashAsync(
-                Model.VerificationHash!, code);
+            var result = await AppointmentService.VerifyGuestOtpByHashAsync(Model.VerificationHash!, code);
 
             _channelValidationLoading = false;
-            StateHasChanged();
+            NotifyState();
 
-            if (!result.IsSuccess || result.Value is null)
-                return null;
-
+            if (!result.IsSuccess || result.Value is null) return null;
             return result.Value;
         }
 
-        /// <summary>Callback final del modal: usuario confirmó/editó sus datos.</summary>
-        private async Task OnChannelValidationConfirm((GuestDataGQL Data, string OtpCode) payload)
+        /// <summary>Shared core: persists OTP + updates model. Does NOT touch Stepper.</summary>
+        private async Task<bool> ApplyChannelValidationConfirm((GuestDataGQL Data, string OtpCode) payload)
         {
             _channelValidationLoading = true;
-            StateHasChanged();
+            NotifyState();
 
             var (data, otpCode) = payload;
-
-            // Persistir los datos editados en BD volviendo a llamar verifyGuestOtpByHash con los datos.
-            // La sesión ya está verificada → solo actualizará datos en BD (guest o sesión según tipo).
             var persistResult = await AppointmentService.VerifyGuestOtpByHashAsync(
                 Model.VerificationHash!, otpCode, data.Name, data.Phone, data.Email);
 
@@ -245,64 +267,71 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
             if (!persistResult.IsSuccess)
             {
                 _channelValidationError = persistResult.Error?.Message ?? "Error al guardar los datos.";
-                StateHasChanged();
-                return;
+                NotifyState();
+                return false;
             }
 
-            // Aplicar datos al modelo local
             Model.PatientName = data.Name;
             Model.PatientPhone = data.Phone;
             Model.PatientEmail = string.IsNullOrWhiteSpace(data.Email) ? null : data.Email;
             Model.ChannelValidationVerified = true;
             Model.IsPreVerifiedGuest = true;
-            Model.OtpVerified = true;  // Marcar verificado para que pase el submit final
-
+            Model.OtpVerified = true;
             _showChannelValidationModal = false;
-
-            // Saltar al step de selección de doctor (índice 2: 0=ID, 1=Datos, 2=Doctor)
-            Stepper.GoToStep(2);
-            StateHasChanged();
+            return true;
         }
 
-        private void OnChannelValidationModalClose()
+        /// <summary>Modern mode: after confirm, also jumps Stepper to doctor step.</summary>
+        private async Task OnChannelValidationConfirm((GuestDataGQL Data, string OtpCode) payload)
+        {
+            if (await ApplyChannelValidationConfirm(payload))
+                Stepper.GoToStep(2);
+            NotifyState();
+        }
+
+        /// <summary>Easy mode: after confirm, Easy content advances its own step.</summary>
+        internal async Task OnChannelValidationConfirmEasy((GuestDataGQL Data, string OtpCode) payload)
+        {
+            await ApplyChannelValidationConfirm(payload);
+            NotifyState();
+        }
+
+        internal void OnChannelValidationModalClose()
         {
             _showChannelValidationModal = false;
             _channelValidationError = null;
             Model.IsRegisteredContinuingAsGuest = false;
-            StateHasChanged();
+            NotifyState();
         }
 
-        // ── Doctor & Slot ─────────────────────────────────────────────────
+        // ── Doctor & Slot (shared) ────────────────────────────────────────────
 
-        private void SelectedDoctor(DoctorModel? args)
+        internal void SelectedDoctor(DoctorModel? args)
         {
             if (args == null) return;
             Model.DoctorId = args.Id;
             Model.Doctor = args;
         }
 
-        private void SelectSlot(AppointmentSchedulerModel args)
+        internal void SelectSlot(AppointmentSchedulerModel args)
         {
             if (args == null) return;
-
-            args.Time = args.Time.Replace("a. m.", "AM")
-                                 .Replace("p. m.", "PM")
-                                 .Replace("a.m.", "AM")
-                                 .Replace("p.m.", "PM")
-                                 .Trim();
-
+            args.Time = args.Time
+                .Replace("a. m.", "AM").Replace("p. m.", "PM")
+                .Replace("a.m.", "AM").Replace("p.m.", "PM")
+                .Trim();
             Model.SlotId = args.SlotId;
             Model.DayOfYear = args.Date;
             Model.AppointmentSchedulerModel = args;
         }
 
-        // ── OTP final (FLUJO 1 - solo nuevo usuario) ──────────────────────
+        // ── OTP FLUJO 1 (Modern only, but internal in case needed) ────────────
 
         private async Task SendOtpAsync()
         {
             _otpError = null;
             _otpLoading = true;
-            StateHasChanged();
+            NotifyState();
 
             var result = await AppointmentService.SendGuestOtpAsync(
                 Model.PatientPhone!,
@@ -319,7 +348,7 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
                 _otpSent = true;
             }
 
-            StateHasChanged();
+            NotifyState();
         }
 
         private async Task VerifyOtpAsync()
@@ -328,10 +357,9 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
 
             _otpError = null;
             _otpLoading = true;
-            StateHasChanged();
+            NotifyState();
 
-            var result = await AppointmentService.VerifyGuestOtpAsync(
-                Model.OtpSessionToken!, Model.OtpCode);
+            var result = await AppointmentService.VerifyGuestOtpAsync(Model.OtpSessionToken!, Model.OtpCode);
 
             _otpLoading = false;
 
@@ -342,7 +370,7 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
             else
                 Model.OtpVerified = true;
 
-            StateHasChanged();
+            NotifyState();
         }
 
         private void ResetOtp()
@@ -354,13 +382,14 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
             Model.OtpVerified = false;
         }
 
-        // ── Submit ────────────────────────────────────────────────────────
+        // ── Submit (shared) ───────────────────────────────────────────────────
 
-        private async Task HandlerSubmit()
+        internal async Task HandlerSubmit()
         {
             if (!Model.OtpVerified && !Model.IsPreVerifiedGuest)
             {
                 _errorMessage = "Debes verificar tu identidad antes de confirmar la cita.";
+                NotifyState();
                 return;
             }
 
@@ -378,12 +407,14 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
             if (!result.IsSuccess)
             {
                 _errorMessage = "Ocurrió un error al crear la cita. Por favor, inténtelo de nuevo.";
+                NotifyState();
                 return;
             }
 
             isLoading = false;
             isSuccess = true;
             Stepper?.GoToStep(0);
+            NotifyState();
         }
     }
 }

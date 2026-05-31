@@ -15,6 +15,11 @@ public static class SharedClientServicesExtensions
     {
         #region States
         services.AddScoped<UserState>();
+        services.AddScoped<UIModeState>();
+        #endregion
+
+        #region UI Mode
+        services.AddScoped<UIModeService>();
         #endregion
 
         #region Auth Services

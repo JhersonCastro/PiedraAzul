@@ -1,4 +1,6 @@
 @using PiedraAzul.Client.Models.GraphQL
+@using PiedraAzul.Client.States
+@inject UIModeState UIModeState
 
 @*
     Modal de validación de canal para FLUJO 2 (usuario registrado) y FLUJO 3 (guest invitado).
@@ -12,7 +14,7 @@
 {
     <div class="modal-backdrop"></div>
 
-    <div class="modal-container">
+    <div class="modal-container @(UIModeState.IsEasy ? "easy-modal" : "")">
         <div class="modal-panel">
 
             <!-- Header -->

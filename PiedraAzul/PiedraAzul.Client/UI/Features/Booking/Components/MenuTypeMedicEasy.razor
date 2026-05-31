@@ -1,0 +1,258 @@
+@using PiedraAzul.Client.Models.UserProfiles
+@using PiedraAzul.Client.Services.GraphQLServices
+@using PiedraAzul.Contracts.Enums
+@inject GraphQLDoctorService DoctorService
+
+@* Modo Fácil — Selector de especialidad y doctor.
+   Tarjetas grandes con iconos emoji, avatares con fallback a iniciales. *@
+
+@if (_showDoctors)
+{
+    <!-- Lista de doctores (botón volver a especialidades) -->
+    <div>
+        <button @onclick="BackToSpecialties"
+                style="display:flex;align-items:center;gap:0.5rem;background:none;border:none;
+                       color:#1E7A87;font-size:1rem;font-weight:700;cursor:pointer;margin-bottom:1.25rem;padding:0">
+            ← Cambiar especialidad
+        </button>
+
+        <p style="font-size:0.85rem;font-weight:700;color:#94A3B8;text-transform:uppercase;
+                  letter-spacing:.06em;margin-bottom:0.75rem">
+            Especialidad: @_selectedSpecialtyLabel
+        </p>
+
+        @if (_isLoading)
+        {
+            <div style="text-align:center;padding:2.5rem 0">
+                <div style="display:inline-block;width:36px;height:36px;border:4px solid #E2E8F0;
+                            border-top-color:#1E7A87;border-radius:50%;animation:spin 0.8s linear infinite"></div>
+                <p style="color:#64748B;margin-top:0.75rem;font-size:0.95rem">Buscando doctores...</p>
+            </div>
+        }
+        else if (_currentDoctors.Count == 0)
+        {
+            <div style="text-align:center;padding:2rem;background:white;border-radius:14px;border:2px solid #E2E8F0">
+                <p style="font-size:1rem;font-weight:700;color:#475569;margin:0">
+                    No hay doctores disponibles para esta especialidad.
+                </p>
+            </div>
+        }
+        else
+        {
+            <div style="display:flex;flex-direction:column;gap:0.9rem">
+                @foreach (var doctor in _currentDoctors)
+                {
+                    var isSelected = _selectedDoctorId == doctor.Id;
+                    var initials = GetInitials(doctor.Name);
+                    var hasRealAvatar = !string.IsNullOrEmpty(doctor.AvatarUrl)
+                                       && doctor.AvatarUrl != "default.png";
+
+                    <button @onclick="() => SelectDoctor(doctor)"
+                            style="@DoctorCardStyle(isSelected)">
+
+                        <!-- Avatar con fallback a iniciales -->
+                        @if (hasRealAvatar)
+                        {
+                            <img src="@doctor.AvatarUrl"
+                                 alt="@doctor.Name"
+                                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+                                 style="width:64px;height:64px;border-radius:50%;object-fit:cover;flex-shrink:0" />
+                            <div style="width:64px;height:64px;border-radius:50%;background:#E0F2FE;
+                                        display:none;align-items:center;justify-content:center;
+                                        font-size:1.3rem;font-weight:800;color:#1E7A87;flex-shrink:0">
+                                @initials
+                            </div>
+                        }
+                        else
+                        {
+                            <div style="width:64px;height:64px;border-radius:50%;background:#E0F2FE;
+                                        display:flex;align-items:center;justify-content:center;
+                                        font-size:1.3rem;font-weight:800;color:#1E7A87;flex-shrink:0">
+                                @initials
+                            </div>
+                        }
+
+                        <!-- Info -->
+                        <div style="flex:1;min-width:0;text-align:left">
+                            <p style="font-size:1.05rem;font-weight:800;color:#0F172A;margin:0 0 0.2rem;
+                                      white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                                @doctor.Name
+                            </p>
+                            <p style="font-size:0.88rem;color:#64748B;margin:0">
+                                @doctor.Specialty
+                            </p>
+                        </div>
+
+                        <!-- Check / Seleccionar -->
+                        @if (isSelected)
+                        {
+                            <div style="width:36px;height:36px;border-radius:50%;background:#1E7A87;
+                                        display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                                <svg width="18" height="18" fill="none" viewBox="0 0 24 24"
+                                     stroke="white" stroke-width="3">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                            </div>
+                        }
+                        else
+                        {
+                            <div style="font-size:0.85rem;font-weight:700;color:#1E7A87;flex-shrink:0;
+                                        white-space:nowrap;border:2px solid #1E7A87;border-radius:8px;
+                                        padding:0.4rem 0.75rem">
+                                Elegir
+                            </div>
+                        }
+
+                    </button>
+                }
+            </div>
+        }
+    </div>
+}
+else
+{
+    <!-- Grid de especialidades -->
+    <p style="font-size:0.95rem;font-weight:600;color:#64748B;margin-bottom:1rem">
+        Toque la especialidad que necesita:
+    </p>
+
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:0.9rem">
+
+        <button @onclick='() => LoadDoctors(DoctorType.NaturalMedicine, "🌿", "Terapia Natural")'
+                style="@SpecialtyCardStyle(DoctorType.NaturalMedicine)">
+            <span style="font-size:2.2rem">🌿</span>
+            <span style="font-size:0.95rem;font-weight:800;color:#0F172A">Terapia Natural</span>
+            <span style="font-size:0.8rem;color:#64748B">Médico de cabecera</span>
+        </button>
+
+        <button @onclick='() => LoadDoctors(DoctorType.Chiropractic, "🦴", "Quiropraxia")'
+                style="@SpecialtyCardStyle(DoctorType.Chiropractic)">
+            <span style="font-size:2.2rem">🦴</span>
+            <span style="font-size:0.95rem;font-weight:800;color:#0F172A">Quiropraxia</span>
+            <span style="font-size:0.8rem;color:#64748B">Columna y articulaciones</span>
+        </button>
+
+        <button @onclick='() => LoadDoctors(DoctorType.Optometry, "👁️", "Óptica")'
+                style="@SpecialtyCardStyle(DoctorType.Optometry)">
+            <span style="font-size:2.2rem">👁️</span>
+            <span style="font-size:0.95rem;font-weight:800;color:#0F172A">Óptica</span>
+            <span style="font-size:0.8rem;color:#64748B">Examen de la vista</span>
+        </button>
+
+        <button @onclick='() => LoadDoctors(DoctorType.Physiotherapy, "💪", "Fisioterapia")'
+                style="@SpecialtyCardStyle(DoctorType.Physiotherapy)">
+            <span style="font-size:2.2rem">💪</span>
+            <span style="font-size:0.95rem;font-weight:800;color:#0F172A">Fisioterapia</span>
+            <span style="font-size:0.8rem;color:#64748B">Rehabilitación física</span>
+        </button>
+
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public EventCallback<DoctorModel?> OnSelected { get; set; }
+    [Parameter] public DoctorType? InitialType { get; set; }
+
+    private bool _showDoctors = false;
+    private bool _isLoading = false;
+    private DoctorType _selectedType = DoctorType.NaturalMedicine;
+    private string _selectedSpecialtyLabel = "";
+    private string? _selectedDoctorId;
+    private List<DoctorModel> _currentDoctors = [];
+    private Dictionary<DoctorType, List<DoctorModel>> _cache = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await OnSelected.InvokeAsync(null);
+
+        // Si hay especialidad inicial, cargarla directamente
+        if (InitialType.HasValue)
+        {
+            var (emoji, label) = GetSpecialtyMeta(InitialType.Value);
+            await LoadDoctors(InitialType.Value, emoji, label);
+        }
+    }
+
+    private async Task LoadDoctors(DoctorType type, string emoji, string label)
+    {
+        _selectedType = type;
+        _selectedSpecialtyLabel = label;
+        _selectedDoctorId = null;
+        await OnSelected.InvokeAsync(null); // reset selection
+        _showDoctors = true;
+
+        if (_cache.TryGetValue(type, out var cached))
+        {
+            _currentDoctors = cached;
+            return;
+        }
+
+        _isLoading = true;
+        _currentDoctors = [];
+        StateHasChanged();
+
+        var response = await DoctorService.GetDoctorsByTypeAsync(type.ToGraphQL());
+        var doctors = response.Select(ds => new DoctorModel
+        {
+            Id = ds.DoctorId,
+            Specialty = ds.Specialty,
+            Name = ds.Name,
+            AvatarUrl = ds.AvatarUrl,
+            Clinic = ""
+        }).ToList();
+
+        _cache[type] = doctors;
+        _currentDoctors = doctors;
+        _isLoading = false;
+    }
+
+    private void BackToSpecialties()
+    {
+        _showDoctors = false;
+        _selectedDoctorId = null;
+        _ = OnSelected.InvokeAsync(null);
+    }
+
+    private async Task SelectDoctor(DoctorModel doctor)
+    {
+        _selectedDoctorId = doctor.Id;
+        await OnSelected.InvokeAsync(doctor);
+    }
+
+    private static string GetInitials(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "Dr";
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length >= 2
+            ? $"{char.ToUpper(parts[0][0])}{char.ToUpper(parts[1][0])}"
+            : $"{char.ToUpper(parts[0][0])}";
+    }
+
+    private static (string Emoji, string Label) GetSpecialtyMeta(DoctorType type) => type switch
+    {
+        DoctorType.NaturalMedicine  => ("🌿", "Terapia Natural"),
+        DoctorType.Chiropractic     => ("🦴", "Quiropraxia"),
+        DoctorType.Optometry        => ("👁️", "Óptica"),
+        DoctorType.Physiotherapy    => ("💪", "Fisioterapia"),
+        _                           => ("🏥", type.ToString())
+    };
+
+    private string SpecialtyCardStyle(DoctorType type)
+    {
+        var active = _selectedType == type && _showDoctors;
+        return $"display:flex;flex-direction:column;align-items:center;gap:0.4rem;" +
+               $"padding:1.1rem 0.5rem;border-radius:14px;cursor:pointer;border:2.5px solid;" +
+               $"background:{(active ? "#E0F7FA" : "white")};" +
+               $"border-color:{(active ? "#1E7A87" : "#E2E8F0")};" +
+               "width:100%;font-family:'DM Sans',sans-serif";
+    }
+
+    private string DoctorCardStyle(bool selected)
+    {
+        return $"display:flex;align-items:center;gap:1rem;padding:1rem 1.1rem;" +
+               $"border-radius:14px;cursor:pointer;border:2.5px solid;" +
+               $"background:{(selected ? "#E0F7FA" : "white")};" +
+               $"border-color:{(selected ? "#1E7A87" : "#E2E8F0")};" +
+               "width:100%;font-family:'DM Sans',sans-serif;transition:border-color .15s";
+    }
+}

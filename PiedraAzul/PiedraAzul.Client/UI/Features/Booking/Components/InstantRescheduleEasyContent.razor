@@ -1,0 +1,197 @@
+@using System.Globalization
+@using PiedraAzul.Client.Models.GraphQL
+@using PiedraAzul.Client.UI.Features.Booking.Pages
+@implements IDisposable
+
+@* ═══════════════════════════════════════════════════════════════════
+   COMPONENTE PURAMENTE PRESENTACIONAL — Modo Fácil, Reagendar Cita
+   Toda la lógica de negocio vive en InstantReschedule (code-behind).
+   Este componente solo renderiza UI y llama métodos de la página.
+   ═══════════════════════════════════════════════════════════════════ *@
+
+<div style="max-width:680px;margin:0 auto;padding:1.5rem 1rem;font-family:'DM Sans',sans-serif">
+
+    @if (Page._isSuccess)
+    {
+        <div style="text-align:center;padding:3rem 1rem">
+            <div style="font-size:4rem;margin-bottom:1rem">✅</div>
+            <h1 style="font-size:1.8rem;font-weight:800;color:#0F172A;margin:0 0 0.75rem">
+                ¡Cita reagendada!
+            </h1>
+            <p style="font-size:1.05rem;color:#475569;margin:0 0 2rem">
+                Su cita fue reagendada exitosamente.
+            </p>
+            <button @onclick="Page.ResetAll"
+                    style="background:#1E7A87;color:white;padding:0.9rem 2rem;border:none;
+                           border-radius:14px;font-size:1.05rem;font-weight:800;cursor:pointer">
+                🔄 Reagendar otra cita
+            </button>
+        </div>
+    }
+    else if (Page._stage == InstantReschedule.Stage.Identification)
+    {
+        <!-- Paso 1: Ingresar cédula -->
+        <h1 style="font-size:1.7rem;font-weight:800;color:#0F172A;margin:0 0 0.4rem">
+            Reagendar su Cita
+        </h1>
+        <p style="font-size:1.05rem;color:#64748B;margin:0 0 1.75rem;line-height:1.5">
+            Ingrese su número de cédula para ver sus citas próximas.
+        </p>
+
+        <div style="background:white;border:2px solid #E2E8F0;border-radius:16px;padding:1.5rem;margin-bottom:1rem">
+            <label style="display:block;font-size:1rem;font-weight:700;color:#374151;margin-bottom:0.6rem">
+                📋 Número de cédula
+            </label>
+            <input type="tel"
+                   @bind="Page._identification"
+                   @bind:event="oninput"
+                   @onkeydown="OnIdKeyDown"
+                   placeholder="Ej: 1150064123"
+                   maxlength="12"
+                   style="width:100%;padding:0.85rem 1rem;font-size:1.15rem;font-weight:600;
+                          border:2px solid #CBD5E1;border-radius:12px;outline:none;
+                          box-sizing:border-box;font-family:'DM Sans',sans-serif" />
+
+            @if (!string.IsNullOrEmpty(Page._error))
+            {
+                <p style="margin-top:0.5rem;color:#DC2626;font-size:0.9rem;font-weight:600">
+                    ⚠ @Page._error
+                </p>
+            }
+        </div>
+
+        <button @onclick="Page.StartSearchAsync"
+                disabled="@(Page._searching || string.IsNullOrWhiteSpace(Page._identification))"
+                style="width:100%;background:#1E7A87;color:white;padding:1rem;border:none;
+                       border-radius:14px;font-size:1.1rem;font-weight:800;cursor:pointer;
+                       min-height:54px;opacity:@(string.IsNullOrWhiteSpace(Page._identification) || Page._searching ? "0.5" : "1")">
+            @(Page._searching ? "⏳ Buscando..." : "🔍 Buscar mis citas")
+        </button>
+    }
+    else if (Page._stage == InstantReschedule.Stage.Appointments)
+    {
+        <!-- Paso 2: Lista de citas -->
+        <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem">
+            <button @onclick="() => { Page._stage = InstantReschedule.Stage.Identification; Page._error = null; }"
+                    style="background:white;border:2px solid #CBD5E1;border-radius:10px;
+                           padding:0.5rem 1rem;font-size:0.95rem;font-weight:700;color:#475569;cursor:pointer">
+                ← Volver
+            </button>
+            <h2 style="font-size:1.4rem;font-weight:800;color:#0F172A;margin:0">
+                Sus Citas Próximas
+            </h2>
+        </div>
+
+        @if (!string.IsNullOrEmpty(Page._error))
+        {
+            <div style="background:#FEF2F2;border:1.5px solid #FECACA;border-radius:12px;
+                        padding:1rem;margin-bottom:1rem;color:#B91C1C;font-weight:600;font-size:0.95rem">
+                ⚠ @Page._error
+            </div>
+        }
+
+        @if (Page._loadingAppointments)
+        {
+            <div style="text-align:center;padding:3rem 0">
+                <div style="display:inline-block;width:40px;height:40px;border:4px solid #E2E8F0;
+                            border-top-color:#1E7A87;border-radius:50%;animation:spin 0.8s linear infinite"></div>
+                <p style="margin-top:1rem;color:#64748B;font-size:1rem">Buscando sus citas...</p>
+            </div>
+        }
+        else if (Page._appointments.Count == 0)
+        {
+            <div style="text-align:center;padding:3rem 1rem;background:white;border-radius:16px;border:2px solid #E2E8F0">
+                <div style="font-size:3rem;margin-bottom:0.75rem">📭</div>
+                <p style="font-size:1.1rem;font-weight:700;color:#0F172A;margin:0 0 0.4rem">No hay citas próximas</p>
+                <p style="font-size:0.95rem;color:#64748B;margin:0">No encontramos citas activas para reagendar.</p>
+            </div>
+        }
+        else
+        {
+            <div style="display:flex;flex-direction:column;gap:1rem">
+                @foreach (var appt in Page._appointments)
+                {
+                    var dateStr = char.ToUpper(appt.Start.ToString("dddd", new CultureInfo("es-ES"))[0])
+                                  + appt.Start.ToString("dddd, d 'de' MMMM yyyy", new CultureInfo("es-ES"))[1..];
+                    var timeStr = appt.Start.ToString("hh:mm tt", CultureInfo.InvariantCulture);
+
+                    <div style="background:white;border:2px solid #BAE6FD;border-radius:16px;padding:1.25rem">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap">
+                            <div>
+                                <p style="font-size:1.05rem;font-weight:800;color:#0F172A;margin:0 0 0.3rem">
+                                    👨‍⚕️ Dr. @appt.DoctorName
+                                </p>
+                                @if (!string.IsNullOrEmpty(appt.Specialty))
+                                {
+                                    <span style="display:inline-block;background:#F1F5F9;border-radius:100px;
+                                                 padding:0.2rem 0.75rem;font-size:0.82rem;font-weight:700;color:#475569;margin-bottom:0.3rem">
+                                        @appt.Specialty
+                                    </span>
+                                }
+                                <p style="font-size:0.95rem;color:#64748B;margin:0;text-transform:capitalize">
+                                    📅 @dateStr · @timeStr
+                                </p>
+                            </div>
+                            <button @onclick="() => Page.OpenRescheduleModal(appt)"
+                                    style="background:#1E7A87;color:white;border:none;border-radius:12px;
+                                           padding:0.7rem 1.25rem;font-size:0.95rem;font-weight:800;
+                                           cursor:pointer;white-space:nowrap;min-height:44px">
+                                🔄 Reagendar
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    }
+</div>
+
+<!-- Modales (lógica en la página padre) -->
+<PatientVerificationModal IsOpen="@Page._showVerificationModal"
+                          IsLoading="@Page._searching"
+                          SearchResultType="@Page._searchResultType"
+                          ErrorMessage="@Page._searchError"
+                          OnRegisteredLogin="EventCallback.Factory.Create(this, Page.OnRegisteredLogin)"
+                          OnRegisteredGuestContinue="EventCallback.Factory.Create(this, Page.OnGuestContinue)"
+                          OnGuestContinue="EventCallback.Factory.Create(this, Page.OnGuestContinue)"
+                          OnNewPatientContinue="EventCallback.Factory.Create(this, Page.OnNotFound)"
+                          OnRetry="EventCallback.Factory.Create(this, () => Page.OnRetrySearch())"
+                          OnClose="EventCallback.Factory.Create(this, Page.OnVerificationModalClose)" />
+
+<ChannelValidationModal IsOpen="@Page._showChannelModal"
+                        IsLoading="@Page._channelLoading"
+                        HasPhone="@(Page._searchResult?.HasPhone ?? false)"
+                        HasEmail="@(Page._searchResult?.HasEmail ?? false)"
+                        MaskedPhone="@Page._searchResult?.MaskedPhone"
+                        MaskedEmail="@Page._searchResult?.MaskedEmail"
+                        OnSendOtp="Page.SendOtpByHashAsync"
+                        OnVerifyOtp="Page.VerifyOtpByHashAsync"
+                        OnConfirmData="Page.OnChannelConfirm"
+                        OnClose="EventCallback.Factory.Create(this, Page.OnChannelModalClose)" />
+
+<RescheduleModal @key="@(Page._selectedAppt?.Id ?? string.Empty)"
+                 IsOpen="@Page._showRescheduleModal"
+                 IsLoading="@Page._rescheduleLoading"
+                 OriginalDoctorId="@(Page._selectedAppt?.DoctorId)"
+                 OnConfirm="Page.HandleRescheduleConfirm"
+                 OnClose="EventCallback.Factory.Create(this, () => { Page._showRescheduleModal = false; Page._selectedAppt = null; })" />
+
+@code {
+    // ── Cascade from parent page (owns all business logic) ───────────────────
+    [CascadingParameter] private InstantReschedule Page { get; set; } = default!;
+
+    protected override void OnInitialized()
+    {
+        Page.OnEasyStateChanged += OnPageStateChanged;
+    }
+
+    private void OnPageStateChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Page.OnEasyStateChanged -= OnPageStateChanged;
+
+    private async Task OnIdKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !Page._searching && !string.IsNullOrWhiteSpace(Page._identification))
+            await Page.StartSearchAsync();
+    }
+}
