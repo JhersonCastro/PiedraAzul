@@ -1,8 +1,10 @@
 @page "/admin/agenda"
 @using PiedraAzul.Client.Models.GraphQL
 @using PiedraAzul.Contracts.Enums
+@using PiedraAzul.Client.UI.Features.Booking.Components
 @inject PiedraAzul.Client.Services.GraphQLServices.GraphQLAppointmentService AppointmentService
 @inject PiedraAzul.Client.Services.GraphQLServices.GraphQLDoctorService DoctorService
+
 
 <div class="min-h-screen bg-slate-50 p-8">
     <div class="mx-auto max-w-7xl">
@@ -28,6 +30,21 @@
                 </a>
             </div>
         </div>
+
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <div class="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">@_error</div>
+        }
+
+        @if (!string.IsNullOrEmpty(_successMessage))
+        {
+            <div class="mb-4 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700 flex items-center gap-2">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                @_successMessage
+            </div>
+        }
 
         <!-- Filtros -->
         <div data-tour="admin-agenda-filters" class="mb-6 grid grid-cols-1 gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm md:grid-cols-3">
@@ -96,10 +113,10 @@
                                             Confirmada
                                         </span>
                                     </td>
-                                    <td class="px-6 py-4 text-right">
-                                        <button class="mr-3 text-sm font-medium text-teal-600 transition-colors hover:text-teal-800">Ver Detalle</button>
-                                        <button class="text-sm font-medium text-rose-500 transition-colors hover:text-rose-700">Cancelar</button>
-                                    </td>
+                                     <td class="px-6 py-4 text-right">
+                                         <button class="mr-3 text-sm font-medium text-teal-600 transition-colors hover:text-teal-800" @onclick="() => OpenRescheduleModal(cita)">Reagendar</button>
+                                         <button class="text-sm font-medium text-rose-500 transition-colors hover:text-rose-700">Cancelar</button>
+                                     </td>
                                 </tr>
                             }
                         }
@@ -116,11 +133,26 @@
     </div>
 </div>
 
+<!-- Reschedule Modal — @key fuerza remontaje al elegir otra cita -->
+<RescheduleModal @key="@(_rescheduleAppt?.Id ?? string.Empty)"
+                 IsOpen="_rescheduleModalOpen"
+                 IsLoading="_rescheduleLoading"
+                 OriginalDoctorId="@(_rescheduleAppt?.DoctorId)"
+                 OnConfirm="HandleRescheduleConfirm"
+                 OnClose="CloseRescheduleModal" />
+
 @code {
     private List<DoctorGQL> doctores = new();
     private List<AppointmentGQL> citas = new();
     private string SelectedDoctorId { get; set; } = "";
     private DateTime SelectedDate { get; set; } = DateTime.Today;
+
+    // Reschedule state
+    private bool _rescheduleModalOpen;
+    private bool _rescheduleLoading;
+    private AppointmentGQL? _rescheduleAppt;
+    private string? _error;
+    private string? _successMessage;
 
     protected override async Task OnInitializedAsync()
     {
@@ -150,5 +182,50 @@
         var result = await AppointmentService.GetDoctorAppointments(SelectedDoctorId, SelectedDate);
         if (result.IsSuccess && result.Value != null)
             citas = result.Value;
+    }
+
+    private void OpenRescheduleModal(AppointmentGQL appt)
+    {
+        _rescheduleAppt = appt;
+        _rescheduleModalOpen = true;
+        _error = null;
+        _successMessage = null;
+    }
+
+    private void CloseRescheduleModal()
+    {
+        _rescheduleModalOpen = false;
+        _rescheduleAppt = null;
+    }
+
+    private async Task HandleRescheduleConfirm((string DoctorId, string SlotId, DateTime Date) selection)
+    {
+        if (_rescheduleAppt is null) return;
+
+        _rescheduleLoading = true;
+        StateHasChanged();
+
+        var result = await AppointmentService.RescheduleAppointmentAsync(
+            Guid.Parse(_rescheduleAppt.Id),
+            Guid.Parse(selection.SlotId),
+            selection.Date.ToUniversalTime());
+
+        _rescheduleLoading = false;
+
+        if (!result.IsSuccess)
+        {
+            _error = result.Error?.Message ?? "No se pudo reagendar la cita. Intenta de nuevo.";
+            _rescheduleModalOpen = false;
+            _rescheduleAppt = null;
+            StateHasChanged();
+            return;
+        }
+
+        _successMessage = "¡La cita fue reagendada exitosamente!";
+        _rescheduleModalOpen = false;
+        _rescheduleAppt = null;
+
+        // Reload appointments to reflect changes
+        await CargarCitas();
     }
 }
