@@ -36,8 +36,8 @@ public class RescheduleAppointmentHandler
             var old = await _appointmentRepository.GetByIdForUpdateAsync(request.AppointmentId, ct)
                 ?? throw new DomainException("Cita no encontrada.");
 
-            // 2. Validar que pertenece al usuario que solicita
-            if (old.PatientUserId != request.RequestingUserId)
+            // 2. Validar que pertenece al usuario que solicita o es administrador
+            if (!request.IsAdmin && old.PatientUserId != request.RequestingUserId)
                 throw new DomainException("No tienes permiso para reagendar esta cita.");
 
             if (old.Status != AppointmentStatus.Active)
