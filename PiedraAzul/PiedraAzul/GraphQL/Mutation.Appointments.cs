@@ -1,4 +1,4 @@
-﻿using HotChocolate;
+using HotChocolate;
 using HotChocolate.Authorization;
 using Mediator;
 using Microsoft.AspNetCore.Http;
@@ -122,7 +122,7 @@ public partial class Mutation
     /// <summary>
     /// Reagenda una cita para un paciente autenticado (registrado).
     /// </summary>
-    [Authorize(Roles = new[] { "Patient" })]
+    [Authorize(Roles = new[] { "Patient", "Admin" })]
     public async Task<AppointmentType> RescheduleAppointmentAsync(
         Guid appointmentId,
         Guid newSlotId,
@@ -133,12 +133,15 @@ public partial class Mutation
         var userId = httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)
             ?? throw new GraphQLException("No autenticado");
 
+        var isAdmin = httpContextAccessor.HttpContext!.User.IsInRole("Admin");
+
         var appointment = await mediator.Send(
             new RescheduleAppointmentCommand(
                 appointmentId,
                 userId,
                 newSlotId,
-                DateOnly.FromDateTime(newDate)));
+                DateOnly.FromDateTime(newDate),
+                isAdmin));
 
         return AppointmentType.FromDomain(appointment);
     }

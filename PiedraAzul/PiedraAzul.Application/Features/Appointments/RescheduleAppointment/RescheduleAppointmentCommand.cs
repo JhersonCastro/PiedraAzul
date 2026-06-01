@@ -8,5 +8,6 @@ public record RescheduleAppointmentCommand(
     Guid AppointmentId,
     string RequestingUserId,
     Guid NewSlotId,
-    DateOnly NewDate
+    DateOnly NewDate,
+    bool IsAdmin = false
 ) : IRequest<Appointment>;
