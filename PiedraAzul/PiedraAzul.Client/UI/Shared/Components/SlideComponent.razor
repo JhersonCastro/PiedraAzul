@@ -1,16 +1,8 @@
-﻿<div class="w-full mb-6">
-    <p class="text-sm text-gray-500 font-semibold">
-        PASO @CurrentStep DE @MaxSteps
-    </p>
-
-    <p class="text-lg font-bold">@Title</p>
-
-    <div class="w-full mt-2">
-        <div class="w-full bg-gray-200 rounded-full h-2">
-            <div class="bg-primary h-2 rounded-full"
-                 style="width:@Progress%">
-            </div>
-        </div>
+﻿<div class="step-slide">
+    <p class="step-label">PASO @CurrentStep DE @MaxSteps</p>
+    <p class="step-title">@Title</p>
+    <div class="step-progress-track">
+        <div class="step-progress-bar" style="width:@Progress%"></div>
     </div>
 </div>
 
