@@ -13,7 +13,7 @@
 
             <!-- Header -->
             <div class="modal-header">
-                <h2 class="text-lg font-bold text-slate-900">
+                <h2 class="modal-title-sm text-lg">
                     @(IsEditMode ? "Editar usuario" : "Crear nuevo usuario")
                 </h2>
                 <button @onclick="HandleCancel"
@@ -110,7 +110,7 @@
                         class="btn-action-inline">
                     @if (_saving)
                     {
-                        <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <svg class="icon-4 animate-spin" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
                         </svg>

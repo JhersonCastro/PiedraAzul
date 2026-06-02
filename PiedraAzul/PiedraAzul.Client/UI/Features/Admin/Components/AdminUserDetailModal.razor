@@ -1,0 +1,290 @@
+@using PiedraAzul.Client.Models
+@using PiedraAzul.Client.Models.GraphQL
+@using PiedraAzul.Client.Services.GraphQLServices
+@using PiedraAzul.Client.States
+@using PiedraAzul.Client.UI.Features.Booking.Components
+@inject GraphQLAppointmentService AppointmentService
+@inject UserState UserState
+
+@if (IsOpen && User is not null)
+{
+    <div class="modal-overlay-40 py-6" @onclick="HandleClose">
+        <div class="detail-panel" @onclick:stopPropagation>
+
+            <!-- Header -->
+            <div class="detail-header">
+                <h2 class="detail-header-title">Detalle de usuario</h2>
+                <button @onclick="HandleClose" class="btn-close">
+                    <svg class="icon-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="detail-body">
+
+                <!-- Info personal -->
+                <section>
+                    <h3 class="detail-section-title">Información personal</h3>
+                    <div class="detail-grid">
+                        <div>
+                            <p class="detail-label">Nombre</p>
+                            <p class="detail-value">@User.Name</p>
+                        </div>
+                        <div>
+                            <p class="detail-label">Correo</p>
+                            <p class="mt-1 break-all text-[13px] text-slate-900">@User.Email</p>
+                        </div>
+                        <div>
+                            <p class="detail-label">Teléfono</p>
+                            <p class="detail-value">@(string.IsNullOrEmpty(User.Phone) ? "—" : User.Phone)</p>
+                        </div>
+                        <div>
+                            <p class="detail-label">Estado</p>
+                            <div class="mt-1">
+                                @if (User.IsActive)
+                                {
+                                    <span class="inline-flex rounded-full bg-emerald-100 px-2 py-1 text-[11px] font-bold text-emerald-700">ACTIVO</span>
+                                }
+                                else
+                                {
+                                    <span class="inline-flex rounded-full bg-slate-200 px-2 py-1 text-[11px] font-bold text-slate-500">INACTIVO</span>
+                                }
+                            </div>
+                        </div>
+                        <div>
+                            <p class="detail-label">Roles</p>
+                            <div class="mt-1 flex flex-wrap gap-1">
+                                @foreach (var role in User.Roles)
+                                {
+                                    <span class="inline-flex rounded px-2 py-0.5 text-[10px] font-bold
+                                               @(role == "Doctor" ? "bg-blue-100 text-blue-700" :
+                                                 role == "Admin" ? "bg-amber-100 text-amber-700" :
+                                                 "bg-slate-200 text-slate-700")">
+                                        @RoleLabel(role)
+                                    </span>
+                                }
+                            </div>
+                        </div>
+                        <div>
+                            <p class="detail-label">Miembro desde</p>
+                            <p class="detail-value">@User.CreatedAt.ToString("dd/MM/yyyy")</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Citas -->
+                @if (_showsAppointments)
+                {
+                    <section>
+                        <h3 class="mb-3 detail-section-title">
+                            @(User.Roles.Contains("Doctor") ? "Citas del especialista" : "Citas del paciente")
+                        </h3>
+
+                        @if (!string.IsNullOrEmpty(_error))
+                        {
+                            <div class="alert-error-inline mb-3">@_error</div>
+                        }
+                        @if (!string.IsNullOrEmpty(_successMessage))
+                        {
+                            <div class="notice-ok mb-3">@_successMessage</div>
+                        }
+
+                        @if (_loading)
+                        {
+                            <div class="flex justify-center py-8">
+                                <div class="spinner-teal"></div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="underline-tabs">
+                                <button @onclick='() => _tab = "upcoming"'
+                                        class="@(_tab == "upcoming" ? "underline-tab-active" : "underline-tab-idle")">
+                                    Próximas (@_upcoming.Count)
+                                </button>
+                                <button @onclick='() => _tab = "past"'
+                                        class="@(_tab == "past" ? "underline-tab-active" : "underline-tab-idle")">
+                                    Pasadas (@_past.Count)
+                                </button>
+                            </div>
+
+                            <div class="space-y-2.5">
+                                @if (_tab == "upcoming")
+                                {
+                                    @if (_upcoming.Count == 0)
+                                    {
+                                        <p class="py-6 text-center text-[12px] text-slate-400">Sin citas próximas</p>
+                                    }
+                                    else
+                                    {
+                                        @foreach (var appt in _upcoming)
+                                        {
+                                            <AppointmentCard Appointment="appt" AllowReschedule="true"
+                                                             ShowPatientName="@(User?.Roles.Contains("Doctor") == true)"
+                                                             CurrentUserId="@_currentUserId"
+                                                             OnRescheduleClick="OpenRescheduleModal" />
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    @if (_past.Count == 0)
+                                    {
+                                        <p class="py-6 text-center text-[12px] text-slate-400">Sin citas pasadas</p>
+                                    }
+                                    else
+                                    {
+                                        @foreach (var appt in _past)
+                                        {
+                                            <AppointmentCard Appointment="appt" AllowReschedule="false"
+                                                             ShowPatientName="@(User?.Roles.Contains("Doctor") == true)"
+                                                             CurrentUserId="@_currentUserId" />
+                                        }
+                                    }
+                                }
+                            </div>
+                        }
+                    </section>
+                }
+            </div>
+
+            <!-- Footer -->
+            <div class="detail-footer">
+                <button @onclick="HandleClose" class="btn-close-filled">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal reagendar -->
+    @if (_rescheduleAppt is not null)
+    {
+        <RescheduleModal @key="@(_rescheduleAppt.Id)"
+                         IsOpen="_rescheduleModalOpen"
+                         IsLoading="_rescheduleLoading"
+                         OriginalDoctorId="@_rescheduleAppt.DoctorId"
+                         OnConfirm="HandleRescheduleConfirm"
+                         OnClose="CloseRescheduleModal" />
+    }
+}
+
+@code {
+    [Parameter] public AdminUserGQL? User { get; set; }
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private bool _loading;
+    private string _tab = "upcoming";
+    private string? _error;
+    private string? _successMessage;
+    private string? _currentUserId;
+    private string? _loadedUserId;
+
+    private List<AppointmentGQL> _upcoming = [];
+    private List<AppointmentGQL> _past = [];
+
+    private bool _rescheduleModalOpen;
+    private bool _rescheduleLoading;
+    private AppointmentGQL? _rescheduleAppt;
+
+    private bool _showsAppointments =>
+        User is not null && (User.Roles.Contains("Patient") || User.Roles.Contains("Doctor"));
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _currentUserId = UserState.User?.Id;
+
+        // Cargar citas una sola vez por usuario abierto.
+        if (IsOpen && User is not null && _showsAppointments && _loadedUserId != User.Id)
+        {
+            _loadedUserId = User.Id;
+            await LoadAppointmentsAsync();
+        }
+
+        if (!IsOpen)
+            _loadedUserId = null;
+    }
+
+    private async Task LoadAppointmentsAsync()
+    {
+        if (User is null) return;
+
+        _loading = true;
+        _error = null;
+        _upcoming = [];
+        _past = [];
+        StateHasChanged();
+
+        Result<List<AppointmentGQL>> result;
+        if (User.Roles.Contains("Doctor"))
+            result = await AppointmentService.GetDoctorAppointments(User.Id);
+        else
+            result = await AppointmentService.GetPatientAppointmentsAsync(User.Id);
+
+        if (!result.IsSuccess)
+        {
+            _error = "No se pudieron cargar las citas.";
+        }
+        else
+        {
+            var now = DateTime.Now;
+            var all = result.Value ?? new();
+            _upcoming = all.Where(a => a.Start >= now && a.Status == "Active").OrderBy(a => a.Start).ToList();
+            _past = all.Where(a => a.Start < now || a.Status != "Active").OrderByDescending(a => a.Start).ToList();
+        }
+
+        _loading = false;
+        StateHasChanged();
+    }
+
+    private void OpenRescheduleModal(AppointmentGQL appt)
+    {
+        _rescheduleAppt = appt;
+        _rescheduleModalOpen = true;
+        _error = null;
+        _successMessage = null;
+    }
+
+    private void CloseRescheduleModal()
+    {
+        _rescheduleModalOpen = false;
+        _rescheduleAppt = null;
+    }
+
+    private async Task HandleRescheduleConfirm((string DoctorId, string SlotId, DateTime Date) selection)
+    {
+        if (_rescheduleAppt is null) return;
+
+        _rescheduleLoading = true;
+        StateHasChanged();
+
+        var result = await AppointmentService.RescheduleAppointmentAsync(
+            Guid.Parse(_rescheduleAppt.Id),
+            Guid.Parse(selection.SlotId),
+            selection.Date.ToUniversalTime());
+
+        _rescheduleLoading = false;
+        _rescheduleModalOpen = false;
+        _rescheduleAppt = null;
+
+        if (!result.IsSuccess)
+        {
+            _error = result.Error?.Message ?? "No se pudo reagendar la cita.";
+            StateHasChanged();
+            return;
+        }
+
+        _successMessage = "Cita reagendada correctamente.";
+        await LoadAppointmentsAsync();
+    }
+
+    private async Task HandleClose() => await OnClose.InvokeAsync();
+
+    private static string RoleLabel(string role) => role switch
+    {
+        "Doctor" => "Doctor",
+        "Admin" => "Administrador",
+        "Patient" => "Paciente",
+        _ => role
+    };
+}

@@ -5,21 +5,20 @@
 @inject UserManagementService UserSvc
 @inject IJSRuntime JS
 
-<div class="min-h-screen bg-slate-50 p-8">
-    <div class="max-w-6xl mx-auto">
+<div class="admin-page">
+    <div class="admin-inner">
 
         <!-- Header -->
-        <div data-tour="admin-user-management-header" class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+        <div data-tour="admin-user-management-header" class="portal-section-header mb-6">
             <div>
-                <h1 class="text-2xl md:text-4xl font-bold text-slate-900 tracking-tight">Gestión de usuarios</h1>
-                <p class="text-slate-500 mt-1 text-sm max-w-2xl">
+                <h1 class="admin-heading">Gestión de usuarios</h1>
+                <p class="admin-sub">
                     Administrar el acceso al sistema, los protocolos de seguridad y los roles del equipo médico.
                 </p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
-                <button @onclick="OpenCreateModal"
-                        class="bg-teal-700 hover:bg-teal-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center gap-1.5">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <button @onclick="OpenCreateModal" class="btn-action-inline">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon-4" viewBox="0 0 20 20" fill="currentColor">
                         <path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z" />
                     </svg>
                     Nuevo usuario
@@ -27,11 +26,11 @@
             </div>
         </div>
 
-        <!-- Toast -->
+        <!-- Toasts -->
         @if (!string.IsNullOrEmpty(_toast))
         {
-            <div class="mb-4 flex items-center gap-3 bg-teal-50 border border-teal-200 text-teal-800 text-sm font-semibold px-4 py-3 rounded-xl shadow-sm">
-                <svg class="w-5 h-5 text-teal-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div class="toast-ok">
+                <svg class="icon-6 flex-shrink-0 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                 </svg>
                 @_toast
@@ -40,8 +39,8 @@
 
         @if (!string.IsNullOrEmpty(_errorToast))
         {
-            <div class="mb-4 flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 text-sm font-semibold px-4 py-3 rounded-xl shadow-sm">
-                <svg class="w-5 h-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div class="toast-err">
+                <svg class="icon-6 flex-shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                 </svg>
                 @_errorToast
@@ -49,29 +48,25 @@
         }
 
         <!-- Filtros -->
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-6 flex flex-wrap gap-4 items-end">
-
-            <!-- Búsqueda -->
+        <div class="filter-card mb-6 flex flex-wrap items-end gap-4">
             <div class="flex-grow min-w-[220px]">
-                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Buscar</label>
-                <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <label class="filter-label">Buscar</label>
+                <div class="search-input-wrap">
+                    <div class="search-icon">
+                        <svg class="icon-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                         </svg>
                     </div>
                     <input type="text" value="@_filter.SearchText"
                            @oninput="OnSearchInput"
-                           class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-lg pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50"
+                           class="search-input"
                            placeholder="Nombre, correo, teléfono..." />
                 </div>
             </div>
 
-            <!-- Rol -->
             <div class="w-44">
-                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Rol</label>
-                <select @bind="_filter.RoleFilter" @bind:after="ReloadAsync"
-                        class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-teal-500/50 appearance-none">
+                <label class="filter-label">Rol</label>
+                <select @bind="_filter.RoleFilter" @bind:after="ReloadAsync" class="input-slate-select">
                     <option value="">Todos los roles</option>
                     <option value="Patient">Paciente</option>
                     <option value="Admin">Administrador</option>
@@ -79,154 +74,106 @@
                 </select>
             </div>
 
-            <!-- Estado -->
             <div class="w-40">
-                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Estado</label>
-                <select @bind="_filter.StatusFilter" @bind:after="ReloadAsync"
-                        class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-teal-500/50 appearance-none">
+                <label class="filter-label">Estado</label>
+                <select @bind="_filter.StatusFilter" @bind:after="ReloadAsync" class="input-slate-select">
                     <option value="">Todos</option>
                     <option value="Active">Activos</option>
                     <option value="Inactive">Inactivos</option>
                 </select>
             </div>
 
-            <!-- Limpiar -->
             <div>
                 <button @onclick="ClearFiltersAsync"
-                        class="text-teal-600 hover:text-teal-800 font-semibold text-sm transition-colors py-2.5 px-2">
+                        class="py-2.5 px-2 text-sm font-semibold text-teal-600 transition-colors hover:text-teal-800">
                     Limpiar<br />filtros
                 </button>
             </div>
         </div>
 
         <!-- Tabla -->
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-8">
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
+        <div class="table-card mb-8">
+            <div class="table-scroll">
+                <table class="table-base">
                     <thead>
-                        <tr class="bg-slate-50/50 border-b border-slate-100">
-                            <th class="py-4 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Nombre</th>
-                            <th class="py-4 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Correo / Tel</th>
-                            <th class="py-4 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Rol</th>
-                            <th class="py-4 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Estado</th>
-                            <th class="py-4 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">Creado</th>
-                            <th class="py-4 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider text-center">Acciones</th>
+                        <tr class="table-head-row">
+                            <th class="table-th">Nombre</th>
+                            <th class="table-th">Correo / Tel</th>
+                            <th class="table-th">Rol</th>
+                            <th class="table-th">Estado</th>
+                            <th class="table-th">Creado</th>
+                            <th class="px-6 py-4 text-center text-xs font-semibold uppercase tracking-wider text-[#94A3B8]">Acciones</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-100">
-
+                    <tbody class="table-body">
                         @if (_loading)
                         {
-                            <tr>
-                                <td colspan="6" class="py-16 text-center">
-                                    <div class="flex justify-center">
-                                        <svg class="w-8 h-8 text-teal-500 animate-spin" fill="none" viewBox="0 0 24 24">
-                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-                                        </svg>
-                                    </div>
-                                </td>
-                            </tr>
+                            <tr><td colspan="6" class="py-16 text-center"><div class="loading-center-sm"><svg class="h-8 w-8 animate-spin text-teal-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg></div></td></tr>
                         }
                         else if (_result.Users.Count == 0)
                         {
-                            <tr>
-                                <td colspan="6" class="py-16 text-center text-slate-400 text-sm">
-                                    No se encontraron usuarios
-                                </td>
-                            </tr>
+                            <tr><td colspan="6" class="table-empty">No se encontraron usuarios</td></tr>
                         }
                         else
                         {
                             @foreach (var user in _result.Users)
                             {
-                                <tr class="hover:bg-slate-50/50 transition-colors">
-
-                                    <!-- Nombre -->
-                                    <td class="py-4 px-6">
-                                        <div class="font-bold text-slate-900 text-sm">@user.Name</div>
+                                <tr class="table-row">
+                                    <td class="table-td">
+                                        <div class="text-sm font-bold text-slate-900">@user.Name</div>
                                         @if (!string.IsNullOrEmpty(user.DoctorTypeLabel))
                                         {
-                                            <div class="text-xs text-slate-400 mt-0.5">@user.DoctorTypeLabel</div>
+                                            <div class="mt-0.5 text-xs text-slate-400">@user.DoctorTypeLabel</div>
                                         }
                                     </td>
-
-                                    <!-- Correo / Tel -->
-                                    <td class="py-4 px-6 text-sm text-slate-500">
+                                    <td class="table-td text-sm text-slate-500">
                                         <div>@user.Email</div>
                                         @if (!string.IsNullOrEmpty(user.Phone))
                                         {
-                                            <div class="text-xs text-slate-400 mt-0.5">@user.Phone</div>
+                                            <div class="mt-0.5 text-xs text-slate-400">@user.Phone</div>
                                         }
                                     </td>
-
-                                    <!-- Rol -->
-                                    <td class="py-4 px-6">
+                                    <td class="table-td">
                                         @foreach (var role in user.Roles)
                                         {
-                                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold mr-1 @RoleBadgeClass(role)">
+                                            <span class="mr-1 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold @RoleBadgeClass(role)">
                                                 @RoleLabel(role)
                                             </span>
                                         }
                                     </td>
-
-                                    <!-- Estado -->
-                                    <td class="py-4 px-6">
+                                    <td class="table-td">
                                         @if (user.IsActive)
                                         {
-                                            <span class="inline-flex px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">ACTIVO</span>
+                                            <span class="inline-flex rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-700">ACTIVO</span>
                                         }
                                         else
                                         {
-                                            <span class="inline-flex px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-500 text-xs font-bold">INACTIVO</span>
+                                            <span class="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-slate-500">INACTIVO</span>
                                         }
                                     </td>
-
-                                    <!-- Creado -->
-                                    <td class="py-4 px-6 text-xs text-slate-400">
-                                        @user.CreatedAt.ToString("dd/MM/yyyy")
-                                    </td>
-
-                                    <!-- Acciones -->
-                                    <td class="py-4 px-6">
+                                    <td class="table-td text-xs text-slate-400">@user.CreatedAt.ToString("dd/MM/yyyy")</td>
+                                    <td class="table-td">
                                         <div class="flex items-center justify-center gap-2">
-
-                                            <!-- Editar -->
-                                            <button @onclick="() => OpenEditModal(user)"
-                                                    title="Editar"
-                                                    class="text-slate-400 hover:text-teal-600 transition-colors p-1 rounded">
-                                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                                </svg>
+                                            <button @onclick="() => OpenUserDetailModal(user)" title="Ver detalle"
+                                                    class="rounded p-1 text-slate-400 transition-colors hover:text-teal-600">
+                                                <svg class="icon-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                                             </button>
-
-                                            <!-- Toggle estado -->
-                                            <button @onclick="() => ToggleStatusAsync(user)"
-                                                    title="@(user.IsActive ? "Desactivar" : "Activar")"
-                                                    class="transition-colors p-1 rounded @(user.IsActive ? "text-amber-400 hover:text-amber-600" : "text-emerald-400 hover:text-emerald-600")">
+                                            <button @onclick="() => OpenEditModal(user)" title="Editar"
+                                                    class="rounded p-1 text-slate-400 transition-colors hover:text-teal-600">
+                                                <svg class="icon-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                            </button>
+                                            <button @onclick="() => OnToggleStatusClick(user)"
+                                                    title="@(user.IsActive ? "Inhabilitar" : "Activar")"
+                                                    class="rounded p-1 transition-colors @(user.IsActive ? "text-amber-400 hover:text-amber-600" : "text-emerald-400 hover:text-emerald-600")">
                                                 @if (user.IsActive)
                                                 {
-                                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6"/>
-                                                    </svg>
+                                                    <svg class="icon-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6"/></svg>
                                                 }
                                                 else
                                                 {
-                                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
-                                                    </svg>
+                                                    <svg class="icon-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
                                                 }
                                             </button>
-
-                                            <!-- Eliminar -->
-                                            <button @onclick="() => ConfirmDeleteAsync(user)"
-                                                    title="Eliminar"
-                                                    class="text-rose-400 hover:text-rose-600 transition-colors p-1 rounded">
-                                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                                </svg>
-                                            </button>
-
                                         </div>
                                     </td>
                                 </tr>
@@ -239,38 +186,25 @@
             <!-- Paginación -->
             @if (!_loading && _result.TotalCount > 0)
             {
-                <div class="p-4 border-t border-slate-100 flex items-center justify-between flex-wrap gap-3">
-                    <div class="text-sm text-slate-500">
-                        Mostrando
-                        <span class="font-bold text-slate-700">
-                            @((_filter.PageNumber - 1) * _filter.PageSize + 1)–@Math.Min(_filter.PageNumber * _filter.PageSize, _result.TotalCount)
-                        </span>
-                        de
-                        <span class="font-bold text-slate-700">@_result.TotalCount</span>
-                        usuarios
+                <div class="table-footer flex-wrap gap-3">
+                    <div class="table-count">
+                        Mostrando <span class="font-bold text-slate-700">@((_filter.PageNumber - 1) * _filter.PageSize + 1)–@Math.Min(_filter.PageNumber * _filter.PageSize, _result.TotalCount)</span>
+                        de <span class="font-bold text-slate-700">@_result.TotalCount</span> usuarios
                     </div>
-                    <div class="flex items-center gap-1">
-                        <button @onclick="PrevPage" disabled="@(_filter.PageNumber <= 1)"
-                                class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 transition-colors disabled:opacity-40">
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                            </svg>
+                    <div class="pagination">
+                        <button @onclick="PrevPage" disabled="@(_filter.PageNumber <= 1)" class="page-btn">
+                            <svg class="icon-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                         </button>
-
                         @for (int p = 1; p <= _result.TotalPages; p++)
                         {
                             var pageNum = p;
                             <button @onclick="() => GoToPage(pageNum)"
-                                    class="w-8 h-8 flex items-center justify-center rounded-lg font-medium text-sm transition-colors @(_filter.PageNumber == pageNum ? "bg-teal-700 text-white" : "text-slate-600 hover:bg-slate-50")">
+                                    class="@(_filter.PageNumber == pageNum ? "page-btn-active" : "page-btn-idle")">
                                 @pageNum
                             </button>
                         }
-
-                        <button @onclick="NextPage" disabled="@(_filter.PageNumber >= _result.TotalPages)"
-                                class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 transition-colors disabled:opacity-40">
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                            </svg>
+                        <button @onclick="NextPage" disabled="@(_filter.PageNumber >= _result.TotalPages)" class="page-btn">
+                            <svg class="icon-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                         </button>
                     </div>
                 </div>
@@ -280,23 +214,21 @@
         <!-- Modal contraseña temporal -->
         @if (_showTempPassword)
         {
-            <div class="fixed inset-0 z-60 flex items-center justify-center p-4">
+            <div class="modal-overlay-center" style="z-index:60">
                 <div class="fixed inset-0 bg-black/40" @onclick="() => _showTempPassword = false"></div>
-                <div class="relative bg-white rounded-2xl shadow-2xl max-w-md w-full border border-slate-100 p-6 z-10">
-                    <h3 class="text-lg font-bold text-slate-900 mb-2">✅ Usuario creado</h3>
-                    <p class="text-slate-600 text-sm mb-4">
+                <div class="modal-card-sm relative z-10 border border-slate-100">
+                    <h3 class="mb-2 text-lg font-bold text-slate-900">✅ Usuario creado</h3>
+                    <p class="mb-4 text-sm text-slate-600">
                         Comparte esta contraseña temporal con el usuario. Solo se mostrará una vez.
                     </p>
-                    <div class="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">
-                        <code class="text-lg font-mono font-bold text-teal-700 flex-1">@_tempPassword</code>
-                        <button @onclick="CopyPassword" class="text-slate-400 hover:text-teal-600 transition-colors">
-                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/>
-                            </svg>
+                    <div class="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+                        <code class="flex-1 font-mono text-lg font-bold text-teal-700">@_tempPassword</code>
+                        <button @onclick="CopyPassword" class="text-slate-400 transition-colors hover:text-teal-600">
+                            <svg class="icon-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
                         </button>
                     </div>
                     <button @onclick="() => _showTempPassword = false"
-                            class="mt-4 w-full py-2 bg-teal-700 hover:bg-teal-800 text-white font-bold rounded-lg text-sm transition-colors">
+                            class="mt-4 w-full rounded-lg bg-teal-700 py-2 text-sm font-bold text-white transition-colors hover:bg-teal-800">
                         Entendido
                     </button>
                 </div>
@@ -313,6 +245,56 @@
                OnCancel="HandleModalCancel"
                @ref="_modal" />
 
+<!-- Modal detalle de usuario -->
+<AdminUserDetailModal User="_detailUser"
+                      IsOpen="_showDetailModal"
+                      OnClose="CloseUserDetailModal" />
+
+<!-- Modal confirmar inhabilitación -->
+@if (_deactivateUser is not null)
+{
+    <div class="modal-overlay-center" style="z-index:60">
+        <div class="fixed inset-0 bg-black/40" @onclick="CloseDeactivateConfirm"></div>
+        <div class="modal-card-sm relative z-10 border border-slate-100">
+            <div class="modal-icon-danger bg-amber-100">
+                <svg class="icon-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6" />
+                </svg>
+            </div>
+
+            <h3 class="modal-title-center">¿Inhabilitar a @_deactivateUser.Name?</h3>
+
+            <div class="alert alert-amber mt-3 text-[12px] leading-relaxed">
+                <div>
+                    <p class="font-semibold">El usuario no se elimina de la base de datos.</p>
+                    <p class="mt-1">
+                        Se da de baja de forma <strong>lógica y reversible</strong>: la cuenta queda
+                        inhabilitada y el usuario no podrá iniciar sesión. Su información e historial de
+                        citas se conservan, y podrás <strong>volver a activarlo</strong> cuando quieras.
+                    </p>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button @onclick="CloseDeactivateConfirm"
+                        disabled="@_deactivateLoading"
+                        class="btn-modal-cancel">
+                    Cancelar
+                </button>
+                <button @onclick="ConfirmDeactivateAsync"
+                        disabled="@_deactivateLoading"
+                        class="flex flex-1 items-center justify-center gap-2 rounded-xl bg-amber-500 py-2.5 text-[13px] font-bold text-white transition hover:bg-amber-600 disabled:opacity-60">
+                    @if (_deactivateLoading)
+                    {
+                        <span class="spinner-inline"></span>
+                    }
+                    Inhabilitar
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private UserListResultGQL _result = new();
     private UserFilterModel _filter = new();
@@ -322,6 +304,12 @@
     private bool _editMode;
     private AdminUserGQL? _selectedUser;
     private UserFormModal? _modal;
+
+    private bool _showDetailModal;
+    private AdminUserGQL? _detailUser;
+
+    private AdminUserGQL? _deactivateUser;
+    private bool _deactivateLoading;
 
     private string? _toast;
     private string? _errorToast;
@@ -393,6 +381,19 @@
         _modalOpen = true;
     }
 
+    // ─── Modal detalle ──────────────────────────────────────────
+    private void OpenUserDetailModal(AdminUserGQL user)
+    {
+        _detailUser = user;
+        _showDetailModal = true;
+    }
+
+    private void CloseUserDetailModal()
+    {
+        _showDetailModal = false;
+        _detailUser = null;
+    }
+
     private async Task HandleModalSave(object payload)
     {
         if (payload is UserCreateModel create)
@@ -425,7 +426,36 @@
 
     private void HandleModalCancel() => _modalOpen = false;
 
-    // ─── Toggle status ──────────────────────────────────────────
+    // ─── Inhabilitar / Activar (única acción de baja, reversible) ─
+    private void OnToggleStatusClick(AdminUserGQL user)
+    {
+        // Activar es directo; inhabilitar muestra el modal explicativo.
+        if (user.IsActive)
+            _deactivateUser = user;
+        else
+            _ = ToggleStatusAsync(user);
+    }
+
+    private void CloseDeactivateConfirm()
+    {
+        if (_deactivateLoading) return;
+        _deactivateUser = null;
+    }
+
+    private async Task ConfirmDeactivateAsync()
+    {
+        if (_deactivateUser is null) return;
+
+        _deactivateLoading = true;
+        StateHasChanged();
+
+        var user = _deactivateUser;
+        await ToggleStatusAsync(user);
+
+        _deactivateLoading = false;
+        _deactivateUser = null;
+    }
+
     private async Task ToggleStatusAsync(AdminUserGQL user)
     {
         var result = await UserSvc.ToggleUserStatusAsync(user.Id);
@@ -435,24 +465,7 @@
             return;
         }
         var updated = result.Value!;
-        ShowSuccess(updated.IsActive ? "Usuario activado" : "Usuario desactivado");
-        await ReloadAsync();
-    }
-
-    // ─── Eliminar ───────────────────────────────────────────────
-    private async Task ConfirmDeleteAsync(AdminUserGQL user)
-    {
-        var confirmed = await JS.InvokeAsync<bool>("confirm",
-            $"¿Eliminar a {user.Name}? Esta acción no se puede deshacer.");
-        if (!confirmed) return;
-
-        var result = await UserSvc.DeleteUserAsync(user.Id);
-        if (!result.IsSuccess)
-        {
-            ShowError(result.Error?.Message ?? "Error al eliminar usuario");
-            return;
-        }
-        ShowSuccess("Usuario eliminado");
+        ShowSuccess(updated.IsActive ? "Usuario activado" : "Usuario inhabilitado. Su historial se conserva.");
         await ReloadAsync();
     }
 
