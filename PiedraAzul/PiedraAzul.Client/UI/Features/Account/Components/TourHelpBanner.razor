@@ -1,33 +1,33 @@
 @inject PiedraAzul.Client.Services.DriverTourService DriverTourService
 
-<div class="mx-4 mt-4 md:mx-7 md:mt-6 flex items-center justify-between gap-4
-            rounded-xl border border-teal-200 bg-teal-50 px-5 py-3.5 shadow-sm">
+<div class="mx-4 mt-4 md:mx-7 md:mt-6 mb-3 md:mb-5 flex items-center justify-between gap-4
+            rounded-xl border border-[#257D8D]/25 bg-[#e8f4f6]/60 px-5 py-3.5 shadow-sm">
 
     <div class="flex items-center gap-3">
-        <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-teal-100">
-            <svg class="h-4 w-4 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#257D8D]/15">
+            <svg class="h-4 w-4 text-[#257D8D]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round"
                       d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
         </div>
         <div>
-            <p class="text-sm font-semibold text-teal-900">¿Es tu primera vez aquí?</p>
-            <p class="text-xs text-teal-700">Inicia el tour para conocer las funciones de tu cuenta</p>
+            <p class="text-sm font-semibold text-[#0F172A]">¿Es tu primera vez aquí?</p>
+            <p class="text-xs text-[#526071]">Inicia el tour para conocer las funciones de tu cuenta</p>
         </div>
     </div>
 
     <div class="flex flex-shrink-0 items-center gap-2">
         <button type="button"
                 @onclick="HandleStartTour"
-                class="rounded-lg bg-teal-600 px-4 py-1.5 text-sm font-semibold text-white
-                       transition hover:bg-teal-700 active:scale-95">
+                class="rounded-lg bg-[#257D8D] px-4 py-1.5 text-sm font-semibold text-white
+                       transition hover:bg-[#1a5f6d] active:scale-95">
             Iniciar tour
         </button>
         <button type="button"
                 @onclick="HandleSkipTour"
                 title="Omitir tour"
-                class="flex h-7 w-7 items-center justify-center rounded-full text-teal-500
-                       transition hover:bg-teal-100 hover:text-teal-800">
+                class="flex h-7 w-7 items-center justify-center rounded-full text-[#257D8D]/70
+                       transition hover:bg-[#257D8D]/10 hover:text-[#257D8D]">
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
