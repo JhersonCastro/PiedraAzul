@@ -43,6 +43,7 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
 
         // ── Modern-only state (Stepper, used only in the inline modern UI) ────
         private bool isLoading = false;
+        internal bool _isSubmitting = false;
         internal string? _errorMessage;
         private Stepper<BookingModel> Stepper { get; set; }
 
@@ -393,6 +394,9 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
                 return;
             }
 
+            _isSubmitting = true;
+            NotifyState();
+
             var extraInfo = !string.IsNullOrWhiteSpace(Model.PatientEmail) ? Model.PatientEmail : "";
 
             var result = await AppointmentService.BookGuestAppointmentAsync(new CreateAppointmentGqlInput(
@@ -403,6 +407,8 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
                 DoctorAvailabilitySlotId: Model.SlotId,
                 Date: Model.DayOfYear.ToUniversalTime()
             ));
+
+            _isSubmitting = false;
 
             if (!result.IsSuccess)
             {

@@ -20,7 +20,7 @@
 
             <!-- Header -->
             <div class="modal-header">
-                <h2 class="text-base font-bold text-slate-900">@GetTitle()</h2>
+                <h2 class="modal-title-sm text-base">@GetTitle()</h2>
                 @if (!IsLoading && !string.IsNullOrEmpty(SearchResultType))
                 {
                     <button @onclick="() => OnClose.InvokeAsync()"
@@ -104,7 +104,7 @@
             <!-- Footer -->
             @if (!IsLoading && !string.IsNullOrEmpty(SearchResultType))
             {
-                <div class="px-6 py-4 bg-slate-50 border-t border-slate-100">
+                <div class="modal-footer">
 
                     @if (SearchResultType == "REGISTERED")
                     {
@@ -142,13 +142,13 @@
                     }
                     else if (SearchResultType == "ERROR")
                     {
-                        <div class="flex gap-2">
+                        <div class="btn-row">
                             <button @onclick="() => OnRetry.InvokeAsync()"
-                                    class="flex-1 py-2.5 border border-slate-300 hover:bg-slate-100 text-slate-700 text-sm font-semibold rounded-lg transition">
+                                    class="btn-secondary-sm flex-1">
                                 Reintentar
                             </button>
                             <button @onclick="() => OnNewPatientContinue.InvokeAsync()"
-                                    class="flex-1 py-2.5 bg-teal-700 hover:bg-teal-800 text-white text-sm font-bold rounded-lg transition">
+                                    class="btn-action flex-1">
                                 Continuar
                             </button>
                         </div>

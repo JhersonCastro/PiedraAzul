@@ -27,6 +27,7 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
 
         bool isLoading = false;
         internal bool isSuccess = false;
+        internal bool _isSubmitting = false;
 
         // ── Tour ──────────────────────────────────────────────
         private DotNetObjectReference<Booking>? _tourRef;
@@ -138,6 +139,9 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
                 await DriverTourService.DestroyAsync();
             }
 
+            _isSubmitting = true;
+            NotifyState();
+
             var result = await AppointmentService.CreateAppointment(new CreateAppointmentGqlInput(
                 Guest: null,
                 PatientUserId: _patientId,
@@ -145,6 +149,8 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
                 DoctorAvailabilitySlotId: Model.SlotId,
                 Date: Model.DayOfYear.ToUniversalTime()
             ));
+
+            _isSubmitting = false;
 
             if (!result.IsSuccess)
             {

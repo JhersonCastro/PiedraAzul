@@ -9,72 +9,59 @@
 @inject GraphQLAppointmentService AppointmentService
 
 <EditForm Model="@Model" OnSubmit="HandlerSubmit">
-    <div class="mx-auto min-h-screen max-w-5xl space-y-10 bg-gray-100 p-8">
+    <div class="booking-page">
 
         <!-- HEADER -->
         <div data-tour="manual-booking-header" class="space-y-1">
-            <h1 class="text-3xl font-bold text-gray-900">Agendamiento Manual</h1>
-            <p class="text-sm text-gray-500">
-                Registro de nueva cita médica y servicios terapéuticos
-            </p>
+            <h1 class="page-heading">Agendamiento Manual</h1>
+            <p class="page-subheading">Registro de nueva cita médica y servicios terapéuticos</p>
         </div>
 
-        <!-- ERROR GLOBAL -->
         @if (!string.IsNullOrEmpty(_errorMsg))
         {
-            <div class="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3">
-                @_errorMsg
-            </div>
+            <div class="alert-error-inline">@_errorMsg</div>
         }
 
         <!-- PACIENTE -->
-        <div class="space-y-6 rounded-2xl bg-white p-6 shadow-md">
-
-            <h2 class="text-lg font-semibold text-gray-800">Datos del Paciente</h2>
+        <div class="booking-section">
+            <h2 class="booking-section-title">Datos del Paciente</h2>
 
             @if (SelectedPatient != null)
             {
-                <!-- Paciente seleccionado -->
-                <div class="flex items-center justify-between rounded-xl border border-teal-300 bg-teal-50 px-4 py-3">
+                <div class="selected-patient">
                     <div>
                         <p class="text-sm font-bold text-teal-900">@SelectedPatient.PatientName</p>
-                        <p class="text-xs text-teal-600 mt-0.5">
+                        <p class="mt-0.5 text-xs text-teal-600">
                             @if (!string.IsNullOrEmpty(SelectedPatient.PatientIdentification))
                             {
                                 <span>CC: @SelectedPatient.PatientIdentification &bull; </span>
                             }
-                            @SelectedPatient.PatientPhone
-                            &bull;
+                            @SelectedPatient.PatientPhone &bull;
                             <span class="font-medium">@(SelectedPatient.IsRegistered ? "Registrado" : "Invitado")</span>
                         </p>
                     </div>
                     <button type="button" @onclick="ClearPatient"
-                            class="text-xs text-slate-500 hover:text-red-500 font-semibold transition-colors">
+                            class="text-xs font-semibold text-slate-500 transition-colors hover:text-red-500">
                         Cambiar
                     </button>
                 </div>
             }
             else
             {
-                <button type="button" @onclick="OpenPatientModal"
-                        class="w-full rounded-xl border-2 border-dashed border-gray-300 py-5 text-sm text-gray-500 transition hover:border-teal-500 hover:text-teal-600 flex items-center justify-center gap-2">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <button type="button" @onclick="OpenPatientModal" class="btn-patient-search">
+                    <svg class="icon-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
                     </svg>
                     Buscar o registrar paciente
                 </button>
             }
-
         </div>
 
         <!-- DETALLES -->
-        <div class="space-y-6 rounded-2xl bg-white p-6 shadow-md">
-
-            <h2 class="text-lg font-semibold text-gray-800">Detalles de la Cita</h2>
+        <div class="booking-section">
+            <h2 class="booking-section-title">Detalles de la Cita</h2>
 
             <div class="grid gap-6">
-
-                <!-- Doctor: Admin ve selector, Doctor ve su nombre -->
                 @if (_isAdmin)
                 {
                     <div class="space-y-4">
@@ -83,19 +70,18 @@
                 }
                 else if (_isDoctor)
                 {
-                    <div class="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                        <svg class="w-5 h-5 text-teal-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div class="doctor-info-row">
+                        <svg class="icon-6 flex-shrink-0 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                         </svg>
                         <div>
-                            <p class="text-xs text-slate-500 font-medium">Doctor asignado</p>
+                            <p class="text-xs font-medium text-slate-500">Doctor asignado</p>
                             <p class="text-sm font-bold text-slate-900">@_currentUserName</p>
                         </div>
-                        <span class="ml-auto text-xs bg-teal-100 text-teal-700 px-2 py-0.5 rounded-full font-medium">Tú</span>
+                        <span class="ml-auto rounded-full bg-teal-100 px-2 py-0.5 text-xs font-medium text-teal-700">Tú</span>
                     </div>
                 }
 
-                <!-- Selector de horario -->
                 <div class="space-y-4">
                     @if (!string.IsNullOrWhiteSpace(Model.DoctorId))
                     {
@@ -104,24 +90,20 @@
                     }
                     else
                     {
-                        <div class="flex h-32 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-400">
+                        <div class="placeholder-slot">
                             Selecciona un médico para continuar
                         </div>
                     }
                 </div>
-
             </div>
-
         </div>
 
         <!-- ACCIONES -->
-        <div class="flex gap-4">
-
-            <button type="submit" disabled="@_isSubmitting"
-                    class="flex-1 rounded-xl bg-teal-600 py-3 text-sm font-bold tracking-wide text-white shadow-md transition hover:bg-teal-700 disabled:opacity-60 flex items-center justify-center gap-2">
+        <div class="booking-actions">
+            <button type="submit" disabled="@_isSubmitting" class="btn-booking-submit">
                 @if (_isSubmitting)
                 {
-                    <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <svg class="icon-4 animate-spin" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
                     </svg>
@@ -129,17 +111,18 @@
                 Guardar agendamiento
             </button>
 
-            <button type="button" @onclick="HandlerCancel"
-                    class="rounded-xl border border-gray-300 px-6 py-3 text-sm text-gray-600 transition hover:bg-gray-50">
+            <button type="button" @onclick="HandlerCancel" class="btn-booking-cancel">
                 Cancelar
             </button>
-
         </div>
 
     </div>
 </EditForm>
 
-<!-- Modal búsqueda de paciente -->
 <PatientSearchModal IsOpen="@_patientModalOpen"
                     OnPatientSelected="OnPatientSelected"
                     OnCancel="OnPatientModalCancel" />
+
+<LoadingOverlay Visible="_isSubmitting"
+                Title="Guardando la cita…"
+                Message="Estamos registrando la cita en el sistema. Esto tomará solo un momento." />

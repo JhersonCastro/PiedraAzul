@@ -1,0 +1,194 @@
+@using System.Globalization
+@using PiedraAzul.Client.Models.GraphQL
+
+@if (Appointment is not null)
+{
+    var dateStr = char.ToUpper(Appointment.Start.ToString("dddd", Es)[0])
+                  + Appointment.Start.ToString("dddd, d 'de' MMMM yyyy", Es)[1..];
+    var timeStr = Appointment.Start.ToString("hh:mm tt", CultureInfo.InvariantCulture);
+
+    <div class="appt-card @(_isRescheduled ? "appt-card-rescheduled" : "appt-card-normal")">
+        <div class="flex items-center gap-4">
+            <!-- Icon -->
+            <div class="appt-icon">
+                <svg class="icon-6 text-[#257D8D]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" />
+                    <path d="M16 2v4M8 2v4M3 10h18" />
+                </svg>
+            </div>
+
+            <!-- Content -->
+            <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2">
+                    @if (ShowPatientName)
+                    {
+                        <p class="truncate text-[14px] font-bold text-[#0F172A]">@Appointment.PatientName</p>
+                        @if (!string.IsNullOrEmpty(Appointment.PatientType))
+                        {
+                            <span class="type-chip">@(Appointment.PatientType == "Registered" ? "Registrado" : "Invitado")</span>
+                        }
+                    }
+                    else
+                    {
+                        <p class="truncate text-[14px] font-bold text-[#0F172A]">@Appointment.DoctorName</p>
+                        @if (!string.IsNullOrEmpty(Appointment.Specialty))
+                        {
+                            <span class="type-chip">@Appointment.Specialty</span>
+                        }
+                    }
+                </div>
+                <p class="mt-1 text-[12px] capitalize text-[#64748B]">@dateStr · @timeStr</p>
+
+                @if (_isRescheduled)
+                {
+                    <button @onclick="ToggleHistory" class="badge-rescheduled">
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h5M20 20v-5h-5M4 9a8 8 0 0114-3M20 15a8 8 0 01-14 3" />
+                        </svg>
+                        Reagendada
+                        <svg class="h-3.5 w-3.5 transition-transform @(_showHistory ? "rotate-180" : "")" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                }
+                @{ var statusBadge = GetStatusBadge(); }
+                @if (statusBadge is not null)
+                {
+                    <span class="mt-2 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-bold @statusBadge.Css">
+                        @((MarkupString)statusBadge.Icon)
+                        @statusBadge.Label
+                    </span>
+                }
+            </div>
+
+            <!-- Actions -->
+            @if ((AllowReschedule || OnCancelClick.HasDelegate) && _isFuture)
+            {
+                <div class="flex flex-shrink-0 items-center gap-1.5">
+                    @if (AllowReschedule)
+                    {
+                        <button @onclick="() => OnRescheduleClick.InvokeAsync(Appointment)"
+                                title="Reagendar cita" class="appt-action-btn">
+                            <svg class="icon-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                        </button>
+                    }
+                    @if (OnCancelClick.HasDelegate)
+                    {
+                        <button @onclick="() => OnCancelClick.InvokeAsync(Appointment)"
+                                title="Cancelar cita" class="appt-cancel-btn">
+                            <svg class="icon-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M10 11v6M14 11v6" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2" />
+                            </svg>
+                        </button>
+                    }
+                </div>
+            }
+        </div>
+
+        <!-- Accordion: historial -->
+        @if (_isRescheduled && _showHistory)
+        {
+            <div class="mt-4 border-t border-[#E2E8F0] pt-4">
+                @if (Appointment.RescheduleHistory is { Count: > 0 })
+                {
+                    <ol class="history-list">
+                        @foreach (var entry in Appointment.RescheduleHistory.OrderBy(e => e.RescheduledAt))
+                        {
+                            <li class="relative">
+                                <span class="history-dot"></span>
+                                <p class="text-[12px] font-bold text-[#0F172A]">
+                                    @DisplayWho(entry)
+                                    @if (entry.RescheduledByRoles is { Length: > 0 })
+                                    {
+                                        <span class="ml-1 rounded bg-[#F1F5F9] px-1.5 py-0.5 text-[10px] font-semibold text-[#64748B]">@RoleLabel(entry.RescheduledByRoles[0])</span>
+                                    }
+                                </p>
+                                <p class="mt-0.5 text-[11px] text-[#94A3B8]">@ToLocal(entry.RescheduledAt).ToString("d 'de' MMM, hh:mm tt", Es)</p>
+                                <div class="mt-1.5 flex items-center gap-2 text-[11px]">
+                                    <span class="text-[#94A3B8]">@entry.OriginalDate.ToString("d MMM", Es)</span>
+                                    <svg class="h-3 w-3 text-[#CBD5E1]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7-7 7M3 12h18" /></svg>
+                                    <span class="font-semibold text-[#257D8D]">@entry.NewDate.ToString("d MMM", Es)</span>
+                                    @if (!string.IsNullOrEmpty(entry.NewDoctorName) && entry.NewDoctorName != entry.OriginalDoctorName)
+                                    {
+                                        <span class="text-[#64748B]">· @entry.NewDoctorName</span>
+                                    }
+                                </div>
+                            </li>
+                        }
+                    </ol>
+                    <p class="mt-3 text-[10px] italic text-[#94A3B8]">
+                        Las fechas indican cuándo se reagendó la cita, no la fecha de la cita.
+                    </p>
+                }
+                else
+                {
+                    <p class="text-[11px] text-[#94A3B8]">Sin detalle de historial disponible.</p>
+                }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public AppointmentGQL? Appointment { get; set; }
+    [Parameter] public bool AllowReschedule { get; set; }
+    [Parameter] public string? CurrentUserId { get; set; }
+    [Parameter] public EventCallback<AppointmentGQL> OnRescheduleClick { get; set; }
+    [Parameter] public EventCallback<AppointmentGQL> OnCancelClick { get; set; }
+    [Parameter] public bool ShowPatientName { get; set; } = false;
+
+    private static readonly CultureInfo Es = new("es-ES");
+    private bool _showHistory;
+    private bool _isRescheduled => Appointment?.WasRescheduled == true;
+    private bool _isFuture => Appointment?.Start > DateTime.Now;
+    private void ToggleHistory() => _showHistory = !_showHistory;
+
+    private static DateTime ToLocal(DateTime utc)
+        => DateTime.SpecifyKind(utc, DateTimeKind.Utc).ToLocalTime();
+
+    private string DisplayWho(AppointmentRescheduleEntryGQL entry)
+    {
+        if (!string.IsNullOrEmpty(CurrentUserId) && entry.RescheduledByUserId == CurrentUserId)
+            return "Reagendada por ti";
+        var name = string.IsNullOrEmpty(entry.RescheduledByName) ? "un usuario" : entry.RescheduledByName;
+        return $"Reagendada por {name}";
+    }
+
+    private static string RoleLabel(string role) => role switch
+    {
+        "Doctor" => "Doctor",
+        "Admin" => "Administrador",
+        "Patient" => "Paciente",
+        _ => role
+    };
+
+    private record BadgeInfo(string Label, string Css, string Icon);
+
+    private BadgeInfo? GetStatusBadge()
+    {
+        if (Appointment is null) return null;
+        return Appointment.Status switch
+        {
+            "Active" => _isFuture
+                ? new("Confirmada",
+                      "bg-[#E0F7FA] border-[#BAE6FD] text-[#257D8D]",
+                      """<svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>""")
+                : null,
+            "Completed" => new("Completada",
+                      "bg-emerald-50 border-emerald-100 text-emerald-600",
+                      """<svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>"""),
+            "NoShow" => new("No se presentó",
+                      "bg-rose-50 border-rose-100 text-rose-500",
+                      """<svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>"""),
+            "Cancelled" => new("Cancelada",
+                      "bg-slate-50 border-slate-200 text-slate-500",
+                      """<svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>"""),
+            _ => null
+        };
+    }
+}

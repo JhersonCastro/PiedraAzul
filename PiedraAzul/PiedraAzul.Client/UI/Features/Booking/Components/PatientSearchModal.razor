@@ -18,7 +18,7 @@
 
             <!-- Header -->
             <div class="modal-header">
-                <h2 class="text-lg font-bold text-slate-900">
+                <h2 class="modal-title-sm text-lg">
                     @(_view == "create" ? "Registrar nuevo paciente" : "Buscar paciente")
                 </h2>
                 <button @onclick="HandleCancel"
@@ -50,7 +50,7 @@
                                    value="@_query"
                                    @oninput="OnSearchInput"
                                    class="input-slate pr-10"
-                                   placeholder="Buscar por nombre o teléfono..." />
+                                   placeholder="Nombre, cédula, email o teléfono..." />
                             @if (_searching)
                             {
                                 <span class="absolute right-3 top-1/2 -translate-y-1/2">
@@ -63,7 +63,7 @@
                         </div>
 
                         <!-- Resultados -->
-                        <div class="max-h-60 overflow-y-auto space-y-2">
+                        <div class="max-h-72 overflow-y-auto space-y-2">
                             @if (_results.Any())
                             {
                                 @foreach (var p in _results)
