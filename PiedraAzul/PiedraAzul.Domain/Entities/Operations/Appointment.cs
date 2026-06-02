@@ -3,7 +3,7 @@ using PiedraAzul.Domain.Entities.Profiles.Doctor;
 
 namespace PiedraAzul.Domain.Entities.Operations
 {
-    public enum AppointmentStatus { Active, Cancelled, Rescheduled }
+    public enum AppointmentStatus { Active, Cancelled, Rescheduled, Completed, NoShow }
 
     public class Appointment
     {
@@ -86,6 +86,22 @@ namespace PiedraAzul.Domain.Entities.Operations
         public void Cancel()
         {
             Status = AppointmentStatus.Cancelled;
+        }
+
+        /// <summary>Marca la cita como completada (doctor la atendió).</summary>
+        public void Complete()
+        {
+            if (Status != AppointmentStatus.Active)
+                throw new DomainException("Solo las citas activas pueden marcarse como completadas.");
+            Status = AppointmentStatus.Completed;
+        }
+
+        /// <summary>Marca la cita como inasistencia (paciente no se presentó).</summary>
+        public void MarkAsNoShow()
+        {
+            if (Status != AppointmentStatus.Active)
+                throw new DomainException("Solo las citas activas pueden marcarse como inasistencia.");
+            Status = AppointmentStatus.NoShow;
         }
     }
 }
