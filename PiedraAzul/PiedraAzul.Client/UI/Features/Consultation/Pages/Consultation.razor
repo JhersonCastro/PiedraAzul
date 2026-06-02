@@ -22,11 +22,11 @@
 else
 {
 
-<section class="mx-auto max-w-3xl px-6 py-12">
+<section class="survey-section">
 
     <!-- Encabezado -->
     <div class="mb-8 text-center">
-        <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#eef8f8] text-primary">
+        <div class="specialty-icon mx-auto mb-4">
             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -48,17 +48,16 @@ else
 
                 @foreach (var q in _questions)
                 {
-                    <div class="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-                        <h2 class="mb-4 text-lg font-bold text-gray-900">@q.Title</h2>
+                    <div class="survey-card">
+                        <h2 class="survey-card-title">@q.Title</h2>
 
-                        <div class="grid gap-3 sm:grid-cols-2">
+                        <div class="survey-grid">
                             @foreach (var choice in q.Choices)
                             {
                                 var isSelected = q.Selected(Model) == choice.Label;
                                 <button type="button"
                                         @onclick="() => q.Select(Model, choice.Label)"
-                                        class="flex items-center gap-3 rounded-xl border-2 p-4 text-left transition
-                                               @(isSelected ? "border-primary bg-primary/10" : "border-gray-200 hover:bg-gray-50")">
+                                        class="choice-btn @(isSelected ? "choice-btn-active" : "choice-btn-idle")">
                                     <span class="text-2xl">@choice.Emoji</span>
                                     <span class="text-sm font-medium text-gray-700">@choice.Label</span>
                                 </button>
@@ -68,8 +67,8 @@ else
                 }
 
                 <!-- Texto libre + voz -->
-                <div class="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-                    <h2 class="mb-1 text-lg font-bold text-gray-900">Cuéntanos con tus palabras</h2>
+                <div class="survey-card">
+                    <h2 class="survey-card-title mb-1">Cuéntanos con tus palabras</h2>
                     <p class="mb-4 text-sm text-gray-500">
                         Describe qué sientes, desde cuándo y cómo te afecta. Puedes escribir o usar el micrófono.
                     </p>
@@ -115,14 +114,12 @@ else
 
                 @if (!string.IsNullOrEmpty(_errorMessage))
                 {
-                    <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                        @_errorMessage
-                    </div>
+                    <div class="alert-error-inline">@_errorMessage</div>
                 }
 
                 <button type="submit"
                         disabled="@_isLoading"
-                        class="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-4 text-lg font-semibold text-white shadow-md transition hover:bg-[#1a5b67] disabled:opacity-60">
+                        class="btn-consult">
                     @if (_isLoading)
                     {
                         <span class="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
@@ -143,7 +140,7 @@ else
     else
     {
         <!-- RESULTADO -->
-        <div class="rounded-2xl border border-gray-100 bg-white p-8 shadow-xl">
+        <div class="result-card">
 
             <div class="flex flex-col items-center text-center">
                 <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#edf7f2] text-[#166534]">
@@ -186,15 +183,11 @@ else
             </div>
 
             <!-- Acciones -->
-            <div class="mt-8 flex flex-col gap-3">
-                <button type="button"
-                        @onclick="GoToBooking"
-                        class="w-full rounded-lg bg-primary py-3.5 text-lg font-semibold text-white shadow-md transition hover:bg-[#1a5b67]">
+            <div class="result-actions">
+                <button type="button" @onclick="GoToBooking" class="btn-result-primary">
                     Agendar cita de @_recommendation.SpecialtyLabel
                 </button>
-                <button type="button"
-                        @onclick="Reset"
-                        class="w-full rounded-lg bg-gray-100 py-3 font-semibold text-gray-700 transition hover:bg-gray-200">
+                <button type="button" @onclick="Reset" class="btn-result-secondary">
                     Hacer otra consulta
                 </button>
             </div>
