@@ -10,7 +10,7 @@
 
     <DataAnnotationsValidator />
 
-    <div class="mx-auto my-6 w-full max-w-4xl rounded-xl bg-white p-10 shadow-2xl">
+    <div class="form-shell">
 
         <Stepper TModel="RegisterModel" FinishText="Crear cuenta" OnFinish="HandleRegister">
 
@@ -19,12 +19,12 @@
                   Title="Datos personales"
                   Fields="@(new[] { nameof(registerModel.Document), nameof(registerModel.FullName), nameof(registerModel.Phone), nameof(registerModel.Gender) })">
 
-                <h2 class="mb-2 text-2xl font-bold">Datos personales</h2>
-                <p class="mb-6 text-gray-600">
+                <h2 class="form-heading">Datos personales</h2>
+                <p class="form-heading-sub">
                     Por favor ingrese su información básica para continuar.
                 </p>
 
-                <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div class="form-grid">
 
                     <!-- Documento -->
                     <div>
@@ -105,12 +105,12 @@
                   Title="Información adicional"
                   Fields="@(new[] { nameof(registerModel.Email) })">
 
-                <h2 class="mb-2 text-2xl font-bold">Información adicional</h2>
-                <p class="mb-6 text-gray-600">
+                <h2 class="form-heading">Información adicional</h2>
+                <p class="form-heading-sub">
                     Estos datos nos ayudan a brindarle un mejor servicio (opcional).
                 </p>
 
-                <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div class="form-grid">
 
                     <!-- Fecha -->
                     <div>
@@ -151,12 +151,12 @@
                   Title="Seguridad"
                   Fields="@(new[] { nameof(registerModel.Password), nameof(registerModel.ConfirmPassword) })">
 
-                <h2 class="mb-2 text-2xl font-bold">Crear contraseña</h2>
-                <p class="mb-6 text-gray-600">
+                <h2 class="form-heading">Crear contraseña</h2>
+                <p class="form-heading-sub">
                     Esta contraseña le permitirá acceder a su cuenta.
                 </p>
 
-                <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div class="form-grid">
 
                     <!-- Password -->
                     <div>
@@ -204,6 +204,7 @@
                 class="btn-secondary-lg mt-8">
             ¿Ya tiene una cuenta? Inicie sesión
         </button>
+        @* mt-8: separación puntual respecto al Stepper *@
 
     </div>
 </EditForm>

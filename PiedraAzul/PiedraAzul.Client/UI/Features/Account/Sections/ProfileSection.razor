@@ -10,16 +10,15 @@
 
 @if (_user is null)
 {
-    <div class="flex justify-center py-20"><div class="spinner"></div></div>
+    <div class="loading-center-lg"><div class="spinner"></div></div>
 }
 else
 {
     <!-- Mobile user header -->
     <div class="mb-4 flex items-center gap-3 md:hidden">
-        <div class="relative flex-shrink-0">
-            <img src="@AvatarSrc" alt="Avatar"
-                 class="h-10 w-10 rounded-full object-cover border-2 border-[#E2E8F0]" />
-            <label class="absolute -bottom-0.5 -right-0.5 cursor-pointer rounded-full bg-[#257D8D] p-1 shadow" title="Cambiar foto">
+        <div class="avatar-wrap">
+            <img src="@AvatarSrc" alt="Avatar" class="avatar-sm" />
+            <label class="avatar-badge" title="Cambiar foto">
                 <svg class="h-2 w-2" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2">
                     <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
                     <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -28,34 +27,33 @@ else
             </label>
         </div>
         <div>
-            <p class="text-sm font-bold text-[#0F172A]">@_user.Name</p>
-            <p class="text-xs text-[#94A3B8]">@_user.Email</p>
+            <p class="user-name">@_user.Name</p>
+            <p class="user-email">@_user.Email</p>
         </div>
     </div>
 
-    <div class="mb-5">
-        <h2 class="text-[22px] font-extrabold tracking-tight text-[#0F172A]">Mi perfil</h2>
-        <p class="mt-0.5 text-[13px] text-[#64748B]">Gestiona tu información personal y datos de contacto.</p>
+    <div class="portal-head">
+        <h2 class="portal-title">Mi perfil</h2>
+        <p class="portal-subtitle">Gestiona tu información personal y datos de contacto.</p>
     </div>
 
     @if (!string.IsNullOrEmpty(_avatarError))
     {
-        <div class="w-full mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">@_avatarError</div>
+        <div class="banner-error mb-4">@_avatarError</div>
     }
     @if (_avatarSuccess)
     {
-        <div class="w-full mb-4 rounded-2xl border border-[#4CAF7D] bg-[#edf7f2] px-4 py-3 text-sm text-[#166534]">Foto actualizada correctamente.</div>
+        <div class="banner-success mb-4">Foto actualizada correctamente.</div>
     }
 
     <!-- Personal info card -->
-    <div data-tour="profile-info-card" class="mb-5 rounded-2xl border border-[#E2E8F0] bg-white p-6">
-        <p class="mb-4 text-[13px] font-bold text-[#0F172A]">Información personal</p>
+    <div data-tour="profile-info-card" class="portal-card mb-5">
+        <p class="portal-card-title mb-4">Información personal</p>
 
-        <div class="mb-5 flex items-center gap-4 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-3.5">
-            <div class="relative flex-shrink-0">
-                <img src="@AvatarSrc" alt="Avatar"
-                     class="h-12 w-12 rounded-full object-cover border-2 border-[#E2E8F0]" />
-                <label class="absolute -bottom-0.5 -right-0.5 cursor-pointer rounded-full bg-[#257D8D] p-1 shadow hover:bg-[#1a5f6d] transition" title="Cambiar foto">
+        <div class="profile-id-row mb-5">
+            <div class="avatar-wrap">
+                <img src="@AvatarSrc" alt="Avatar" class="avatar-md" />
+                <label class="avatar-badge" title="Cambiar foto">
                     <svg class="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2">
                         <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
                         <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -64,27 +62,25 @@ else
                 </label>
             </div>
             <div>
-                <p class="text-sm font-bold text-[#0F172A]">@_user.Name</p>
-                <p class="text-[12px] text-[#64748B]">@_user.Email</p>
+                <p class="user-name">@_user.Name</p>
+                <p class="portal-card-sub">@_user.Email</p>
                 <div class="mt-1.5 flex flex-wrap gap-1">
                     @foreach (var role in _user.Roles)
                     {
-                        <span class="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-bold text-blue-600 capitalize">@role</span>
+                        <span class="role-chip">@role</span>
                     }
                 </div>
             </div>
         </div>
 
         <div data-tour="profile-name-field">
-            <label class="mb-1.5 block text-xs font-semibold text-[#374151]">Nombre completo</label>
+            <label class="label-field">Nombre completo</label>
             <div class="flex gap-2.5">
                 <input @bind="_editName" @bind:event="oninput"
-                       class="flex-1 rounded-xl border border-[#CBD5E1] bg-white px-3.5 py-2.5 text-[13px] text-[#0F172A]
-                              focus:border-[#257D8D] focus:outline-none focus:ring-2 focus:ring-[#257D8D]/20 transition" />
+                       class="input-primary flex-1" />
                 <button @onclick="SaveNameAsync"
                         disabled="@(_savingName || _editName == _user.Name)"
-                        class="rounded-xl bg-[#257D8D] px-5 py-2.5 text-[13px] font-bold text-white
-                               transition hover:bg-[#1a5f6d] disabled:opacity-50">
+                        class="btn-primary-pill">
                     @(_savingName ? "Guardando…" : "Guardar")
                 </button>
             </div>
@@ -96,32 +92,30 @@ else
     </div>
 
     <!-- Email card -->
-    <div data-tour="profile-email-card" class="rounded-2xl border border-[#E2E8F0] bg-white p-6">
-        <p class="mb-1 text-[13px] font-bold text-[#0F172A]">Correo electrónico</p>
-        <p class="mb-4 text-[12px] text-[#64748B]">Para cambiar tu correo te enviaremos un código de verificación.</p>
+    <div data-tour="profile-email-card" class="portal-card">
+        <p class="portal-card-title mb-1">Correo electrónico</p>
+        <p class="portal-card-sub mb-4">Para cambiar tu correo te enviaremos un código de verificación.</p>
         <EmailChange CurrentEmail="@(_user.Email ?? "")" GraphQL="@GraphQL" OnEmailChanged="ReloadUserAsync" />
     </div>
 
     <!-- Email verification modal -->
     @if (_showEmailVerification)
     {
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-            <div class="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+        <div class="modal-overlay-center">
+            <div class="modal-card-sm">
                 @if (!_emailVerificationStep2)
                 {
-                    <h3 class="mb-2 text-base font-extrabold text-[#0F172A]">Verificar email</h3>
-                    <p class="mb-5 text-[13px] text-[#475569]">
+                    <h3 class="modal-title-sm">Verificar email</h3>
+                    <p class="modal-text mb-5">
                         Enviaremos un código de verificación a <strong>@_user.Email</strong>
                     </p>
                     <div class="flex gap-2">
                         <button @onclick="SendEmailVerificationCode" disabled="@_emailVerificationLoading"
-                                class="flex-1 rounded-xl bg-[#257D8D] px-4 py-2.5 text-sm font-bold text-white
-                                       transition hover:bg-[#1a5f6d] disabled:opacity-50">
+                                class="btn-primary-modal">
                             @(_emailVerificationLoading ? "Enviando..." : "Enviar código")
                         </button>
                         <button @onclick="() => _showEmailVerification = false"
-                                class="flex-1 rounded-xl border border-[#CBD5E1] px-4 py-2.5 text-sm font-bold
-                                       text-[#475569] transition hover:bg-gray-50">
+                                class="btn-outline-modal">
                             Cancelar
                         </button>
                     </div>
@@ -132,27 +126,24 @@ else
                 }
                 else
                 {
-                    <h3 class="mb-2 text-base font-extrabold text-[#0F172A]">Ingresar código</h3>
-                    <p class="mb-4 text-[13px] text-[#475569]">Ingresa el código de 6 dígitos que recibiste en tu email</p>
+                    <h3 class="modal-title-sm">Ingresar código</h3>
+                    <p class="modal-text mb-4">Ingresa el código de 6 dígitos que recibiste en tu email</p>
                     <input type="text" @bind="_emailVerificationCode" maxlength="6" placeholder="000000"
-                           class="mb-4 w-full rounded-xl border border-[#CBD5E1] px-4 py-2.5 text-center text-2xl
-                                  tracking-widest focus:border-[#257D8D] focus:outline-none focus:ring-2 focus:ring-[#257D8D]/20"
+                           class="input-code-primary mb-4"
                            autocomplete="off" />
-                    <div class="flex gap-2 mb-3">
+                    <div class="mb-3 flex gap-2">
                         <button @onclick="VerifyEmailCode"
                                 disabled="@(_emailVerificationCode?.Length != 6 || _emailVerificationLoading)"
-                                class="flex-1 rounded-xl bg-[#257D8D] px-4 py-2.5 text-sm font-bold text-white
-                                       transition hover:bg-[#1a5f6d] disabled:opacity-50">
+                                class="btn-primary-modal">
                             @(_emailVerificationLoading ? "Verificando..." : "Verificar")
                         </button>
                         <button @onclick="CloseEmailVerification"
-                                class="flex-1 rounded-xl border border-[#CBD5E1] px-4 py-2.5 text-sm font-bold
-                                       text-[#475569] transition hover:bg-gray-50">
+                                class="btn-outline-modal">
                             Cancelar
                         </button>
                     </div>
                     <button @onclick="() => _emailVerificationStep2 = false"
-                            class="w-full text-xs font-semibold text-[#257D8D] hover:underline">
+                            class="btn-link-full">
                         ← Cambiar email
                     </button>
                     @if (!string.IsNullOrEmpty(_emailVerificationError))
@@ -167,17 +158,16 @@ else
     <!-- Unverified email banner -->
     @if (!string.IsNullOrEmpty(_user.Email) && !_user.EmailConfirmed)
     {
-        <div class="mt-5 flex items-center justify-between rounded-2xl border border-yellow-300 bg-yellow-50 p-4">
+        <div class="banner-warning mt-5">
             <div class="flex items-center gap-3">
                 <span class="text-lg">📧</span>
                 <div>
-                    <p class="text-sm font-bold text-[#0F172A]">Email no verificado</p>
-                    <p class="text-xs text-[#64748B]">Verifica tu email para completar tu cuenta</p>
+                    <p class="user-name">Email no verificado</p>
+                    <p class="portal-card-sub">Verifica tu email para completar tu cuenta</p>
                 </div>
             </div>
             <button @onclick="() => _showEmailVerification = true"
-                    class="flex-shrink-0 rounded-lg bg-yellow-600 px-3 py-1.5 text-xs font-bold
-                           text-white transition hover:bg-yellow-700">
+                    class="btn-warning-sm flex-shrink-0">
                 Verificar
             </button>
         </div>

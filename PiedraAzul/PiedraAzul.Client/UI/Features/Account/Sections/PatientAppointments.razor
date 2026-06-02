@@ -1,31 +1,33 @@
 @using System.Globalization
 @using PiedraAzul.Client.Models.GraphQL
 @using PiedraAzul.Client.Services.GraphQLServices
+@using PiedraAzul.Client.States
 @using PiedraAzul.Client.UI.Features.Booking.Components
 @inject GraphQLAppointmentService AppointmentService
+@inject UserState UserState
 
 @if (_loading)
 {
-    <div class="flex justify-center py-20">
+    <div class="loading-center-lg">
         <div class="spinner"></div>
     </div>
 }
 else
 {
-    <div data-tour="patient-appointments-header" class="mb-5">
-        <h2 class="text-[22px] font-extrabold tracking-tight text-[#0F172A]">Mis citas</h2>
-        <p class="mt-0.5 text-[13px] text-[#64748B]">Revisa todas tus citas médicas, tanto pasadas como próximas.</p>
+    <div data-tour="patient-appointments-header" class="portal-head">
+        <h2 class="portal-title">Mis citas</h2>
+        <p class="portal-subtitle">Revisa todas tus citas médicas, tanto pasadas como próximas.</p>
     </div>
 
     @if (!string.IsNullOrEmpty(_error))
     {
-        <div class="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">@_error</div>
+        <div class="banner-error mb-4">@_error</div>
     }
 
     @if (!string.IsNullOrEmpty(_successMessage))
     {
-        <div class="mb-4 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700 flex items-center gap-2">
-            <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div class="banner-ok-flex mb-4">
+            <svg class="icon-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
             @_successMessage
@@ -33,21 +35,21 @@ else
     }
 
     <!-- Tabs -->
-    <div class="mb-5 flex gap-1 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-1">
+    <div class="tabs mb-5">
         <button @onclick='() => _tab = "upcoming"'
-                class="@(_tab == "upcoming" ? "bg-white shadow text-[#257D8D] font-bold" : "text-[#64748B] font-medium hover:text-[#0F172A]") flex-1 rounded-xl px-4 py-2.5 text-[13px] transition">
+                class="tab-btn @(_tab == "upcoming" ? "tab-btn-active" : "tab-btn-idle")">
             Próximas
             @if (_upcoming.Count > 0)
             {
-                <span class="ml-1.5 inline-flex items-center rounded-full bg-[#257D8D] px-2 py-0.5 text-[11px] text-white font-bold">@_upcoming.Count</span>
+                <span class="tab-badge">@_upcoming.Count</span>
             }
         </button>
         <button @onclick='() => _tab = "past"'
-                class="@(_tab == "past" ? "bg-white shadow text-[#257D8D] font-bold" : "text-[#64748B] font-medium hover:text-[#0F172A]") flex-1 rounded-xl px-4 py-2.5 text-[13px] transition">
-            Historial
+                class="tab-btn @(_tab == "past" ? "tab-btn-active" : "tab-btn-idle")">
+            Pasadas
             @if (_past.Count > 0)
             {
-                <span class="ml-1.5 inline-flex items-center rounded-full bg-[#94A3B8] px-2 py-0.5 text-[11px] text-white font-bold">@_past.Count</span>
+                <span class="tab-badge-muted">@_past.Count</span>
             }
         </button>
     </div>
@@ -57,15 +59,15 @@ else
         @if (_upcoming.Count == 0)
         {
             <!-- Empty upcoming -->
-            <div class="flex flex-col items-center justify-center py-16 text-center">
-                <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F1F5F9]">
+            <div class="empty-lg">
+                <div class="empty-icon">
                     <svg class="h-7 w-7 text-[#94A3B8]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                         <rect x="3" y="4" width="18" height="18" rx="2"/>
                         <path d="M16 2v4M8 2v4M3 10h18"/>
                     </svg>
                 </div>
-                <p class="text-[15px] font-bold text-[#0F172A]">No tienes citas próximas</p>
-                <p class="mt-1 text-[13px] text-[#94A3B8]">Cuando reserves una cita aparecerá aquí.</p>
+                <p class="empty-title">No tienes citas próximas</p>
+                <p class="empty-sub">Cuando reserves una cita aparecerá aquí.</p>
             </div>
         }
         else
@@ -73,55 +75,11 @@ else
             <div class="flex flex-col gap-3">
                 @foreach (var appt in _upcoming)
                 {
-                    var dateStr = char.ToUpper(appt.Start.ToString("dddd", new CultureInfo("es-ES"))[0])
-                                  + appt.Start.ToString("dddd, d 'de' MMMM yyyy", new CultureInfo("es-ES"))[1..];
-                    var timeStr = appt.Start.ToString("hh:mm tt", CultureInfo.InvariantCulture);
-
-                    <div class="rounded-2xl border border-[#BAE6FD] bg-white p-4 md:p-5 flex gap-4 items-start shadow-sm">
-                        <!-- Icon -->
-                        <div class="flex-shrink-0 h-11 w-11 rounded-xl flex items-center justify-center bg-[#E0F2FE]">
-                            <svg class="h-5 w-5 text-[#0284C7]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <rect x="3" y="4" width="18" height="18" rx="2"/>
-                                <path d="M16 2v4M8 2v4M3 10h18"/>
-                            </svg>
-                        </div>
-                        <!-- Content -->
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <p class="text-[14px] font-bold text-[#0F172A]">Dr. @appt.DoctorName</p>
-                                @if (!string.IsNullOrEmpty(appt.Specialty))
-                                {
-                                    <span class="rounded-full bg-[#F1F5F9] px-2 py-0.5 text-[11px] font-semibold text-[#475569]">@appt.Specialty</span>
-                                }
-                            </div>
-                            <p class="mt-1 text-[12px] text-[#64748B] capitalize">@dateStr · @timeStr</p>
-                        </div>
-                        <!-- Actions -->
-                        <div class="flex-shrink-0 flex flex-col items-end gap-2">
-                            <span class="rounded-full bg-[#DCFCE7] px-2.5 py-1 text-[11px] font-bold text-[#166534]">Próxima</span>
-                            <div class="flex items-center gap-1.5">
-                                <!-- Pencil / Reschedule button -->
-                                <button @onclick="() => OpenRescheduleModal(appt)"
-                                        title="Reagendar cita"
-                                        class="flex h-8 w-8 items-center justify-center rounded-lg border border-[#E2E8F0] bg-white text-[#64748B] hover:border-[#257D8D] hover:text-[#257D8D] transition">
-                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                    </svg>
-                                </button>
-                                <!-- Trash / Cancel button -->
-                                <button @onclick="() => OpenCancelConfirm(appt.Id)"
-                                        title="Cancelar cita"
-                                        class="flex h-8 w-8 items-center justify-center rounded-lg border border-[#E2E8F0] bg-white text-[#94A3B8] hover:border-red-400 hover:text-red-500 transition">
-                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                        <polyline points="3 6 5 6 21 6"/>
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M10 11v6M14 11v6"/>
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                    <AppointmentCard Appointment="appt"
+                                     AllowReschedule="true"
+                                     CurrentUserId="@_currentUserId"
+                                     OnRescheduleClick="OpenRescheduleModal"
+                                     OnCancelClick="(a) => OpenCancelConfirm(a.Id)" />
                 }
             </div>
         }
@@ -131,15 +89,15 @@ else
         @if (_past.Count == 0)
         {
             <!-- Empty past -->
-            <div class="flex flex-col items-center justify-center py-16 text-center">
-                <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F1F5F9]">
+            <div class="empty-lg">
+                <div class="empty-icon">
                     <svg class="h-7 w-7 text-[#94A3B8]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                         <circle cx="12" cy="12" r="10"/>
                         <polyline points="12 6 12 12 16 14"/>
                     </svg>
                 </div>
-                <p class="text-[15px] font-bold text-[#0F172A]">Sin historial de citas</p>
-                <p class="mt-1 text-[13px] text-[#94A3B8]">Tus citas pasadas aparecerán aquí.</p>
+                <p class="empty-title">Sin historial de citas</p>
+                <p class="empty-sub">Tus citas pasadas aparecerán aquí.</p>
             </div>
         }
         else
@@ -147,43 +105,9 @@ else
             <div class="flex flex-col gap-3">
                 @foreach (var appt in _past)
                 {
-                    var dateStr = char.ToUpper(appt.Start.ToString("dddd", new CultureInfo("es-ES"))[0])
-                                  + appt.Start.ToString("dddd, d 'de' MMMM yyyy", new CultureInfo("es-ES"))[1..];
-                    var timeStr = appt.Start.ToString("hh:mm tt", CultureInfo.InvariantCulture);
-
-                    var isRescheduled = appt.Status == "Rescheduled";
-
-                    <div class="rounded-2xl border border-[#E2E8F0] bg-white p-4 md:p-5 flex gap-4 items-start">
-                        <!-- Icon -->
-                        <div class="flex-shrink-0 h-11 w-11 rounded-xl flex items-center justify-center bg-[#F1F5F9]">
-                            <svg class="h-5 w-5 text-[#94A3B8]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"/>
-                                <polyline points="12 6 12 12 16 14"/>
-                            </svg>
-                        </div>
-                        <!-- Content -->
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <p class="text-[14px] font-bold text-[#0F172A]">Dr. @appt.DoctorName</p>
-                                @if (!string.IsNullOrEmpty(appt.Specialty))
-                                {
-                                    <span class="rounded-full bg-[#F1F5F9] px-2 py-0.5 text-[11px] font-semibold text-[#475569]">@appt.Specialty</span>
-                                }
-                            </div>
-                            <p class="mt-1 text-[12px] text-[#64748B] capitalize">@dateStr · @timeStr</p>
-                        </div>
-                        <!-- Badge -->
-                        <div class="flex-shrink-0">
-                            @if (isRescheduled)
-                            {
-                                <span class="rounded-full bg-[#FEF3C7] px-2.5 py-1 text-[11px] font-bold text-[#92400E]">Reagendada</span>
-                            }
-                            else
-                            {
-                                <span class="rounded-full bg-[#F1F5F9] px-2.5 py-1 text-[11px] font-bold text-[#64748B]">Realizada</span>
-                            }
-                        </div>
-                    </div>
+                    <AppointmentCard Appointment="appt"
+                                     AllowReschedule="false"
+                                     CurrentUserId="@_currentUserId" />
                 }
             </div>
         }
@@ -193,30 +117,30 @@ else
 <!-- Cancel Confirm Modal -->
 @if (_cancelConfirmId is not null)
 {
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" @onclick="CloseCancelConfirm">
-        <div class="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl" @onclick:stopPropagation>
+    <div class="modal-overlay-40" @onclick="CloseCancelConfirm">
+        <div class="modal-card-sm" @onclick:stopPropagation>
             <!-- Icon -->
-            <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
-                <svg class="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <div class="modal-icon-danger">
+                <svg class="icon-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
                 </svg>
             </div>
-            <h3 class="text-center text-[16px] font-bold text-[#0F172A]">¿Cancelar esta cita?</h3>
-            <p class="mt-1.5 text-center text-[13px] text-[#64748B]">
+            <h3 class="modal-title-center">¿Cancelar esta cita?</h3>
+            <p class="modal-text-center">
                 Esta acción no se puede deshacer. El horario quedará disponible para otros pacientes.
             </p>
-            <div class="mt-5 flex gap-3">
+            <div class="modal-actions">
                 <button @onclick="CloseCancelConfirm"
                         disabled="@_cancelLoading"
-                        class="flex-1 rounded-xl border border-[#E2E8F0] bg-white py-2.5 text-[13px] font-semibold text-[#64748B] hover:bg-[#F8FAFC] transition disabled:opacity-50">
+                        class="btn-modal-cancel">
                     Volver
                 </button>
                 <button @onclick="ConfirmCancelAsync"
                         disabled="@_cancelLoading"
-                        class="flex-1 rounded-xl bg-red-500 py-2.5 text-[13px] font-bold text-white hover:bg-red-600 transition disabled:opacity-60 flex items-center justify-center gap-2">
+                        class="btn-modal-danger">
                     @if (_cancelLoading)
                     {
-                        <div class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                        <div class="spinner-inline"></div>
                     }
                     Cancelar cita
                 </button>
@@ -242,6 +166,8 @@ else
     private List<AppointmentGQL> _upcoming = [];
     private List<AppointmentGQL> _past = [];
 
+    private string? _currentUserId;
+
     // Reschedule state
     private bool _rescheduleModalOpen;
     private bool _rescheduleLoading;
@@ -253,6 +179,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        _currentUserId = UserState.User?.Id;
         await LoadAppointmentsAsync();
     }
 
@@ -267,10 +194,14 @@ else
         else
         {
             var now = DateTime.Now;
+            // Próximas: solo Active y en el futuro
             _upcoming = result.Value!
                 .Where(a => a.Start >= now && a.Status == "Active")
                 .OrderBy(a => a.Start)
                 .ToList();
+
+            // Pasadas: todo lo que no sea Active-futuro
+            // Incluye: Completed, NoShow, Cancelled, Rescheduled, y Active pasadas
             _past = result.Value!
                 .Where(a => a.Start < now || a.Status != "Active")
                 .OrderByDescending(a => a.Start)
