@@ -14,4 +14,27 @@ public class AppointmentGQL
     public DateTime Start { get; set; }
     public DateTime CreatedAt { get; set; }
     public string Status { get; set; } = "Active";
+
+    /// <summary>True si esta cita proviene de un reagendamiento anterior.</summary>
+    public bool WasRescheduled { get; set; }
+
+    /// <summary>Historial cronológico del linaje de reagendamientos.</summary>
+    public List<AppointmentRescheduleEntryGQL> RescheduleHistory { get; set; } = new();
+}
+
+public class AppointmentRescheduleEntryGQL
+{
+    public string RescheduledByUserId { get; set; } = "";
+    public string RescheduledByName { get; set; } = "";
+    public string[] RescheduledByRoles { get; set; } = Array.Empty<string>();
+
+    public DateTime RescheduledAt { get; set; }
+
+    public DateTime OriginalDate { get; set; }
+    public DateTime NewDate { get; set; }
+
+    public string OriginalDoctorId { get; set; } = "";
+    public string OriginalDoctorName { get; set; } = "";
+    public string NewDoctorId { get; set; } = "";
+    public string NewDoctorName { get; set; } = "";
 }

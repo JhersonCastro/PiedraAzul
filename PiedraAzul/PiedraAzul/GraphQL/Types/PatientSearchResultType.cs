@@ -36,6 +36,17 @@ public class GuestLookupResultType
     public PatientTypeEnum Type { get; set; }
 }
 
+/// <summary>Paciente visto por el doctor (con fecha de última visita).</summary>
+public class DoctorPatientType
+{
+    public string Id { get; set; } = "";
+    public string Name { get; set; } = "";
+    public string Identification { get; set; } = "";
+    public string Phone { get; set; } = "";
+    public PatientTypeEnum Type { get; set; }
+    public DateTime? LastVisit { get; set; }
+}
+
 /// <summary>Datos del usuario devueltos tras verificación exitosa por hash.</summary>
 public class GuestDataType
 {

@@ -1,10 +1,16 @@
+using HotChocolate.Authorization;
 using Mediator;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using PiedraAzul.Application.Features.Doctors.Queries.GetDoctorAvailableDays;
 using PiedraAzul.Application.Features.Doctors.Queries.GetDoctorByUserId;
 using PiedraAzul.Application.Features.Doctors.Queries.GetDoctorDaySlots;
 using PiedraAzul.Application.Features.Doctors.Queries.GetDoctorsBySpecialty;
 using PiedraAzul.Domain.Repositories;
 using PiedraAzul.GraphQL.Types;
+using PiedraAzul.Infrastructure.Identity;
+using System.Security.Claims;
 
 namespace PiedraAzul.GraphQL;
 
@@ -77,6 +83,120 @@ public partial class Query
 
         // Return as UTC DateTime so the client deserializes correctly
         return days.Select(d => d.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc)).ToList();
+    }
+
+    /// <summary>
+    /// Devuelve los pacientes únicos que tienen (o tuvieron) citas con este doctor.
+    /// Solo el propio doctor o un Admin puede consultarlo.
+    /// </summary>
+    [Authorize(Roles = new[] { "Doctor", "Admin" })]
+    public async Task<List<DoctorPatientType>> GetDoctorPatientsAsync(
+        string doctorId,
+        [Service] IAppointmentRepository appointmentRepository,
+        [Service] IPatientGuestRepository guestRepository,
+        [Service] UserManager<ApplicationUser> userManager,
+        [Service] IHttpContextAccessor httpContextAccessor)
+    {
+        var userId = httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? throw new GraphQLException("No autenticado");
+
+        var isAdmin = httpContextAccessor.HttpContext!.User.IsInRole("Admin");
+
+        if (userId != doctorId && !isAdmin)
+            throw new GraphQLException("No tienes permiso para ver los pacientes de este doctor.");
+
+        // Todas las citas del doctor (Active, Completed, NoShow, Cancelled)
+        var appointments = await appointmentRepository.ListByDoctorAsync(doctorId);
+
+        var result = new List<DoctorPatientType>();
+
+        // --- Pacientes Registrados ---
+        var registeredGroups = appointments
+            .Where(a => a.PatientUserId != null)
+            .GroupBy(a => a.PatientUserId!)
+            .ToList();
+
+        var registeredIds = registeredGroups.Select(g => g.Key).ToList();
+        var users = registeredIds.Any()
+            ? await userManager.Users
+                .Where(u => registeredIds.Contains(u.Id) && !u.IsDeleted)
+                .ToListAsync()
+            : [];
+
+        var usersDict = users.ToDictionary(u => u.Id);
+
+        foreach (var group in registeredGroups)
+        {
+            usersDict.TryGetValue(group.Key, out var user);
+            var lastVisit = group.Max(a => a.Date);
+            result.Add(new DoctorPatientType
+            {
+                Id = group.Key,
+                Name = user?.Name ?? group.Key,
+                Identification = user?.IdentificationNumber ?? "",
+                Phone = user?.PhoneNumber ?? "",
+                Type = PatientTypeEnum.Registered,
+                LastVisit = lastVisit.ToDateTime(TimeOnly.MinValue)
+            });
+        }
+
+        // --- Pacientes Invitados ---
+        // Construimos un índice de identificaciones de usuarios registrados para deduplicar:
+        // Si un invitado tiene la misma identificación que un registrado, es la misma persona
+        // (ocurre cuando alguien con cuenta fue agendado como invitado por error).
+        var registeredIdentifications = users
+            .Where(u => !string.IsNullOrWhiteSpace(u.IdentificationNumber))
+            .Select(u => u.IdentificationNumber!.Trim())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        // También un índice para actualizar la última visita si el invitado tiene fecha más reciente
+        var registeredByIdentification = result
+            .ToDictionary(r => r.Identification?.Trim() ?? "", StringComparer.OrdinalIgnoreCase);
+
+        var guestGroups = appointments
+            .Where(a => a.PatientGuestId != null)
+            .GroupBy(a => a.PatientGuestId!)
+            .ToList();
+
+        var guestIds = guestGroups.Select(g => g.Key).ToList();
+        var guests = guestIds.Any()
+            ? await guestRepository.GetByIdsAsync(guestIds, CancellationToken.None)
+            : [];
+        var guestsDict = guests.ToDictionary(g => g.Id);
+
+        foreach (var group in guestGroups)
+        {
+            guestsDict.TryGetValue(group.Key, out var guest);
+            var lastVisit = group.Max(a => a.Date);
+            // La identificación del invitado es su PatientGuestId (que es su número de identificación)
+            var identification = guest?.Id ?? group.Key;
+
+            // Si esta identificación ya existe en los registrados → es el mismo paciente, fusionar
+            if (registeredIdentifications.Contains(identification))
+            {
+                // Actualizar la última visita del registrado si la del invitado es más reciente
+                if (registeredByIdentification.TryGetValue(identification, out var existingRegistered))
+                {
+                    var guestLastVisitDt = lastVisit.ToDateTime(TimeOnly.MinValue);
+                    if (existingRegistered.LastVisit.HasValue && guestLastVisitDt > existingRegistered.LastVisit.Value)
+                        existingRegistered.LastVisit = guestLastVisitDt;
+                }
+                // No agregar duplicado
+                continue;
+            }
+
+            result.Add(new DoctorPatientType
+            {
+                Id             = group.Key,
+                Name           = guest?.Name ?? group.Key,
+                Identification = identification,
+                Phone          = guest?.Phone ?? "",
+                Type           = PatientTypeEnum.Guest,
+                LastVisit      = lastVisit.ToDateTime(TimeOnly.MinValue)
+            });
+        }
+
+        return result.OrderBy(p => p.Name).ToList();
     }
 
     public async Task<ScheduleConfigType> GetScheduleConfigByDoctorIdAsync(

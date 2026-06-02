@@ -23,6 +23,17 @@ public class GuestLookupResultGQL
     public string Type { get; set; } = "";
 }
 
+/// <summary>Paciente visto por un doctor (con fecha de última visita).</summary>
+public class DoctorPatientGQL
+{
+    public string Id { get; set; } = "";
+    public string Name { get; set; } = "";
+    public string Identification { get; set; } = "";
+    public string Phone { get; set; } = "";
+    public string Type { get; set; } = "";
+    public DateTime? LastVisit { get; set; }
+}
+
 /// <summary>Datos del usuario tras verificación de OTP.</summary>
 public class GuestDataGQL
 {

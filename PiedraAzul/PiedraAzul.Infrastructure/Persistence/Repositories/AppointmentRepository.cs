@@ -48,11 +48,15 @@ public class AppointmentRepository : IAppointmentRepository
         DateOnly date,
         CancellationToken ct = default)
     {
+        // Un slot está "tomado" si tiene una cita Active, Completed o NoShow.
+        // Cancelled y Rescheduled liberan el cupo.
         return await _context.Appointments
             .AnyAsync(x =>
                 x.DoctorAvailabilitySlotId == doctorAvailabilitySlotId &&
                 x.Date == date &&
-                x.Status == Domain.Entities.Operations.AppointmentStatus.Active,
+                (x.Status == Domain.Entities.Operations.AppointmentStatus.Active    ||
+                 x.Status == Domain.Entities.Operations.AppointmentStatus.Completed ||
+                 x.Status == Domain.Entities.Operations.AppointmentStatus.NoShow),
                 ct);
     }
 
@@ -61,9 +65,10 @@ public class AppointmentRepository : IAppointmentRepository
         DateOnly? date = null,
         CancellationToken ct = default)
     {
+        // Muestra todas las citas excepto Rescheduled (que es un soft-delete de auditoría)
         var query = _context.Appointments
             .Where(x => x.DoctorId == doctorId &&
-                        x.Status == Domain.Entities.Operations.AppointmentStatus.Active);
+                        x.Status != Domain.Entities.Operations.AppointmentStatus.Rescheduled);
 
         if (date.HasValue)
             query = query.Where(x => x.Date == date.Value);

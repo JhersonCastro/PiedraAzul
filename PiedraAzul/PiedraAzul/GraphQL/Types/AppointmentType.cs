@@ -17,6 +17,12 @@ public class AppointmentType
     public DateTime CreatedAt { get; set; }
     public string Status { get; set; } = "Active";
 
+    /// <summary>True si esta cita proviene de un reagendamiento anterior.</summary>
+    public bool WasRescheduled { get; set; }
+
+    /// <summary>Historial cronológico del linaje de reagendamientos.</summary>
+    public List<AppointmentRescheduleEntryType> RescheduleHistory { get; set; } = [];
+
     public static AppointmentType FromDto(AppointmentDto a) => new()
     {
         Id = a.Id.ToString(),
@@ -30,7 +36,11 @@ public class AppointmentType
         Specialty = a.Specialty,
         Start = a.Start,
         CreatedAt = a.CreatedAt,
-        Status = a.Status
+        Status = a.Status,
+        WasRescheduled = a.WasRescheduled,
+        RescheduleHistory = a.RescheduleHistory
+            .Select(AppointmentRescheduleEntryType.FromDto)
+            .ToList()
     };
 
     public static AppointmentType FromDomain(Domain.Entities.Operations.Appointment a) => new()

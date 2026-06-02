@@ -22,7 +22,7 @@ public class RefreshTokenServiceTests
 
         appointmentRepo.Setup(x => x.ListByDoctorAsync("doc", null, It.IsAny<CancellationToken>())).ReturnsAsync([]);
 
-        var sut = new GetDoctorAppointmentsHandler(appointmentRepo.Object, slotRepo.Object, doctorRepo.Object, identity.Object, guestRepo.Object);
+        var sut = new GetDoctorAppointmentsHandler(appointmentRepo.Object, slotRepo.Object, doctorRepo.Object, identity.Object, guestRepo.Object, new Mock<IAppointmentRescheduleRecordRepository>().Object);
 
         var result = await sut.Handle(new GetDoctorAppointmentsQuery("doc"), CancellationToken.None);
 
@@ -47,7 +47,7 @@ public class RefreshTokenServiceTests
         identity.Setup(x => x.GetByIds(It.IsAny<List<string>>())).ReturnsAsync([new UserDto("user-1", "u@test.com", "User Uno", "")]);
         guestRepo.Setup(x => x.GetByIdsAsync(It.IsAny<List<string>>(), It.IsAny<CancellationToken>())).ReturnsAsync([]);
 
-        var sut = new GetDoctorAppointmentsHandler(appointmentRepo.Object, slotRepo.Object, doctorRepo.Object, identity.Object, guestRepo.Object);
+        var sut = new GetDoctorAppointmentsHandler(appointmentRepo.Object, slotRepo.Object, doctorRepo.Object, identity.Object, guestRepo.Object, new Mock<IAppointmentRescheduleRecordRepository>().Object);
 
         var result = await sut.Handle(new GetDoctorAppointmentsQuery("doc", date), CancellationToken.None);
 
@@ -75,7 +75,7 @@ public class RefreshTokenServiceTests
         guestRepo.Setup(x => x.GetByIdsAsync(It.IsAny<List<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([new GuestPatient("guest-1", "Guest Uno", "300", "")]);
 
-        var sut = new GetDoctorAppointmentsHandler(appointmentRepo.Object, slotRepo.Object, doctorRepo.Object, identity.Object, guestRepo.Object);
+        var sut = new GetDoctorAppointmentsHandler(appointmentRepo.Object, slotRepo.Object, doctorRepo.Object, identity.Object, guestRepo.Object, new Mock<IAppointmentRescheduleRecordRepository>().Object);
 
         var result = await sut.Handle(new GetDoctorAppointmentsQuery("doc", date), CancellationToken.None);
 
@@ -102,7 +102,7 @@ public class RefreshTokenServiceTests
         identity.Setup(x => x.GetByIds(It.IsAny<List<string>>())).ReturnsAsync([new UserDto("user-2", "u2@test.com", "User Dos", "")]);
         guestRepo.Setup(x => x.GetByIdsAsync(It.IsAny<List<string>>(), It.IsAny<CancellationToken>())).ReturnsAsync([]);
 
-        var sut = new GetDoctorAppointmentsHandler(appointmentRepo.Object, slotRepo.Object, doctorRepo.Object, identity.Object, guestRepo.Object);
+        var sut = new GetDoctorAppointmentsHandler(appointmentRepo.Object, slotRepo.Object, doctorRepo.Object, identity.Object, guestRepo.Object, new Mock<IAppointmentRescheduleRecordRepository>().Object);
 
         var result = await sut.Handle(new GetDoctorAppointmentsQuery("doc", date), CancellationToken.None);
 
@@ -127,7 +127,7 @@ public class RefreshTokenServiceTests
         identity.Setup(x => x.GetByIds(It.IsAny<List<string>>())).ReturnsAsync([new UserDto("user-3", "u3@test.com", "User Tres", "")]);
         guestRepo.Setup(x => x.GetByIdsAsync(It.IsAny<List<string>>(), It.IsAny<CancellationToken>())).ReturnsAsync([]);
 
-        var sut = new GetDoctorAppointmentsHandler(appointmentRepo.Object, slotRepo.Object, doctorRepo.Object, identity.Object, guestRepo.Object);
+        var sut = new GetDoctorAppointmentsHandler(appointmentRepo.Object, slotRepo.Object, doctorRepo.Object, identity.Object, guestRepo.Object, new Mock<IAppointmentRescheduleRecordRepository>().Object);
         await sut.Handle(new GetDoctorAppointmentsQuery("doc", date), CancellationToken.None);
 
         appointmentRepo.Verify(x => x.ListByDoctorAsync("doc", date, It.IsAny<CancellationToken>()), Times.Once);

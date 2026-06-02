@@ -8,4 +8,8 @@ public interface IEmailService
     Task<bool> SendMFASetupConfirmationAsync(string email, string userName, string mfaMethod);
     Task<bool> SendGenericEmailAsync(string to, string subject, string htmlBody);
     Task<bool> SendWelcomeWithPasswordAsync(string email, string userName, string tempPassword, string role);
+
+    Task<bool> SendAppointmentCreatedAsync(string email, string patientName, string doctorName, DateTime start);
+    Task<bool> SendAppointmentRescheduledAsync(string email, string patientName, string doctorName, DateTime start);
+    Task<bool> SendAppointmentCancelledAsync(string email, string patientName, string doctorName, DateTime start);
 }

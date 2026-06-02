@@ -1,5 +1,6 @@
 using Mediator;
 using PiedraAzul.Application.Common.Interfaces;
+using PiedraAzul.Application.Common.Notifications;
 using PiedraAzul.Domain.Common.Exceptions;
 using PiedraAzul.Domain.Entities.Operations;
 using PiedraAzul.Domain.Repositories;
@@ -11,20 +12,29 @@ public class CancelAppointmentHandler : IRequestHandler<CancelAppointmentCommand
     private readonly IAppointmentRepository _appointmentRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IAppointmentNotifier _notifier;
+    private readonly IMediator _mediator;
 
     public CancelAppointmentHandler(
         IAppointmentRepository appointmentRepository,
         IUnitOfWork unitOfWork,
-        IAppointmentNotifier notifier)
+        IAppointmentNotifier notifier,
+        IMediator mediator)
     {
         _appointmentRepository = appointmentRepository;
         _unitOfWork = unitOfWork;
         _notifier = notifier;
+        _mediator = mediator;
     }
 
     public async ValueTask<bool> Handle(CancelAppointmentCommand request, CancellationToken ct)
     {
-        return await _unitOfWork.ExecuteAsync(async ct =>
+        string? patientUserId = null;
+        string? patientGuestId = null;
+        string doctorId = "";
+        Guid slotId = default;
+        DateOnly date = default;
+
+        await _unitOfWork.ExecuteAsync(async ct =>
         {
             var appointment = await _appointmentRepository.GetByIdForUpdateAsync(request.AppointmentId, ct)
                 ?? throw new DomainException("Cita no encontrada.");
@@ -35,9 +45,11 @@ public class CancelAppointmentHandler : IRequestHandler<CancelAppointmentCommand
             if (appointment.Status != AppointmentStatus.Active)
                 throw new DomainException("Esta cita ya fue cancelada o reagendada.");
 
-            var slotId    = appointment.DoctorAvailabilitySlotId;
-            var date      = appointment.Date;
-            var doctorId  = appointment.DoctorId;
+            slotId         = appointment.DoctorAvailabilitySlotId;
+            date           = appointment.Date;
+            doctorId       = appointment.DoctorId;
+            patientUserId  = appointment.PatientUserId;
+            patientGuestId = appointment.PatientGuestId;
 
             appointment.Cancel();
             await _appointmentRepository.UpdateAsync(appointment, ct);
@@ -50,5 +62,18 @@ public class CancelAppointmentHandler : IRequestHandler<CancelAppointmentCommand
 
             return true;
         }, ct);
+
+        // Notificar por email fuera de la transacción.
+        await _mediator.Publish(
+            new AppointmentNotification(
+                AppointmentChange.Cancelled,
+                patientUserId,
+                patientGuestId,
+                doctorId,
+                slotId,
+                date),
+            ct);
+
+        return true;
     }
 }

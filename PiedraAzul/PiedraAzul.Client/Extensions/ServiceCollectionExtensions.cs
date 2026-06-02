@@ -16,6 +16,7 @@ public static class SharedClientServicesExtensions
         #region States
         services.AddScoped<UserState>();
         services.AddScoped<UIModeState>();
+        services.AddScoped<DoctorPortalState>();
         #endregion
 
         #region UI Mode

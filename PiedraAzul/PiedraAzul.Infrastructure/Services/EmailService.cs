@@ -108,12 +108,57 @@ public class EmailService : IEmailService
                 _         => role
             };
             var subject = "Bienvenido/a a Piedra Azul — Tu cuenta está lista";
-            var htmlBody = EmailTemplates.WelcomeWithPasswordTemplate(userName, tempPassword, roleLabel);
+            var htmlBody = EmailTemplates.WelcomeWithPasswordTemplate(userName, email, tempPassword, roleLabel);
             return await SendGenericEmailAsync(email, subject, htmlBody);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error sending welcome email to {Email}", email);
+            return false;
+        }
+    }
+
+    public async Task<bool> SendAppointmentCreatedAsync(string email, string patientName, string doctorName, DateTime start)
+    {
+        try
+        {
+            var subject = "Tu cita ha sido agendada — Piedra Azul";
+            var htmlBody = EmailTemplates.AppointmentCreatedTemplate(patientName, doctorName, start);
+            return await SendGenericEmailAsync(email, subject, htmlBody);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending appointment created email to {Email}", email);
+            return false;
+        }
+    }
+
+    public async Task<bool> SendAppointmentRescheduledAsync(string email, string patientName, string doctorName, DateTime start)
+    {
+        try
+        {
+            var subject = "Tu cita ha sido reagendada — Piedra Azul";
+            var htmlBody = EmailTemplates.AppointmentRescheduledTemplate(patientName, doctorName, start);
+            return await SendGenericEmailAsync(email, subject, htmlBody);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending appointment rescheduled email to {Email}", email);
+            return false;
+        }
+    }
+
+    public async Task<bool> SendAppointmentCancelledAsync(string email, string patientName, string doctorName, DateTime start)
+    {
+        try
+        {
+            var subject = "Tu cita ha sido cancelada — Piedra Azul";
+            var htmlBody = EmailTemplates.AppointmentCancelledTemplate(patientName, doctorName, start);
+            return await SendGenericEmailAsync(email, subject, htmlBody);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending appointment cancelled email to {Email}", email);
             return false;
         }
     }

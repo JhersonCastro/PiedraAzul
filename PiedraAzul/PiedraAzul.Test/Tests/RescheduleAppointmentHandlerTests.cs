@@ -1,3 +1,4 @@
+using Mediator;
 using Moq;
 using PiedraAzul.Application.Common.Interfaces;
 using PiedraAzul.Application.Features.Appointments.RescheduleAppointment;
@@ -14,16 +15,31 @@ public class RescheduleAppointmentHandlerTests
     private readonly Mock<IAppointmentRepository> _appointmentRepository = new();
     private readonly Mock<IDoctorAvailabilitySlotRepository> _slotRepository = new();
     private readonly Mock<IAppointmentNotifier> _notifier = new();
+    private readonly Mock<IAppointmentRescheduleRecordRepository> _rescheduleRecordRepository = new();
+    private readonly Mock<IIdentityService> _identityService = new();
+    private readonly Mock<IMediator> _mediator = new();
 
     private readonly RescheduleAppointmentHandler _sut;
 
     public RescheduleAppointmentHandlerTests()
     {
+        // Por defecto: sin roles (no admin). Las pruebas válidas usan al paciente dueño.
+        _identityService
+            .Setup(x => x.GetRolesByUser(It.IsAny<string>()))
+            .ReturnsAsync(new List<string>());
+
+        _rescheduleRecordRepository
+            .Setup(x => x.GetByNewAppointmentIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((AppointmentRescheduleRecord?)null);
+
         _sut = new RescheduleAppointmentHandler(
             _appointmentRepository.Object,
             _slotRepository.Object,
             new ImmediateUnitOfWork(),
-            _notifier.Object);
+            _notifier.Object,
+            _rescheduleRecordRepository.Object,
+            _identityService.Object,
+            _mediator.Object);
     }
 
     [Fact]
@@ -168,6 +184,41 @@ public class RescheduleAppointmentHandlerTests
 
         _appointmentRepository.Verify(x => x.AddAsync(It.IsAny<Appointment>(), It.IsAny<CancellationToken>()), Times.Once);
         _appointmentRepository.Verify(x => x.UpdateAsync(old, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task RescheduleAppointment_CreatesRescheduleRecord()
+    {
+        var (old, newSlot, newDate) = SetupValidReschedule("user-1");
+
+        await _sut.Handle(
+            new RescheduleAppointmentCommand(old.Id, "user-1", newSlot.Id, newDate),
+            CancellationToken.None);
+
+        _rescheduleRecordRepository.Verify(x => x.AddAsync(
+            It.Is<AppointmentRescheduleRecord>(r =>
+                r.OriginalAppointmentId == old.Id &&
+                r.RescheduledByUserId == "user-1" &&
+                r.RootAppointmentId == old.Id),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task RescheduleAppointment_WhenAdminNotOwner_Succeeds()
+    {
+        var (old, newSlot, newDate) = SetupValidReschedule("owner-user");
+
+        _identityService
+            .Setup(x => x.GetRolesByUser("admin-user"))
+            .ReturnsAsync(new List<string> { "Admin" });
+
+        var result = await _sut.Handle(
+            new RescheduleAppointmentCommand(old.Id, "admin-user", newSlot.Id, newDate),
+            CancellationToken.None);
+
+        Assert.Equal(AppointmentStatus.Rescheduled, old.Status);
+        Assert.Equal(newDate, result.Date);
     }
 
     private (Appointment old, DoctorAvailabilitySlot newSlot, DateOnly newDate) SetupValidReschedule(string userId)

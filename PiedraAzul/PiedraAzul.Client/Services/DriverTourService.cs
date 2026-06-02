@@ -1,12 +1,16 @@
 using Microsoft.JSInterop;
+using PiedraAzul.Client.States;
 
 namespace PiedraAzul.Client.Services;
 
-public class DriverTourService(IJSRuntime js)
+public class DriverTourService(IJSRuntime js, UIModeState uiMode)
 {
-    /// <summary>Retorna true si el tour NO se ha visto (debe mostrarse).</summary>
+    /// <summary>Retorna true si el tour NO se ha visto (debe mostrarse). En modo fácil nunca se muestra.</summary>
     public async Task<bool> ShouldShowTourAsync(string tourId)
     {
+        // Los tours apuntan a anclajes de la UI moderna; en modo fácil esa UI no existe.
+        if (uiMode.IsEasy) return false;
+
         try
         {
             var seen = await js.InvokeAsync<bool>("DriverTour.isTourSeen", tourId);
@@ -17,6 +21,9 @@ public class DriverTourService(IJSRuntime js)
 
     public async Task StartTourAsync(string tourId, IEnumerable<string>? roles = null, object? dotnetRef = null)
     {
+        // En modo fácil no hay tours: la UI es distinta y no tiene los anclajes data-tour.
+        if (uiMode.IsEasy) return;
+
         bool isMobile = false;
         try { isMobile = await js.InvokeAsync<bool>("DriverTour.isMobile"); } catch { }
 

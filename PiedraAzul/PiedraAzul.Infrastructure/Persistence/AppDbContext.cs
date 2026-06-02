@@ -17,6 +17,7 @@ namespace PiedraAzul.Infrastructure.Persistence
         public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
         public DbSet<SystemConfig> SystemConfigs => Set<SystemConfig>();
         public DbSet<Appointment> Appointments => Set<Appointment>();
+        public DbSet<AppointmentRescheduleRecord> AppointmentRescheduleRecords => Set<AppointmentRescheduleRecord>();
         public DbSet<Doctor> Doctors => Set<Doctor>();
         public DbSet<DoctorAvailabilitySlot> DoctorAvailabilitySlots => Set<DoctorAvailabilitySlot>();
         public DbSet<Patient> Patients => Set<Patient>();

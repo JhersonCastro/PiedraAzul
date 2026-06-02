@@ -17,11 +17,12 @@ public class PatientRepository(AppDbContext context) : IPatientRepository
 
     public async Task<IReadOnlyList<RegisteredPatient>> SearchAsync(string text, CancellationToken ct = default)
     {
+        // ILike = case-insensitive LIKE en PostgreSQL
         return await context.Patients
             .OfType<RegisteredPatient>()
-            .Where(x => EF.Functions.Like(x.Name, $"%{text}%"))
+            .Where(x => EF.Functions.ILike(x.Name, $"%{text}%"))
             .OrderBy(x => x.Name)
-            .Take(10)
+            .Take(15)
             .AsNoTracking()
             .ToListAsync(ct);
     }
