@@ -7,15 +7,12 @@ on:
   workflow_dispatch:
 
 jobs:
-  # ──────────────────────────────────────────
-  #  1. Build, test y publish
-  # ──────────────────────────────────────────
+
   build:
-    name: Build, Test & Publish
+    name: Build
     runs-on: ubuntu-latest
     permissions:
       contents: read
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,17 +23,65 @@ jobs:
           dotnet-version: '10.x'
 
       - name: Restore dependencies
-        run: dotnet restore PiedraAzul/PiedraAzul/PiedraAzul.csproj
-
-      - name: Test
         run: |
+          dotnet restore PiedraAzul/PiedraAzul/PiedraAzul.csproj
           dotnet restore PiedraAzul/PiedraAzul.Test/PiedraAzul.Test.csproj
+
+      - name: Cache NuGet packages
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/PiedraAzul/PiedraAzul/PiedraAzul.csproj', '**/PiedraAzul/PiedraAzul.Test/PiedraAzul.Test.csproj') }}
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - name: Restore cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/PiedraAzul/PiedraAzul/PiedraAzul.csproj', '**/PiedraAzul/PiedraAzul.Test/PiedraAzul.Test.csproj') }}
+
+      - name: Run tests
+        run: |
           dotnet test PiedraAzul/PiedraAzul.Test/PiedraAzul.Test.csproj \
             --configuration Release \
-            --verbosity normal \
-            --logger "trx;LogFileName=results.trx"
+            --verbosity normal
 
-      - name: Publish
+  publish:
+    name: Publish
+    runs-on: ubuntu-latest
+    needs: test
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - name: Restore cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/PiedraAzul/PiedraAzul/PiedraAzul.csproj', '**/PiedraAzul/PiedraAzul.Test/PiedraAzul.Test.csproj') }}
+
+      - name: Publish app
         run: |
           dotnet publish PiedraAzul/PiedraAzul/PiedraAzul.csproj \
             --configuration Release \
@@ -53,35 +98,12 @@ jobs:
           path: ./publish
           retention-days: 3
 
-      - name: Build summary
-        if: always()
-        run: |
-          echo "## Build, Test & Publish" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Paso | Detalle |" >> $GITHUB_STEP_SUMMARY
-          echo "|------|---------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Repositorio | \`${{ github.repository }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Rama | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Commit | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Ejecutado por | \`${{ github.actor }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| .NET | 10.x |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Pasos" >> $GITHUB_STEP_SUMMARY
-          echo "- Restore de dependencias" >> $GITHUB_STEP_SUMMARY
-          echo "- Tests ejecutados en Release" >> $GITHUB_STEP_SUMMARY
-          echo "- Publish generado en \`./publish\`" >> $GITHUB_STEP_SUMMARY
-          echo "- \`appsettings.Production.json\` inyectado desde secreto" >> $GITHUB_STEP_SUMMARY
-
-  # ──────────────────────────────────────────
-  #  2. Deploy via FTP a MonsterASP.NET
-  # ──────────────────────────────────────────
   deploy:
-    name: Deploy to MonsterASP.NET
+    name: Deploy
     runs-on: ubuntu-latest
-    needs: build
+    needs: publish
     permissions:
       contents: read
-
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v4
@@ -89,8 +111,6 @@ jobs:
           name: published-app
           path: ./publish
 
-      # Sube app_offline.htm para que ASP.NET Core libere los DLLs bloqueados por IIS.
-      # Sin esto el FTP falla con error 550 al intentar reemplazar archivos en uso.
       - name: Take app offline
         run: |
           echo "<h1>Actualizando PiedraAzul...</h1>" > app_offline.htm
@@ -113,7 +133,6 @@ jobs:
             **/*.pdb
             **/BlazorDebugProxy/**
 
-      # Elimina app_offline.htm para que el sitio vuelva a estar disponible.
       - name: Bring app online
         if: always()
         run: |
@@ -129,7 +148,8 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Campo | Valor |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Rama | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Ejecutado por | \`${{ github.actor }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| Servidor | \`site62559.siteasp.net\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Destino | \`/wwwroot/\` |" >> $GITHUB_STEP_SUMMARY
           echo "| URL | [piedraazul.runasp.net](http://piedraazul.runasp.net) |" >> $GITHUB_STEP_SUMMARY
-          echo "| Método | FTP |" >> $GITHUB_STEP_SUMMARY
