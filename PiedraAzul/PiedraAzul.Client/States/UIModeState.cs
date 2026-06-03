@@ -12,6 +12,12 @@ public class UIModeState
 
     public event Action? OnModeChanged;
 
+    /// <summary>
+    /// Fired once when the user completes the first-time UI setup modal.
+    /// Each page subscribes to this to start its own tour if the chosen mode is Modern.
+    /// </summary>
+    public event Action<UIMode>? OnSetupComplete;
+
     public bool IsEasy => CurrentMode == UIMode.Easy;
 
     public void SetMode(UIMode mode)
@@ -20,6 +26,9 @@ public class UIModeState
         CurrentMode = mode;
         OnModeChanged?.Invoke();
     }
+
+    public void NotifySetupComplete(UIMode chosenMode) =>
+        OnSetupComplete?.Invoke(chosenMode);
 
     public void Toggle() => SetMode(CurrentMode == UIMode.Modern ? UIMode.Easy : UIMode.Modern);
 }

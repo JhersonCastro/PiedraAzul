@@ -5,6 +5,8 @@ namespace PiedraAzul.Client.Services;
 
 public class DriverTourService(IJSRuntime js, UIModeState uiMode)
 {
+    private const string SetupKey = "uiModeSetup";
+
     /// <summary>Retorna true si el tour NO se ha visto (debe mostrarse). En modo fácil nunca se muestra.</summary>
     public async Task<bool> ShouldShowTourAsync(string tourId)
     {
@@ -13,6 +15,11 @@ public class DriverTourService(IJSRuntime js, UIModeState uiMode)
 
         try
         {
+            // No mostrar el tour si el usuario todavía no ha completado el selector de modo UI.
+            // Evita que el tour de DriverJS y el modal de configuración se solapen en la primera visita.
+            var setupDone = await js.InvokeAsync<string?>("localStorage.getItem", SetupKey);
+            if (setupDone is null) return false;
+
             var seen = await js.InvokeAsync<bool>("DriverTour.isTourSeen", tourId);
             return !seen;
         }

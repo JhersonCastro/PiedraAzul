@@ -578,6 +578,8 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        UIModeState.OnSetupComplete += OnSetupComplete;
+
         if (UserState.User is not null)
         {
             _user = UserState.User;
@@ -656,7 +658,18 @@ else
         return Task.CompletedTask;
     }
 
-    public void Dispose() => _tourRef?.Dispose();
+    // Llamado por UIModeWelcomeModal cuando el usuario elige un modo por primera vez.
+    private void OnSetupComplete(UIMode chosenMode)
+    {
+        if (chosenMode == UIMode.Modern)
+            _ = StartTourAsync();
+    }
+
+    public void Dispose()
+    {
+        UIModeState.OnSetupComplete -= OnSetupComplete;
+        _tourRef?.Dispose();
+    }
 
     private async void SetMobileTab(string tab, string title)
     {
