@@ -2,6 +2,7 @@
 @using PiedraAzul.Client.Services
 @using PiedraAzul.Client.States
 @using PiedraAzul.Client.UI.Features.Account.Components
+@using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.JSInterop
 @implements IDisposable
 @inject DriverTourService DriverTourService
@@ -21,62 +22,141 @@ else
                 OnStartTour="StartTourAsync"
                 OnSkipTour="StateHasChanged" />
 
-<section data-tour="home-hero" class="hero">
-    <div>
-        <h1 class="hero-heading">Tu bienestar es nuestra prioridad</h1>
-        <p class="hero-text">Medicina alternativa y terapias especializadas para una vida plena, activa y sin dolor. Atención cálida pensada en usted.</p>
-        <div class="hero-actions">
-            <a data-tour="home-bottom-section" href="/consulta" class="hero-cta">Ayúdame a elegir</a>
-            <div class="hero-badge">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6 stroke-teal-700">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
-                </svg>
-                <span class="hero-badge-text">Clínica Certificada</span>
-            </div>
-        </div>
-    </div>
-    <div>
-        <img src="https://images.unsplash.com/photo-1584515933487-779824d29309" class="rounded-xl border-4 border-transparent shadow-lg outline-2 outline-gray-200" />
-    </div>
-</section>
+<AuthorizeView>
 
-<section class="section-alt">
-    <div class="section-center">
-        <h2 class="section-heading-lg">Agenda tu cita de forma sencilla</h2>
-        <p class="section-sub">Elija el método que más le acomode para recibir atención médica profesional.</p>
-    </div>
+    <Authorized Context="authCtx">
 
-    <div class="section-grid-2">
-        <a data-tour="home-signin-card" href="/account" class="booking-card group">
-            <div class="overflow-hidden">
-                <img src="https://images.unsplash.com/photo-1758983308742-f4ba1f8c8cb4?q=80&w=1364&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" class="booking-card-img group-hover:scale-105" alt="Registro e Inicio Seguro" />
-            </div>
-            <div class="booking-card-body">
-                <div class="booking-card-icon-row">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                    <h3 class="booking-card-title">Inicia Sesión / Regístrate</h3>
+        @{ var firstName = (authCtx.User.FindFirst("name")?.Value
+                           ?? authCtx.User.FindFirst(System.Security.Claims.ClaimTypes.GivenName)?.Value
+                           ?? "")
+                          .Split(' ')[0]; }
+
+        <section data-tour="home-hero" class="hero">
+            <div>
+                <p class="text-sm font-semibold text-[#257D8D] mb-1 tracking-wide uppercase">
+                    Bienvenido@(string.IsNullOrEmpty(firstName) ? "" : $", {firstName}") 👋
+                </p>
+                <h1 class="hero-heading">Tu bienestar es nuestra prioridad</h1>
+                <p class="hero-text">Medicina alternativa y terapias especializadas para una vida plena, activa y sin dolor. Atención cálida pensada en usted.</p>
+                <div class="hero-actions">
+                    <a data-tour="home-bottom-section" href="/consulta" class="hero-cta">Ayúdame a elegir</a>
+                    <div class="hero-badge">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6 stroke-teal-700">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
+                        </svg>
+                        <span class="hero-badge-text">Clínica Certificada</span>
+                    </div>
                 </div>
-                <p class="booking-card-text">Acceda a su historial médico completo, revise resultados y gestione todas sus citas en un solo lugar.</p>
-                <span class="booking-card-btn group-hover:bg-[#1a5b67]">Entrar a mi cuenta</span>
             </div>
-        </a>
+            <div>
+                <img src="https://images.unsplash.com/photo-1584515933487-779824d29309" class="rounded-xl border-4 border-transparent shadow-lg outline-2 outline-gray-200" />
+            </div>
+        </section>
 
-        <a data-tour="home-quickbook-card" href="/instant-medical-booking" class="booking-card group">
-            <div class="overflow-hidden">
-                <img src="https://images.unsplash.com/photo-1676311522524-fa7c0bffd644?q=80&w=800&auto=format&fit=crop" class="booking-card-img group-hover:scale-105" alt="Reserva de Cita Rápida" />
+        <section class="section-alt">
+            <div class="section-center">
+                <h2 class="section-heading-lg">Agenda tu cita de forma sencilla</h2>
+                <p class="section-sub">Elija el método que más le acomode para recibir atención médica profesional.</p>
             </div>
-            <div class="booking-card-body">
-                <span class="booking-card-badge">MÁS RÁPIDO</span>
-                <div class="booking-card-icon-row">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-primary"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                    <h3 class="booking-card-title">Reserva Rápida (Sin Cuenta)</h3>
+
+            <div class="section-grid-2">
+                <!-- Card 1: Mi cuenta (ya está logueado, no tiene sentido "Inicia sesión") -->
+                <a data-tour="home-signin-card" href="/account" class="booking-card group">
+                    <div class="overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1758983308742-f4ba1f8c8cb4?q=80&w=1364&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" class="booking-card-img group-hover:scale-105" alt="Mi cuenta" />
+                    </div>
+                    <div class="booking-card-body">
+                        <div class="booking-card-icon-row">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            <h3 class="booking-card-title">Mis citas y cuenta</h3>
+                        </div>
+                        <p class="booking-card-text">Acceda a su historial médico completo, revise sus próximas citas y gestione su perfil en un solo lugar.</p>
+                        <span class="booking-card-btn group-hover:bg-[#1a5b67]">Ir a mi cuenta</span>
+                    </div>
+                </a>
+
+                <!-- Card 2: Reservar cita con cuenta → /medical-booking -->
+                <a data-tour="home-quickbook-card" href="/medical-booking" class="booking-card group">
+                    <div class="overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1676311522524-fa7c0bffd644?q=80&w=800&auto=format&fit=crop" class="booking-card-img group-hover:scale-105" alt="Reservar cita" />
+                    </div>
+                    <div class="booking-card-body">
+                        <span class="booking-card-badge">MÁS RÁPIDO</span>
+                        <div class="booking-card-icon-row">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-primary"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                            <h3 class="booking-card-title">Reservar cita ahora</h3>
+                        </div>
+                        <p class="booking-card-text">Agende su próxima cita en segundos con su cuenta. Su historial y datos ya están listos.</p>
+                        <span class="booking-card-btn group-hover:bg-[#1a5b67]">Reservar ahora</span>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+    </Authorized>
+
+    <NotAuthorized>
+
+        <section data-tour="home-hero" class="hero">
+            <div>
+                <h1 class="hero-heading">Tu bienestar es nuestra prioridad</h1>
+                <p class="hero-text">Medicina alternativa y terapias especializadas para una vida plena, activa y sin dolor. Atención cálida pensada en usted.</p>
+                <div class="hero-actions">
+                    <a data-tour="home-bottom-section" href="/consulta" class="hero-cta">Ayúdame a elegir</a>
+                    <div class="hero-badge">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6 stroke-teal-700">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
+                        </svg>
+                        <span class="hero-badge-text">Clínica Certificada</span>
+                    </div>
                 </div>
-                <p class="booking-card-text">Agende solo con su número de teléfono. Le enviaremos un código SMS para confirmar.</p>
-                <span class="booking-card-btn group-hover:bg-[#1a5b67]">Reservar ahora</span>
             </div>
-        </a>
-    </div>
-</section>
+            <div>
+                <img src="https://images.unsplash.com/photo-1584515933487-779824d29309" class="rounded-xl border-4 border-transparent shadow-lg outline-2 outline-gray-200" />
+            </div>
+        </section>
+
+        <section class="section-alt">
+            <div class="section-center">
+                <h2 class="section-heading-lg">Agenda tu cita de forma sencilla</h2>
+                <p class="section-sub">Elija el método que más le acomode para recibir atención médica profesional.</p>
+            </div>
+
+            <div class="section-grid-2">
+                <a data-tour="home-signin-card" href="/account/auth" class="booking-card group">
+                    <div class="overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1758983308742-f4ba1f8c8cb4?q=80&w=1364&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" class="booking-card-img group-hover:scale-105" alt="Registro e Inicio Seguro" />
+                    </div>
+                    <div class="booking-card-body">
+                        <div class="booking-card-icon-row">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            <h3 class="booking-card-title">Inicia Sesión / Regístrate</h3>
+                        </div>
+                        <p class="booking-card-text">Acceda a su historial médico completo, revise resultados y gestione todas sus citas en un solo lugar.</p>
+                        <span class="booking-card-btn group-hover:bg-[#1a5b67]">Entrar a mi cuenta</span>
+                    </div>
+                </a>
+
+                <a data-tour="home-quickbook-card" href="/instant-medical-booking" class="booking-card group">
+                    <div class="overflow-hidden">
+                        <img src="https://images.unsplash.com/photo-1676311522524-fa7c0bffd644?q=80&w=800&auto=format&fit=crop" class="booking-card-img group-hover:scale-105" alt="Reserva de Cita Rápida" />
+                    </div>
+                    <div class="booking-card-body">
+                        <span class="booking-card-badge">MÁS RÁPIDO</span>
+                        <div class="booking-card-icon-row">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-primary"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                            <h3 class="booking-card-title">Reserva Rápida (Sin Cuenta)</h3>
+                        </div>
+                        <p class="booking-card-text">Agende solo con su número de teléfono. Le enviaremos un código SMS para confirmar.</p>
+                        <span class="booking-card-btn group-hover:bg-[#1a5b67]">Reservar ahora</span>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+    </NotAuthorized>
+
+</AuthorizeView>
 
 <section class="section-plain">
     <div class="section-inner">
@@ -114,6 +194,11 @@ else
 @code {
     private DotNetObjectReference<Home>? _tourRef;
 
+    protected override void OnInitialized()
+    {
+        UIModeState.OnSetupComplete += OnSetupComplete;
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -122,6 +207,13 @@ else
             if (shouldShow)
                 await StartTourAsync();
         }
+    }
+
+    // Llamado por UIModeWelcomeModal cuando el usuario elige un modo por primera vez.
+    private void OnSetupComplete(UIMode chosenMode)
+    {
+        if (chosenMode == UIMode.Modern)
+            _ = StartTourAsync();
     }
 
     private async Task StartTourAsync()
@@ -133,5 +225,9 @@ else
     [JSInvokable]
     public Task TourNavigateToTab(string tab) => Task.CompletedTask;
 
-    public void Dispose() => _tourRef?.Dispose();
+    public void Dispose()
+    {
+        UIModeState.OnSetupComplete -= OnSetupComplete;
+        _tourRef?.Dispose();
+    }
 }
