@@ -1,4 +1,4 @@
-/*! tailwindcss v4.2.4 | MIT License | https://tailwindcss.com */
+/*! tailwindcss v4.3.0 | MIT License | https://tailwindcss.com */
 @layer properties;
 @layer theme, base, components, utilities;
 @layer theme {
@@ -349,12 +349,6 @@
   }
   .inset-y-0 {
     inset-block: calc(var(--spacing) * 0);
-  }
-  .start {
-    inset-inline-start: var(--spacing);
-  }
-  .end {
-    inset-inline-end: var(--spacing);
   }
   .-top-10 {
     top: calc(var(--spacing) * -10);
@@ -1204,6 +1198,9 @@
   .border-\[\#257D8D\] {
     border-color: #257D8D;
   }
+  .border-\[\#257D8D\]\/100 {
+    border-color: #257D8D;
+  }
   .border-\[\#BAE6FD\] {
     border-color: #BAE6FD;
   }
@@ -1366,6 +1363,9 @@
   .bg-\[\#257D8D\] {
     background-color: #257D8D;
   }
+  .bg-\[\#257D8D\]\/20 {
+    background-color: color-mix(in oklab, #257D8D 20%, transparent);
+  }
   .bg-\[\#CBD5E1\] {
     background-color: #CBD5E1;
   }
@@ -1386,6 +1386,9 @@
   }
   .bg-\[\#e8f4f6\] {
     background-color: #e8f4f6;
+  }
+  .bg-\[\#e8f4f6\]\/90 {
+    background-color: color-mix(in oklab, #e8f4f6 90%, transparent);
   }
   .bg-\[\#e8f5f3\] {
     background-color: #e8f5f3;
@@ -1968,6 +1971,9 @@
   .text-\[\#0F172A\] {
     color: #0F172A;
   }
+  .text-\[\#0F172A\]\/90 {
+    color: color-mix(in oklab, #0F172A 90%, transparent);
+  }
   .text-\[\#1e7168\] {
     color: #1e7168;
   }
@@ -1982,6 +1988,12 @@
   }
   .text-\[\#257D8D\] {
     color: #257D8D;
+  }
+  .text-\[\#257D8D\]\/70 {
+    color: color-mix(in oklab, #257D8D 70%, transparent);
+  }
+  .text-\[\#257D8D\]\/80 {
+    color: color-mix(in oklab, #257D8D 80%, transparent);
   }
   .text-\[\#0284C7\] {
     color: #0284C7;
@@ -2003,6 +2015,9 @@
   }
   .text-\[\#475569\] {
     color: #475569;
+  }
+  .text-\[\#526071\]\/70 {
+    color: color-mix(in oklab, #526071 70%, transparent);
   }
   .text-\[\#E11D48\] {
     color: #E11D48;
@@ -2725,6 +2740,13 @@
       }
     }
   }
+  .hover\:bg-\[\#257D8D\]\/10 {
+    &:hover {
+      @media (hover: hover) {
+        background-color: color-mix(in oklab, #257D8D 10%, transparent);
+      }
+    }
+  }
   .hover\:bg-\[\#F8FAFC\] {
     &:hover {
       @media (hover: hover) {
@@ -3282,6 +3304,11 @@
   .md\:mb-3 {
     @media (width >= 48rem) {
       margin-bottom: calc(var(--spacing) * 3);
+    }
+  }
+  .md\:mb-5 {
+    @media (width >= 48rem) {
+      margin-bottom: calc(var(--spacing) * 5);
     }
   }
   .md\:block {
