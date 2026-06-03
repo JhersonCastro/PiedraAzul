@@ -37,11 +37,11 @@
                 @if (_stage == Stage.SelectChannel)
                 {
                     <div class="space-y-4">
-                        <div class="flex items-start gap-3 rounded-xl bg-teal-50 border border-teal-200 px-4 py-3">
-                            <svg class="w-5 h-5 text-teal-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <div class="flex items-start gap-3 rounded-xl bg-[#e8f5f3] border border-[#257D8D]/30 px-4 py-3">
+                            <svg class="w-5 h-5 text-[#257D8D] flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            <p class="text-sm text-teal-800">
+                            <p class="text-sm text-[#257D8D]">
                                 Para continuar, verifica tu identidad. Te enviaremos un código por el canal que elijas.
                             </p>
                         </div>
@@ -49,33 +49,31 @@
                         <div>
                             <p class="mb-3 text-sm font-semibold text-slate-700">¿Cómo quieres recibir el código?</p>
                             <div class="space-y-2">
-                                @if (HasPhone)
-                                {
-                                    <button type="button"
-                                            @onclick='() => _selectedChannel = "sms"'
-                                            class="w-full flex items-center gap-3 rounded-xl border-2 p-3 transition text-left
-                                                   @(_selectedChannel == "sms" ? "border-teal-600 bg-teal-50" : "border-slate-200 hover:border-slate-300")">
-                                        <svg class="h-6 w-6 flex-shrink-0 @(_selectedChannel == "sms" ? "text-teal-600" : "text-slate-500")" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                                                @if (HasPhone)
+                                                                {
+                                                                        <button type="button"
+                                                                                        @onclick='() => _selectedChannel = "sms"'
+                                                                                            class="w-full flex items-center gap-3 rounded-xl border-2 p-3 transition text-left @(_selectedChannel == "sms" ? "border-[#257D8D] bg-[#e8f5f3]" : "border-slate-200 hover:border-slate-300")">
+                                                                                         <svg class="h-6 w-6 flex-shrink-0 @(_selectedChannel == "sms" ? "text-[#257D8D]" : "text-slate-500")" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                                         </svg>
                                         <div class="flex flex-col">
-                                            <span class="text-xs font-semibold @(_selectedChannel == "sms" ? "text-teal-700" : "text-slate-700")">SMS</span>
+                                            <span class="text-xs font-semibold @(_selectedChannel == "sms" ? "text-[#257D8D]" : "text-slate-700")">SMS</span>
                                             <span class="text-xs text-slate-600">@MaskedPhone</span>
                                         </div>
                                     </button>
                                 }
 
-                                @if (HasEmail)
-                                {
-                                    <button type="button"
-                                            @onclick='() => _selectedChannel = "email"'
-                                            class="w-full flex items-center gap-3 rounded-xl border-2 p-3 transition text-left
-                                                   @(_selectedChannel == "email" ? "border-teal-600 bg-teal-50" : "border-slate-200 hover:border-slate-300")">
-                                        <svg class="h-6 w-6 flex-shrink-0 @(_selectedChannel == "email" ? "text-teal-600" : "text-slate-500")" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                                                @if (HasEmail)
+                                                                {
+                                                                        <button type="button"
+                                                                                        @onclick='() => _selectedChannel = "email"'
+                                                                                            class="w-full flex items-center gap-3 rounded-xl border-2 p-3 transition text-left @(_selectedChannel == "email" ? "border-[#257D8D] bg-[#e8f5f3]" : "border-slate-200 hover:border-slate-300")">
+                                                                                         <svg class="h-6 w-6 flex-shrink-0 @(_selectedChannel == "email" ? "text-[#257D8D]" : "text-slate-500")" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                                             <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                                         </svg>
                                         <div class="flex flex-col">
-                                            <span class="text-xs font-semibold @(_selectedChannel == "email" ? "text-teal-700" : "text-slate-700")">Email</span>
+                                            <span class="text-xs font-semibold @(_selectedChannel == "email" ? "text-[#257D8D]" : "text-slate-700")">Email</span>
                                             <span class="text-xs text-slate-600">@MaskedEmail</span>
                                         </div>
                                     </button>
@@ -109,7 +107,7 @@
                                maxlength="6"
                                placeholder="000000"
                                class="w-44 rounded-xl border-2 border-slate-300 px-4 py-3 text-center text-2xl
-                                      font-bold tracking-widest focus:border-teal-600 focus:outline-none" />
+                                       font-bold tracking-widest focus:border-[#257D8D] focus:outline-none" />
 
                         @if (!string.IsNullOrEmpty(_error))
                         {
@@ -123,9 +121,9 @@
                             @(IsLoading ? "Verificando..." : "Verificar")
                         </button>
 
-                        <button type="button"
+                            <button type="button"
                                 @onclick="GoBackToChannel"
-                                class="text-xs text-teal-700 underline hover:text-teal-900">
+                                class="text-xs text-[#257D8D] underline hover:text-[#1E5F6F]">
                             ¿No recibiste el código? Volver a enviar
                         </button>
                     </div>
@@ -152,13 +150,13 @@
 
                         <div>
                             <label class="label-modal">Teléfono</label>
-                            <input type="tel"
-                                   @bind="_editPhone"
+                               <input type="text"
+                                   @bind="_otpCode"
                                    @bind:event="oninput"
-                                   class="input-modal" />
-                        </div>
-
-                        <div>
+                                   maxlength="6"
+                                   placeholder="000000"
+                                   class="w-44 rounded-xl border-2 border-slate-300 px-4 py-3 text-center text-2xl
+                                       font-bold tracking-widest focus:border-[#257D8D] focus:outline-none" />
                             <label class="label-modal">Email <span class="text-slate-400">(opcional)</span></label>
                             <input type="email"
                                    @bind="_editEmail"

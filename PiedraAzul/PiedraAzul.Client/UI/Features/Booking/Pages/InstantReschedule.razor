@@ -20,8 +20,8 @@ else
 
         <!-- Header -->
         <div class="mb-8 text-center">
-            <div class="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-100">
-                <svg class="h-7 w-7 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <div class="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#e8f5f3]">
+                <svg class="h-7 w-7 text-[#257D8D]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
             </div>
@@ -41,7 +41,7 @@ else
                 <h2 class="text-lg font-bold text-green-800">¡Cita reagendada!</h2>
                 <p class="mt-1 text-sm text-green-700">Tu cita fue reagendada exitosamente.</p>
                 <button @onclick="ResetAll"
-                        class="mt-5 rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-teal-700 transition">
+                    class="mt-5 rounded-xl bg-[#257D8D] px-5 py-2.5 text-sm font-bold text-white hover:bg-[#1E5F6F] transition">
                     Reagendar otra cita
                 </button>
             </div>
@@ -53,7 +53,7 @@ else
                 <label class="label-sm">Número de identificación</label>
                 <input @bind="_identification" @bind:event="oninput" @onkeydown="OnIdKeyDown"
                        type="text" placeholder="Ej: 1150064123"
-                       class="w-full rounded-xl border-2 border-slate-200 px-4 py-3 text-sm focus:border-teal-500 focus:outline-none transition" />
+                       class="w-full rounded-xl border-2 border-slate-200 px-4 py-3 text-sm focus:border-[#257D8D] focus:outline-none transition" />
 
                 @if (!string.IsNullOrEmpty(_error))
                 {
@@ -62,7 +62,7 @@ else
 
                 <button @onclick="StartSearchAsync"
                         disabled="@(_searching || string.IsNullOrWhiteSpace(_identification))"
-                        class="mt-4 w-full rounded-xl bg-teal-600 py-3 text-sm font-bold text-white hover:bg-teal-700 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                        class="mt-4 w-full rounded-xl bg-[#257D8D] py-3 text-sm font-bold text-white hover:bg-[#1E5F6F] transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
                     @if (_searching)
                     {
                         <div class="h-4 w-4 animate-spin rounded-full border-b-2 border-white"></div>
@@ -77,7 +77,7 @@ else
             <div>
                 <div class="mb-4 flex items-center gap-2">
                     <button @onclick="() => { _stage = Stage.Identification; _error = null; }"
-                            class="flex items-center gap-1 text-sm text-slate-500 hover:text-teal-600 transition">
+                            class="flex items-center gap-1 text-sm text-slate-500 hover:text-[#257D8D] transition">
                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
                         </svg>
@@ -93,8 +93,8 @@ else
 
                 @if (_loadingAppointments)
                 {
-                    <div class="flex justify-center py-16">
-                        <div class="h-7 w-7 animate-spin rounded-full border-b-2 border-teal-600"></div>
+                        <div class="flex justify-center py-16">
+                        <div class="h-7 w-7 animate-spin rounded-full border-b-2 border-[#257D8D]"></div>
                     </div>
                 }
                 else if (_appointments.Count == 0)
@@ -131,7 +131,7 @@ else
                                     <p class="mt-1 text-[12px] text-[#64748B] capitalize">@dateStr · @timeStr</p>
                                 </div>
                                 <button @onclick="() => OpenRescheduleModal(appt)"
-                                        class="flex-shrink-0 flex items-center gap-1.5 rounded-xl border border-[#257D8D] px-3 py-1.5 text-[12px] font-semibold text-[#257D8D] hover:bg-teal-50 transition">
+                                        class="flex-shrink-0 flex items-center gap-1.5 rounded-xl border border-[#257D8D] px-3 py-1.5 text-[12px] font-semibold text-[#257D8D] hover:bg-[#e8f5f3] transition">
                                     <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                                     </svg>
