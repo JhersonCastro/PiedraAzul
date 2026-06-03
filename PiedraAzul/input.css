@@ -122,16 +122,16 @@
     @apply w-full rounded-lg bg-[#257D8D] py-3 font-semibold text-white shadow-md transition duration-200 hover:bg-[#1E5F6F] disabled:opacity-60;
   }
 
-  /* --- Botón acción teal-700 full width (modals) --- */
+  /* --- Botón acción: color primario #257D8D full width (modals) --- */
   /* Usado en: ChannelValidationModal, PatientVerificationModal, PatientSearchModal */
   .btn-action {
-    @apply w-full rounded-lg bg-teal-700 py-2.5 text-sm font-bold text-white transition hover:bg-teal-800 disabled:opacity-50;
+    @apply w-full rounded-lg bg-[#257D8D] py-2.5 text-sm font-bold text-white transition hover:bg-[#1E5F6F] disabled:opacity-50;
   }
 
   /* --- Botón acción teal-700 inline con icono --- */
   /* Usado en: UserFormModal, PatientSearchModal, UserManagement */
   .btn-action-inline {
-    @apply flex items-center gap-2 rounded-lg bg-teal-700 px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-teal-800 disabled:opacity-60;
+    @apply flex items-center gap-2 rounded-lg bg-[#257D8D] px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-[#1E5F6F] disabled:opacity-60;
   }
 
   /* --- Botón secondary gris py-3 full width --- */
