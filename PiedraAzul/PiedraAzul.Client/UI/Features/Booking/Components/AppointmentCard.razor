@@ -61,8 +61,8 @@
                 }
             </div>
 
-            <!-- Actions -->
-            @if ((AllowReschedule || OnCancelClick.HasDelegate) && _isFuture)
+            <!-- Actions: solo si es Active + futuro -->
+            @if ((AllowReschedule || OnCancelClick.HasDelegate) && _isFuture && Appointment.Status == "Active")
             {
                 <div class="flex flex-shrink-0 items-center gap-1.5">
                     @if (AllowReschedule)
@@ -149,7 +149,7 @@
     private void ToggleHistory() => _showHistory = !_showHistory;
 
     private static DateTime ToLocal(DateTime utc)
-        => DateTime.SpecifyKind(utc, DateTimeKind.Utc).ToLocalTime();
+        => DateTime.SpecifyKind(utc, DateTimeKind.Utc);
 
     private string DisplayWho(AppointmentRescheduleEntryGQL entry)
     {

@@ -79,7 +79,7 @@
                             {
                                 <tr class="table-row">
                                     <td class="px-5 py-4">
-                                        <span class="font-semibold text-[#0F172A]">@app.Start.ToLocalTime().ToString("hh:mm tt")</span>
+                                        <span class="font-semibold text-[#0F172A]">@app.Start.ToString("hh:mm tt")</span>
                                     </td>
                                     <td class="px-5 py-4">
                                         <p class="font-medium text-[#0F172A]">@(string.IsNullOrWhiteSpace(app.PatientName) ? "Sin nombre" : app.PatientName)</p>
@@ -240,13 +240,13 @@
 
     /// <summary>
     /// Determina si la cita ya comenzó.
-    /// Comparamos en el MISMO frame que usa el display (app.Start.ToLocalTime()).
+    /// Comparamos en el MISMO frame que usa el display (app.Start).
     /// Así HasStarted es consistente con la hora que ve el usuario en la tabla,
     /// sin importar el Kind con el que llegue app.Start desde el backend.
     /// </summary>
     private static bool HasStarted(AppointmentGQL app)
     {
-        return app.Start.ToLocalTime() <= DateTime.Now;
+        return app.Start <= DateTime.Now;
     }
 
     private record StatusInfo(string Label, string BadgeClass, string DotClass);

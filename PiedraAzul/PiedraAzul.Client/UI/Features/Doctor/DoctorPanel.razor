@@ -59,7 +59,7 @@
             <div class="stat-card">
                 <p class="stat-label">Pendientes</p>
                 <p class="stat-value text-amber-500">@Pendientes</p>
-                <p class="stat-sub">Siguiente: @(SiguienteCita != null ? SiguienteCita.Start.ToLocalTime().ToString("hh:mm tt") : "N/A")</p>
+                <p class="stat-sub">Siguiente: @(SiguienteCita != null ? SiguienteCita.Start.ToString("hh:mm tt") : "N/A")</p>
             </div>
         </div>
 
@@ -133,7 +133,7 @@
                 Pendientes = TodaysAppointments.Count(a => a.Status == "Active");
                 var now = DateTime.Now;
                 SiguienteCita = TodaysAppointments
-                    .Where(a => a.Start.ToLocalTime() >= now && a.Status == "Active")
+                    .Where(a => a.Start >= now && a.Status == "Active")
                     .OrderBy(a => a.Start)
                     .FirstOrDefault();
             }

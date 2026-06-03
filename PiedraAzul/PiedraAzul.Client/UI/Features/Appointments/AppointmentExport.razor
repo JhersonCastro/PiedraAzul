@@ -201,7 +201,7 @@
     private static AppointmentVM Map(AppointmentGQL a, string specialty) => new()
     {
         Patient   = string.IsNullOrWhiteSpace(a.PatientName) ? "Paciente" : a.PatientName,
-        Time      = a.Start.ToLocalTime().ToString("hh:mm tt"),
+        Time      = a.Start.ToString("hh:mm tt"),
         Specialty = specialty,
         Status    = a.Status switch
         {

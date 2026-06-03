@@ -194,16 +194,16 @@ else
         else
         {
             var now = DateTime.Now;
-            // Próximas: solo Active y en el futuro
+            // Próximas: todas las citas con fecha futura, sin importar el estado.
+            // El badge del card muestra Confirmada / Completada / No se presentó / Cancelada.
             _upcoming = result.Value!
-                .Where(a => a.Start >= now && a.Status == "Active")
+                .Where(a => a.Start >= now)
                 .OrderBy(a => a.Start)
                 .ToList();
 
-            // Pasadas: todo lo que no sea Active-futuro
-            // Incluye: Completed, NoShow, Cancelled, Rescheduled, y Active pasadas
+            // Pasadas: todas las citas con fecha pasada.
             _past = result.Value!
-                .Where(a => a.Start < now || a.Status != "Active")
+                .Where(a => a.Start < now)
                 .OrderByDescending(a => a.Start)
                 .ToList();
         }

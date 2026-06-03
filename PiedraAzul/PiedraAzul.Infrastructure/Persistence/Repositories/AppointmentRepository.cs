@@ -83,9 +83,10 @@ public class AppointmentRepository : IAppointmentRepository
         DateOnly? date = null,
         CancellationToken ct = default)
     {
+        // Sin filtro de status: el paciente debe ver Completed, NoShow y Cancelled
+        // además de Active. El filtrado visual lo hace el cliente con badges.
         var query = _context.Appointments
-            .Where(x => x.PatientUserId == patientUserId &&
-                        x.Status == Domain.Entities.Operations.AppointmentStatus.Active);
+            .Where(x => x.PatientUserId == patientUserId);
 
         if (date.HasValue)
             query = query.Where(x => x.Date == date.Value);
@@ -100,9 +101,9 @@ public class AppointmentRepository : IAppointmentRepository
         DateOnly? date = null,
         CancellationToken ct = default)
     {
+        // Sin filtro de status: el invitado también ve su historial completo.
         var query = _context.Appointments
-            .Where(x => x.PatientGuestId == patientGuestId &&
-                        x.Status == Domain.Entities.Operations.AppointmentStatus.Active);
+            .Where(x => x.PatientGuestId == patientGuestId);
 
         if (date.HasValue)
             query = query.Where(x => x.Date == date.Value);

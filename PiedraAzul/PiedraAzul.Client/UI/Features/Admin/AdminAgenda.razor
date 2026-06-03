@@ -219,7 +219,7 @@
         => _expandedCitaId = _expandedCitaId == citaId ? null : citaId;
 
     private static DateTime ToLocal(DateTime utc)
-        => DateTime.SpecifyKind(utc, DateTimeKind.Utc).ToLocalTime();
+        => DateTime.SpecifyKind(utc, DateTimeKind.Utc);
 
     private static string RoleLabel(string role) => role switch
     {

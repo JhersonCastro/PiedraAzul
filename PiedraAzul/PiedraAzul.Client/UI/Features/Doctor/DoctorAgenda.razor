@@ -149,12 +149,12 @@
             if (!result.IsSuccess) return;
 
             MonthlyAppointments.Clear();
-            var byDate = (result.Value ?? new()).GroupBy(a => a.Start.ToLocalTime().Date);
+            var byDate = (result.Value ?? new()).GroupBy(a => a.Start.Date);
             foreach (var g in byDate)
             {
                 MonthlyAppointments[g.Key] = g.OrderBy(a => a.Start).Select(a => new AppointmentVM
                 {
-                    Time    = a.Start.ToLocalTime().ToString("HH:mm"),
+                    Time    = a.Start.ToString("HH:mm"),
                     Patient = string.IsNullOrWhiteSpace(a.PatientName) ? "Paciente" : a.PatientName.Split(' ')[0],
                     Status  = a.Status
                 }).ToList();
