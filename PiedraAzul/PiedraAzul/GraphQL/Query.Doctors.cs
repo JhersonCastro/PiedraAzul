@@ -61,8 +61,8 @@ public partial class Query
         return result.Select(s => new SlotType
         {
             Id = s.Id.ToString(),
-            Start = date.Add(s.StartTime),
-            End = date.Add(s.EndTime),
+            Start = date.Date.Add(s.StartTime),
+            End = date.Date.Add(s.EndTime),
             IsAvailable = s.IsAvailable
         }).ToList();
     }

@@ -30,20 +30,19 @@ public class UpdateAppointmentStatusHandler(
             throw new DomainException("No tienes permiso para modificar esta cita.");
 
         // ── Validar que la cita ya haya comenzado ────────────────────────────────
-        // Los slots almacenan hora Colombia local (UTC-5, sin DST).
-        // Comparamos la hora del slot directamente con la hora actual en Colombia.
+        // slot.StartTime es hora Colombia local (UTC-5, sin DST).
+        // Convertimos UtcNow a Colombia para comparar en el mismo marco de referencia.
         var slot = await slotRepository.GetByIdAsync(appointment.DoctorAvailabilitySlotId, cancellationToken);
         if (slot is not null)
         {
-            // slot.StartTime está almacenado en UTC (ej. 14:30 UTC = 9:30 AM Colombia).
-            // Comparamos directamente contra DateTime.UtcNow para evitar desajustes de Kind.
-            var appointmentStartUtc = appointment.Date.ToDateTime(TimeOnly.MinValue)
+            var appointmentStartColombia = appointment.Date.ToDateTime(TimeOnly.MinValue)
                 .Add(slot.StartTime);
+            var nowColombia = DateTime.UtcNow.AddHours(-5);
 
-            if (appointmentStartUtc > DateTime.UtcNow)
+            if (appointmentStartColombia > nowColombia)
                 throw new DomainException(
                     $"No puedes marcar esta cita: todavía no ha llegado su hora " +
-                    $"({appointmentStartUtc.AddHours(-5):hh:mm tt} hora Colombia). " +
+                    $"({slot.StartTime:hh\\:mm} hora Colombia). " +
                     $"Inténtalo una vez que haya comenzado.");
         }
 
