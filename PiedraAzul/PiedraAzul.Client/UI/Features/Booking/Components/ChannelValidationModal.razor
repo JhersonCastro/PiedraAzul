@@ -37,8 +37,8 @@
                 @if (_stage == Stage.SelectChannel)
                 {
                     <div class="space-y-4">
-                        <div class="flex items-start gap-3 rounded-xl bg-teal-50 border border-teal-200 px-4 py-3">
-                            <svg class="w-5 h-5 text-teal-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div class="flex items-start gap-3 rounded-xl bg-[#e8f5f3] border border-[#257D8D]/30 px-4 py-3">
+                            <svg class="w-5 h-5 text-[#257D8D] flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             <p class="text-sm text-teal-800">
@@ -123,9 +123,9 @@
                             @(IsLoading ? "Verificando..." : "Verificar")
                         </button>
 
-                        <button type="button"
+                            <button type="button"
                                 @onclick="GoBackToChannel"
-                                class="text-xs text-teal-700 underline hover:text-teal-900">
+                                class="text-xs text-[#257D8D] underline hover:text-[#1E5F6F]">
                             ¿No recibiste el código? Volver a enviar
                         </button>
                     </div>
@@ -152,13 +152,13 @@
 
                         <div>
                             <label class="label-modal">Teléfono</label>
-                            <input type="tel"
-                                   @bind="_editPhone"
+                               <input type="text"
+                                   @bind="_otpCode"
                                    @bind:event="oninput"
-                                   class="input-modal" />
-                        </div>
-
-                        <div>
+                                   maxlength="6"
+                                   placeholder="000000"
+                                   class="w-44 rounded-xl border-2 border-slate-300 px-4 py-3 text-center text-2xl
+                                       font-bold tracking-widest focus:border-[#257D8D] focus:outline-none" />
                             <label class="label-modal">Email <span class="text-slate-400">(opcional)</span></label>
                             <input type="email"
                                    @bind="_editEmail"
