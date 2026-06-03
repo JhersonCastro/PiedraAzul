@@ -7,22 +7,21 @@
 @inject NavigationManager Nav
 @inject GraphQLHttpClient GraphQL
 
-<div class="mb-5">
-    <h2 class="text-[22px] font-extrabold tracking-tight text-[#0F172A]">Seguridad</h2>
-    <p class="mt-0.5 text-[13px] text-[#64748B]">Administra tus métodos de acceso y passkeys registradas.</p>
+<div class="portal-head">
+    <h2 class="portal-title">Seguridad</h2>
+    <p class="portal-subtitle">Administra tus métodos de acceso y passkeys registradas.</p>
 </div>
 
 <!-- Passkeys card -->
-<div data-tour="security-passkeys-card" class="mb-5 rounded-2xl border border-[#E2E8F0] bg-white p-6">
+<div data-tour="security-passkeys-card" class="portal-card mb-5">
     <div class="mb-4 flex items-start justify-between">
         <div>
-            <p class="text-[13px] font-bold text-[#0F172A]">Passkeys</p>
-            <p class="mt-0.5 text-[12px] text-[#64748B]">Ingresa con Face ID, huella dactilar o llave USB — sin contraseña.</p>
+            <p class="portal-card-title">Passkeys</p>
+            <p class="portal-card-sub">Ingresa con Face ID, huella dactilar o llave USB — sin contraseña.</p>
         </div>
         <button @onclick='() => Nav.NavigateTo("/account/passkeys")'
-                class="flex items-center gap-1.5 rounded-lg bg-[#257D8D] px-3.5 py-1.5
-                       text-[12px] font-bold text-white transition hover:bg-[#1a5f6d]">
-            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                class="btn-portal-sm">
+            <svg class="icon-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                 <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
             </svg>
             Registrar passkey
@@ -31,11 +30,11 @@
 
     @if (_loadingPasskeys)
     {
-        <div class="flex justify-center py-4"><div class="spinner"></div></div>
+        <div class="loading-center-sm"><div class="spinner"></div></div>
     }
     else if (_passkeys.Count == 0)
     {
-        <div class="rounded-xl border-2 border-dashed border-[#E2E8F0] py-6 text-center text-[13px] text-[#94A3B8]">
+        <div class="empty-state">
             No tienes passkeys registradas. Agrega una para acceder sin contraseña.
         </div>
     }
@@ -44,22 +43,21 @@
         <div class="flex flex-col gap-2.5">
             @foreach (var pk in _passkeys)
             {
-                <div class="flex items-center justify-between rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3">
+                <div class="portal-row">
                     <div class="flex items-center gap-3">
-                        <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-[#e8f4f6]">
-                            <svg class="h-4 w-4 text-[#257D8D]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                        <div class="icon-chip">
+                            <svg class="icon-4 text-[#257D8D]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                                 <rect x="5" y="11" width="14" height="10" rx="2"/>
                                 <path d="M8 11V7a4 4 0 018 0v4"/>
                             </svg>
                         </div>
                         <div>
                             <p class="text-[13px] font-semibold text-[#0F172A]">@pk.FriendlyName</p>
-                            <p class="text-[11px] text-[#94A3B8]">@pk.CreatedAt.ToLocalTime().ToString("dd MMM yyyy, HH:mm")</p>
+                            <p class="text-meta">@pk.CreatedAt.ToLocalTime().ToString("dd MMM yyyy, HH:mm")</p>
                         </div>
                     </div>
                     <button @onclick="() => DeletePasskeyAsync(pk.Id)" disabled="@_deletingPasskey"
-                            class="rounded-lg border border-[#fecdd3] bg-white px-3 py-1.5 text-[11px] font-bold
-                                   text-[#E11D48] transition hover:bg-red-50 disabled:opacity-50">
+                            class="btn-danger-sm">
                         Eliminar
                     </button>
                 </div>
@@ -69,9 +67,9 @@
 </div>
 
 <!-- Password card -->
-<div data-tour="security-password-card" class="rounded-2xl border border-[#E2E8F0] bg-white p-6">
-    <p class="mb-1 text-[13px] font-bold text-[#0F172A]">Contraseña</p>
-    <p class="mb-4 text-[12px] text-[#64748B]">Cambia tu contraseña actual por una nueva.</p>
+<div data-tour="security-password-card" class="portal-card">
+    <p class="portal-card-title mb-1">Contraseña</p>
+    <p class="portal-card-sub mb-4">Cambia tu contraseña actual por una nueva.</p>
     <PasswordChange GraphQL="@GraphQL" />
 </div>
 

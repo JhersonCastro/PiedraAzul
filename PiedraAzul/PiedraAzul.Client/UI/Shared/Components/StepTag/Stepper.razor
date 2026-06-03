@@ -5,24 +5,23 @@
     <CascadingValue Value="EditContext">
 
         <div class="flex flex-col items-center">
-            
+
             @ChildContent
 
-            <div class="mt-6 flex w-full max-w-lg justify-between">
-                    <button type="button"
-                        class="cursor-pointer rounded border px-4 @(CurrentStep != 0 ? "" : "none ") py-2"
-                            disabled="@(CurrentStep == 0)"
-                            @onclick="Prev">
-                        Atrás
-                    </button>
+            <div class="stepper-actions">
+                <button type="button"
+                        class="stepper-btn-back"
+                        disabled="@(CurrentStep == 0)"
+                        @onclick="Prev">
+                    Atrás
+                </button>
 
                 <button type="button"
                         data-tour="booking-next-btn"
-                        class="bg-primary cursor-pointer rounded px-4 py-2 text-white"
+                        class="stepper-btn-next"
                         @onclick="Next">
                     @(CurrentStep == Steps.Count-1 ? FinishText : "Siguiente")
                 </button>
-
             </div>
 
         </div>

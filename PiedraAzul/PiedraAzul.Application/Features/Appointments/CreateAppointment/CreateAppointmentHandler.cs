@@ -1,5 +1,6 @@
 ﻿using Mediator;
 using PiedraAzul.Application.Common.Interfaces;
+using PiedraAzul.Application.Common.Notifications;
 using PiedraAzul.Application.Features.Patients.Commands.CreateGuestPatient;
 using PiedraAzul.Domain.Entities.Operations;
 using PiedraAzul.Domain.Entities.Profiles.Patients;
@@ -43,7 +44,7 @@ public class CreateAppointmentHandler
         CreateAppointmentCommand request,
         CancellationToken cancellationToken)
     {
-        return await _unitOfWork.ExecuteAsync(async ct =>
+        var appointment = await _unitOfWork.ExecuteAsync(async ct =>
         {
             // ================= VALIDACIONES =================
 
@@ -142,5 +143,18 @@ public class CreateAppointmentHandler
             return appointment;
 
         }, cancellationToken);
+
+        // Notificar por email fuera de la transacción (no debe afectar el guardado).
+        await _mediator.Publish(
+            new AppointmentNotification(
+                AppointmentChange.Created,
+                appointment.PatientUserId,
+                appointment.PatientGuestId,
+                appointment.DoctorId,
+                appointment.DoctorAvailabilitySlotId,
+                appointment.Date),
+            cancellationToken);
+
+        return appointment;
     }
 }

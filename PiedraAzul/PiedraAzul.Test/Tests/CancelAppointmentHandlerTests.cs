@@ -1,3 +1,4 @@
+using Mediator;
 using Moq;
 using PiedraAzul.Application.Common.Interfaces;
 using PiedraAzul.Application.Features.Appointments.CancelAppointment;
@@ -13,6 +14,7 @@ public class CancelAppointmentHandlerTests
 {
     private readonly Mock<IAppointmentRepository> _appointmentRepository = new();
     private readonly Mock<IAppointmentNotifier> _notifier = new();
+    private readonly Mock<IMediator> _mediator = new();
 
     private readonly CancelAppointmentHandler _sut;
 
@@ -21,7 +23,8 @@ public class CancelAppointmentHandlerTests
         _sut = new CancelAppointmentHandler(
             _appointmentRepository.Object,
             new ImmediateUnitOfWork(),
-            _notifier.Object);
+            _notifier.Object,
+            _mediator.Object);
     }
 
     [Fact]

@@ -1,5 +1,6 @@
 using Mediator;
 using PiedraAzul.Application.Common.Interfaces;
+using PiedraAzul.Application.Common.Notifications;
 using PiedraAzul.Domain.Common.Exceptions;
 using PiedraAzul.Domain.Entities.Operations;
 using PiedraAzul.Domain.Repositories;
@@ -14,19 +15,25 @@ public class RescheduleAppointmentByHashHandler
     private readonly IUnitOfWork _unitOfWork;
     private readonly IGuestOtpService _guestOtpService;
     private readonly IAppointmentNotifier _notifier;
+    private readonly IAppointmentRescheduleRecordRepository _rescheduleRecordRepository;
+    private readonly IMediator _mediator;
 
     public RescheduleAppointmentByHashHandler(
         IAppointmentRepository appointmentRepository,
         IDoctorAvailabilitySlotRepository slotRepository,
         IUnitOfWork unitOfWork,
         IGuestOtpService guestOtpService,
-        IAppointmentNotifier notifier)
+        IAppointmentNotifier notifier,
+        IAppointmentRescheduleRecordRepository rescheduleRecordRepository,
+        IMediator mediator)
     {
         _appointmentRepository = appointmentRepository;
         _slotRepository = slotRepository;
         _unitOfWork = unitOfWork;
         _guestOtpService = guestOtpService;
         _notifier = notifier;
+        _rescheduleRecordRepository = rescheduleRecordRepository;
+        _mediator = mediator;
     }
 
     public async ValueTask<Appointment> Handle(
@@ -42,7 +49,7 @@ public class RescheduleAppointmentByHashHandler
         var sessionData = await _guestOtpService.GetVerifiedDataAsync(request.VerificationHash)
             ?? throw new DomainException("No se pudieron obtener los datos de verificación.");
 
-        return await _unitOfWork.ExecuteAsync(async ct =>
+        var createdAppt = await _unitOfWork.ExecuteAsync(async ct =>
         {
             // 3. Cargar la cita con tracking
             var old = await _appointmentRepository.GetByIdForUpdateAsync(request.AppointmentId, ct)
@@ -83,11 +90,26 @@ public class RescheduleAppointmentByHashHandler
             var oldDoctorId = old.DoctorId;
             old.MarkAsRescheduled(newAppt.Id);
 
-            // 9. Persistir
+            // 9. Registro de auditoría. El autor es el guest/usuario verificado por OTP.
+            var previous = await _rescheduleRecordRepository.GetByNewAppointmentIdAsync(old.Id, ct);
+            var rootAppointmentId = previous?.RootAppointmentId ?? old.Id;
+
+            var record = AppointmentRescheduleRecord.Create(
+                rootAppointmentId,
+                old.Id,
+                newAppt.Id,
+                sessionData.Id,
+                oldDate,
+                request.NewDate,
+                oldDoctorId,
+                newSlot.DoctorId);
+
+            // 10. Persistir
             await _appointmentRepository.AddAsync(newAppt, ct);
             await _appointmentRepository.UpdateAsync(old, ct);
+            await _rescheduleRecordRepository.AddAsync(record, ct);
 
-            // 10. Notificar via SignalR que el slot viejo quedó libre
+            // 11. Notificar via SignalR que el slot viejo quedó libre
             await _notifier.NotifySlotReleasedAsync(
                 oldDoctorId,
                 oldSlotId.ToString(),
@@ -95,5 +117,18 @@ public class RescheduleAppointmentByHashHandler
 
             return newAppt;
         }, ct);
+
+        // Notificar por email fuera de la transacción.
+        await _mediator.Publish(
+            new AppointmentNotification(
+                AppointmentChange.Rescheduled,
+                createdAppt.PatientUserId,
+                createdAppt.PatientGuestId,
+                createdAppt.DoctorId,
+                createdAppt.DoctorAvailabilitySlotId,
+                createdAppt.Date),
+            ct);
+
+        return createdAppt;
     }
 }

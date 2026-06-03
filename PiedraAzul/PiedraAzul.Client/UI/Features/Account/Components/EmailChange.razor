@@ -1,79 +1,74 @@
 @using PiedraAzul.Client.Models.GraphQL
 @using PiedraAzul.Client.Services.GraphQLServices
 
-<div class="flex flex-col gap-3">
+<div class="form-stack-sm">
     <div>
-        <label class="mb-1.5 block text-xs font-medium text-gray-700">Correo actual</label>
+        <label class="label-xs">Correo actual</label>
         <input value="@CurrentEmail" readonly
-               class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-500 cursor-not-allowed" />
+               class="input-field-readonly" />
     </div>
 
     @if (!_showVerification)
     {
         <div>
-            <label class="mb-1.5 block text-xs font-medium text-gray-700">Nuevo correo</label>
-            <div class="flex gap-2 w-full">
+            <label class="label-xs">Nuevo correo</label>
+            <div class="input-with-btn">
                 <input type="email"
                        @bind="_newEmail"
                        placeholder="nuevo@email.com"
-                       class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900
-                              transition focus:border-[#2A9D8F] focus:outline-none focus:ring-2 focus:ring-[#2A9D8F]/20" />
+                       class="input-field border-gray-300" />
                 <button @onclick="RequestEmailChangeAsync"
                         disabled="@(_loading || string.IsNullOrWhiteSpace(_newEmail) || _newEmail == CurrentEmail)"
-                        class="flex-shrink-0 rounded-lg bg-[#2A9D8F] px-4 py-2 text-sm font-semibold text-white
-                               transition hover:bg-[#1e7168] disabled:opacity-50">
+                        class="btn-teal flex-shrink-0">
                     @(_loading ? "..." : "Verificar")
                 </button>
             </div>
             @if (!string.IsNullOrEmpty(_errorMessage))
             {
-                <p class="mt-1 text-xs text-red-500">@_errorMessage</p>
+                <p class="hint-err">@_errorMessage</p>
             }
         </div>
     }
     else
     {
-        <div class="rounded-lg border border-[#2A9D8F]/30 bg-[#e8f5f3] p-4">
-            <p class="mb-3 text-sm font-semibold text-gray-900">Verifica tu nuevo correo</p>
-            <p class="mb-3 text-xs text-gray-600">
+        <div class="verify-box">
+            <p class="verify-title">Verifica tu nuevo correo</p>
+            <p class="verify-sub">
                 Hemos enviado un código de verificación a <strong>@_newEmail</strong>
             </p>
 
             <div class="mb-3">
-                <label class="mb-1.5 block text-xs font-medium text-gray-700">Código de verificación</label>
+                <label class="label-xs">Código de verificación</label>
                 <input type="text"
                        @bind="_verificationCode"
                        maxlength="6"
                        placeholder="000000"
-                       class="w-full rounded-lg border border-gray-300 px-4 py-2 text-center text-2xl tracking-widest
-                              focus:border-[#2A9D8F] focus:outline-none focus:ring-2 focus:ring-[#2A9D8F]/20"
+                       class="input-verify-code"
                        autocomplete="off" />
             </div>
 
-            <div class="flex gap-2">
+            <div class="btn-row">
                 <button @onclick="ConfirmEmailChangeAsync"
                         disabled="@(_verifyingCode || _verificationCode?.Length != 6)"
-                        class="flex-1 rounded-lg bg-[#2A9D8F] px-4 py-2 text-sm font-semibold text-white
-                               transition hover:bg-[#1e7168] disabled:opacity-50">
+                        class="btn-teal flex-1">
                     @(_verifyingCode ? "Confirmando..." : "Confirmar")
                 </button>
                 <button @onclick="CancelEmailChange"
-                        class="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700
-                               transition hover:bg-gray-50">
+                        class="btn-outline flex-1">
                     Cancelar
                 </button>
             </div>
 
             @if (!string.IsNullOrEmpty(_verificationError))
             {
-                <p class="mt-1 text-xs text-red-500">@_verificationError</p>
+                <p class="hint-err">@_verificationError</p>
             }
         </div>
     }
 
     @if (!string.IsNullOrEmpty(_successMessage))
     {
-        <div class="rounded-lg border border-[#4CAF7D] bg-[#edf7f2] px-3 py-2 text-xs text-[#166534]">
+        <div class="notice-ok">
             @_successMessage
         </div>
     }

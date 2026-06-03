@@ -1,4 +1,5 @@
 ﻿using Mediator;
+using PiedraAzul.Application.Common.Helpers;
 using PiedraAzul.Application.Common.Interfaces;
 using PiedraAzul.Application.Common.Models.Appointments;
 using PiedraAzul.Domain.Entities.Operations;
@@ -18,19 +19,22 @@ namespace PiedraAzul.Application.Features.Doctors.Queries.GetDoctorAppointments
         private readonly IDoctorRepository _doctorRepository;
         private readonly IIdentityService _identityService;
         private readonly IPatientGuestRepository _guestRepository;
+        private readonly IAppointmentRescheduleRecordRepository _rescheduleRecordRepository;
 
         public GetDoctorAppointmentsHandler(
             IAppointmentRepository appointmentRepository,
             IDoctorAvailabilitySlotRepository slotRepository,
             IDoctorRepository doctorRepository,
             IIdentityService identityService,
-            IPatientGuestRepository guestRepository)
+            IPatientGuestRepository guestRepository,
+            IAppointmentRescheduleRecordRepository rescheduleRecordRepository)
         {
             _appointmentRepository = appointmentRepository;
             _slotRepository = slotRepository;
             _doctorRepository = doctorRepository;
             _identityService = identityService;
             _guestRepository = guestRepository;
+            _rescheduleRecordRepository = rescheduleRecordRepository;
         }
 
         public async ValueTask<IReadOnlyList<AppointmentDto>> Handle(
@@ -80,7 +84,7 @@ namespace PiedraAzul.Application.Features.Doctors.Queries.GetDoctorAppointments
             var guests = await _guestRepository.GetByIdsAsync(guestIds, cancellationToken);
             var guestDict = guests.ToDictionary(g => g.Id);
 
-            return appointments
+            var dtos = appointments
                 .Where(a => slotDict.ContainsKey(a.DoctorAvailabilitySlotId))
                 .Select(a =>
                 {
@@ -123,9 +127,15 @@ namespace PiedraAzul.Application.Features.Doctors.Queries.GetDoctorAppointments
 
                         SlotId = a.DoctorAvailabilitySlotId,
                         Start = start,
-                        CreatedAt = a.CreatedAt
+                        CreatedAt = a.CreatedAt,
+                        Status = a.Status.ToString()
                     };
                 }).ToList();
+
+            await AppointmentRescheduleEnricher.EnrichAsync(
+                dtos, _rescheduleRecordRepository, _identityService, cancellationToken);
+
+            return dtos;
         }
     }
 }

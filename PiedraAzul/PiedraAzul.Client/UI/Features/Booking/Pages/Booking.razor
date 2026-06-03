@@ -11,6 +11,7 @@
 @using PiedraAzul.Client.States
 @using PiedraAzul.Client.UI.Features.Account.Components
 @using PiedraAzul.Client.UI.Features.Booking.Components
+@using PiedraAzul.Client.UI.Shared.Components
 @using PiedraAzul.Client.UI.Shared.Components.StepTag
 @implements IDisposable
 @inject NavigationManager Navigation
@@ -48,7 +49,7 @@ else
 
             <DataAnnotationsValidator />
 
-            <div class="mx-auto my-6 flex w-full max-w-6xl flex-col rounded-xl bg-white p-8 shadow-2xl">
+            <div class="form-shell-wide max-w-6xl p-8 flex flex-col">
                 <Stepper @ref="Stepper" TModel="BookingModel" FinishText="Solicitar cita" OnFinish="HandlerSubmit">
 
                         <!-- STEP 1: Especialidad + Doctor -->
@@ -77,7 +78,7 @@ else
                         <Step TModel="BookingModel" Title="Confirmación">
 
                             <div data-tour="booking-confirmation">
-                                <h2 class="mb-4 text-2xl font-bold">
+                                <h2 class="form-heading mb-4">
                                     Confirmar datos
                                 </h2>
 
@@ -100,3 +101,7 @@ else
 }
 
 </CascadingValue>
+
+<LoadingOverlay Visible="_isSubmitting"
+                Title="Agendando su cita…"
+                Message="Estamos registrando su cita médica. Esto tomará solo un momento." />

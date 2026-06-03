@@ -22,6 +22,7 @@
 @inject AuthenticationService AuthService
 @inject GraphQLHttpClient GraphQL
 @inject OfflineCacheService OfflineCache
+@inject DoctorPortalState DoctorPortalState
 
 <PageTitle>Mi cuenta | Piedra Azul</PageTitle>
 
@@ -169,7 +170,7 @@ else
 
 @if (_loading)
 {
-    <div class="flex h-screen items-center justify-center" style="background:#F8FAFC">
+    <div class="loading-fullscreen" style="background:#F8FAFC">
         <div class="spinner"></div>
     </div>
 }
@@ -177,11 +178,11 @@ else
 {
     <div style="background:#F8FAFC;font-family:'DM Sans',sans-serif">
 
-        <div class="flex md:hidden items-center px-4 py-3 bg-white border-b border-[#E2E8F0]">
-            <span class="text-[15px] font-bold text-[#0F172A]">@_mobileSectionTitle</span>
+        <div class="mobile-header">
+            <span class="mobile-header-title">@_mobileSectionTitle</span>
         </div>
 
-        <div class="hidden md:flex items-center gap-1.5 px-6 py-2 border-b border-[#E2E8F0] bg-white text-[13px] text-[#94A3B8] font-medium">
+        <div class="breadcrumb-bar">
             <span>@_breadcrumbGroup</span>
             <span>›</span>
             <span class="text-[#0F172A] font-bold">@_breadcrumbItem</span>
@@ -191,28 +192,26 @@ else
                         OnStartTour="StartTourAsync"
                         OnSkipTour="StateHasChanged" />
 
-        <div class="flex" style="min-height:calc(100vh - 120px)">
+        <div class="layout-shell" style="min-height:calc(100vh - 120px)">
 
-            <aside class="hidden md:flex w-60 bg-white border-r border-[#E2E8F0] flex-col flex-shrink-0 overflow-y-auto">
+            <aside class="sidebar">
 
-                <div data-tour="sidebar-user-card"
-                     class="px-4 py-5 border-b border-[#F1F5F9] text-center flex-shrink-0">
-                    <div class="relative mx-auto mb-3 h-14 w-14">
-                        <img src="@AvatarSrc" alt="Avatar"
-                             class="h-14 w-14 rounded-full object-cover border-2 border-[#E2E8F0]" />
-                        <div class="absolute bottom-0.5 right-0.5 h-3.5 w-3.5 rounded-full bg-[#10B981] border-2 border-white"></div>
+                <div data-tour="sidebar-user-card" class="sidebar-user-card">
+                    <div class="avatar-wrap relative mx-auto mb-3 h-14 w-14">
+                        <img src="@AvatarSrc" alt="Avatar" class="avatar-lg" />
+                        <div class="online-dot"></div>
                     </div>
                     <p class="text-[13px] font-bold text-[#0F172A] leading-snug">@_user?.Name</p>
                     <p class="mt-0.5 text-[11px] text-[#94A3B8] break-all">@_user?.Email</p>
                     <div class="mt-2 flex justify-center flex-wrap gap-1">
                         @foreach (var role in (_user?.Roles ?? []))
                         {
-                            <span class="rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold text-blue-600 capitalize">@role</span>
+                            <span class="role-chip">@role</span>
                         }
                     </div>
                 </div>
 
-                <nav class="flex-1 py-2 overflow-y-auto flex flex-col">
+                <nav class="sidebar-nav">
 
                     @NavGroupHeader("Mi Cuenta", "mi-cuenta",
                         """<circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>""")
@@ -275,16 +274,15 @@ else
                         <div class="h-2"></div>
                     }
 
-                    <div class="flex-1 mt-auto p-3 flex min-h-[140px]">
-                        <img src="/ad.jpg" alt="MacDonald's" class="w-full h-full object-cover rounded-xl shadow-sm" />
+                    <div class="sidebar-ad">
+                        <img src="/ad.jpg" alt="MacDonald's" class="w-full h-[140px] object-cover rounded-xl shadow-sm" />
                     </div>
                 </nav>
 
-                <div class="px-3 pb-3 pt-2 border-t border-[#F1F5F9] flex-shrink-0">
+                <div class="sidebar-footer">
                     <button data-tour="logout-button"
                             @onclick="ShowLogoutConfirm"
-                            class="flex w-full items-center gap-2.5 rounded-xl border border-[#FEE2E2] bg-white px-3.5 py-2.5
-                        text-[13px] font-bold text-[#E11D48] transition hover:bg-red-50">
+                            class="btn-sidebar-logout">
                         <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path d="M17 16l4-4m0 0l-4-4m4 4H7" />
                             <path d="M9 20H6a2 2 0 01-2-2V6a2 2 0 012-2h3" />
@@ -294,10 +292,10 @@ else
                 </div>
             </aside>
 
-            <main class="flex-1 overflow-y-auto">
+            <main class="main-content">
 
                 @* ── MOBILE: secciones apiladas por módulo ── *@
-                <div class="md:hidden p-4 space-y-4" style="padding-bottom: @(MobileSubItems.ContainsKey(_mobileTab) ? "160px" : "112px")">
+                <div class="mobile-sections space-y-4" style="padding-bottom: @(MobileSubItems.ContainsKey(_mobileTab) ? "160px" : "112px")">
                     @if (_mobileTab == "cuenta")
                     {
                         <div id="mobile-section-perfil"><ProfileSection OnUserUpdated="OnUserUpdated" /></div>
@@ -310,11 +308,11 @@ else
                     }
                     else if (_mobileTab == "doctor")
                     {
-                        <div id="mobile-section-doc-dashboard"><DoctorPanel /></div>
-                        <div id="mobile-section-doc-agenda"><DoctorAgenda /></div>
-                        <div id="mobile-section-doc-pacientes"><DoctorPatients /></div>
-                        <div id="mobile-section-doc-cronograma"><DoctorDailySchedule /></div>
-                        <div id="mobile-section-doc-horario"><DoctorScheduleConfig /></div>
+                        <div id="mobile-section-doc-dashboard"><DoctorPanel OnNavigateTo="SetTab" /></div>
+                        <div id="mobile-section-doc-agenda"><DoctorAgenda OnNavigateTo="SetTab" /></div>
+                        <div id="mobile-section-doc-pacientes"><DoctorPatients OnNavigateTo="SetTab" /></div>
+                        <div id="mobile-section-doc-cronograma"><DoctorDailySchedule OnNavigateTo="SetTab" /></div>
+                        <div id="mobile-section-doc-horario"><DoctorScheduleConfig OnNavigateTo="SetTab" /></div>
                     }
                     else if (_mobileTab == "admin")
                     {
@@ -331,7 +329,7 @@ else
                 </div>
 
                 @* ── DESKTOP: switch-case igual que antes ── *@
-                <div id="pa-desktop-main" class="hidden md:block p-7">
+                <div id="pa-desktop-main" class="desktop-content">
                     @switch (_tab)
                     {
                         case "perfil":
@@ -344,19 +342,19 @@ else
                             <TwoFASection />
                             break;
                         case "doc-dashboard":
-                            <DoctorPanel />
+                            <DoctorPanel OnNavigateTo="SetTab" />
                             break;
                         case "doc-pacientes":
-                            <DoctorPatients />
+                            <DoctorPatients OnNavigateTo="SetTab" />
                             break;
                         case "doc-agenda":
-                            <DoctorAgenda />
+                            <DoctorAgenda OnNavigateTo="SetTab" />
                             break;
                         case "doc-cronograma":
-                            <DoctorDailySchedule />
+                            <DoctorDailySchedule OnNavigateTo="SetTab" />
                             break;
                         case "doc-horario":
-                            <DoctorScheduleConfig />
+                            <DoctorScheduleConfig OnNavigateTo="SetTab" />
                             break;
                         case "admin-usuarios":
                             <UserManagement />
@@ -368,7 +366,7 @@ else
                             <AdminScheduleConfig />
                             break;
                         case "exportar-citas":
-                            <AppointmentExport />
+                            <AppointmentExport OnNavigateTo="SetTab" />
                             break;
                         case "agendar-manual":
                             <ManualBooking />
@@ -388,38 +386,36 @@ else
         @* ── Modal de confirmación de logout ── *@
         @if (_showLogoutConfirm)
         {
-            <div class="fixed inset-0 flex items-center justify-center px-5" style="z-index:300">
-                @* Overlay oscuro *@
-                <div class="absolute inset-0" style="background:rgba(15,23,42,0.45);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)"
+            <div class="modal-overlay-z300" style="z-index:300">
+                <div class="absolute inset-0"
+                     style="background:rgba(15,23,42,0.45);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)"
                      @onclick="() => _showLogoutConfirm = false"></div>
 
-                @* Card glass morphism *@
-                <div class="relative w-full max-w-sm rounded-2xl p-6 text-center"
+                <div class="modal-card-glass"
                      style="background:rgba(255,255,255,0.92);backdrop-filter:blur(24px) saturate(1.8);-webkit-backdrop-filter:blur(24px) saturate(1.8);
                             border:0.5px solid rgba(255,255,255,0.8);box-shadow:0 20px 40px rgba(15,23,42,0.18),inset 0 1px 0 rgba(255,255,255,1)">
 
-                    @* Ícono de advertencia *@
-                    <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full"
+                    <div class="modal-icon-lg"
                          style="background:rgba(225,29,72,0.08);border:1.5px solid rgba(225,29,72,0.15)">
-                        <svg class="h-7 w-7 text-[#E11D48]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                        <svg class="icon-7 text-[#E11D48]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
                             <path d="M17 16l4-4m0 0l-4-4m4 4H7"/>
                             <path d="M9 20H6a2 2 0 01-2-2V6a2 2 0 012-2h3"/>
                         </svg>
                     </div>
 
-                    <h3 class="text-[17px] font-bold text-[#0F172A] mb-2">¿Cerrar sesión?</h3>
-                    <p class="text-[14px] text-[#64748B] leading-relaxed mb-6">
+                    <h3 class="modal-title-sm mb-2">¿Cerrar sesión?</h3>
+                    <p class="modal-text mb-6 leading-relaxed">
                         Si cierras sesión tendrás que volver a iniciarla la próxima vez que uses la aplicación.
                     </p>
 
-                    <div class="flex flex-col gap-2.5">
+                    <div class="modal-actions-col">
                         <button @onclick="ConfirmLogoutAsync"
-                                class="w-full rounded-xl py-3 text-[14px] font-bold text-white transition"
+                                class="btn-logout-confirm"
                                 style="background:#E11D48;box-shadow:0 2px 8px rgba(225,29,72,0.3)">
                             Sí, cerrar sesión
                         </button>
                         <button @onclick="() => _showLogoutConfirm = false"
-                                class="w-full rounded-xl border border-[#E2E8F0] bg-white py-3 text-[14px] font-semibold text-[#64748B] transition hover:bg-[#F8FAFC]">
+                                class="btn-logout-cancel">
                             Cancelar
                         </button>
                     </div>
@@ -582,6 +578,8 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        UIModeState.OnSetupComplete += OnSetupComplete;
+
         if (UserState.User is not null)
         {
             _user = UserState.User;
@@ -660,7 +658,18 @@ else
         return Task.CompletedTask;
     }
 
-    public void Dispose() => _tourRef?.Dispose();
+    // Llamado por UIModeWelcomeModal cuando el usuario elige un modo por primera vez.
+    private void OnSetupComplete(UIMode chosenMode)
+    {
+        if (chosenMode == UIMode.Modern)
+            _ = StartTourAsync();
+    }
+
+    public void Dispose()
+    {
+        UIModeState.OnSetupComplete -= OnSetupComplete;
+        _tourRef?.Dispose();
+    }
 
     private async void SetMobileTab(string tab, string title)
     {
@@ -684,6 +693,23 @@ else
         _tab = tab; _breadcrumbGroup = group; _breadcrumbItem = item;
         _sidebarOpen = false;
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// Navega a un tab del portal del doctor desde los componentes hijos (EventCallback).
+    /// </summary>
+    private void SetTab(string tab)
+    {
+        var (group, label) = tab switch
+        {
+            "doc-dashboard"  => ("Portal Doctor", "Dashboard"),
+            "doc-pacientes"  => ("Portal Doctor", "Pacientes"),
+            "doc-agenda"     => ("Portal Doctor", "Mi Agenda"),
+            "doc-cronograma" => ("Portal Doctor", "Cronograma diario"),
+            "doc-horario"    => ("Portal Doctor", "Mi Horario"),
+            _                => ("Portal Doctor", tab)
+        };
+        Navigate(tab, group, label);
     }
 
     private void ToggleGroup(string key) =>
@@ -712,12 +738,12 @@ else
         var open = IsGroupOpen(key);
         var capturedKey = key;
         __builder.OpenElement(0, "button");
-        __builder.AddAttribute(1, "class", "flex w-full items-center justify-between px-4 pt-2 pb-1.5 bg-transparent border-0 cursor-pointer");
+        __builder.AddAttribute(1, "class", "nav-group-btn");
         __builder.AddAttribute(2, "onclick", EventCallback.Factory.Create(this, () => ToggleGroup(capturedKey)));
         __builder.AddMarkupContent(3, $"""
-            <div class="flex items-center gap-1.5">
-                <svg class="h-3.5 w-3.5 text-[#94A3B8]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">{pathsInner}</svg>
-                <span class="text-[10px] font-extrabold uppercase tracking-[0.1em] text-[#94A3B8]">{name}</span>
+            <div class="nav-group-left">
+                <svg class="nav-group-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">{pathsInner}</svg>
+                <span class="nav-group-label">{name}</span>
             </div>
             <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"
                  style="transform:{(open ? "rotate(0deg)" : "rotate(-90deg)")};transition:transform .2s">
@@ -733,15 +759,12 @@ else
         var capturedTab = tab; var capturedGroup = group; var capturedLabel = label;
         __builder.OpenElement(0, "button");
         __builder.AddAttribute(1, "class",
-            $"flex w-full items-center gap-2.5 px-4 py-2.5 text-[14px] font-medium transition border-l-[3px] " +
-            (active ? "border-[#257D8D] bg-[#e8f4f6] text-[#257D8D] font-bold"
-                    : "border-transparent text-[#374151] hover:bg-gray-50"));
+            "nav-item " + (active ? "nav-item-active" : "nav-item-idle"));
         __builder.AddAttribute(2, "onclick",
             EventCallback.Factory.Create(this, () => Navigate(capturedTab, capturedGroup, capturedLabel)));
         if (dataTour is not null) __builder.AddAttribute(3, "data-tour", dataTour);
         __builder.OpenElement(4, "span");
-        __builder.AddAttribute(5, "class",
-            $"h-1.5 w-1.5 rounded-full flex-shrink-0 " + (active ? "bg-[#257D8D]" : "bg-[#CBD5E1]"));
+        __builder.AddAttribute(5, "class", active ? "nav-dot-active" : "nav-dot-idle");
         __builder.CloseElement();
         __builder.AddContent(6, label);
         __builder.CloseElement();

@@ -1,159 +1,108 @@
-@page "/doctor/agenda"
-@layout PiedraAzul.Client.UI.Shared.Layout.EmptyLayout
 @using System.Globalization
 @using PiedraAzul.Client.States
 @using PiedraAzul.Client.Models.GraphQL
 @using PiedraAzul.Client.Services.GraphQLServices
+@using PiedraAzul.Client.Services
 @inject UserState UserState
 @inject GraphQLAppointmentService AppointmentService
-@inject NavigationManager NavigationManager
+@inject DoctorPortalState PortalState
 
-<div class="min-h-screen bg-slate-50 pb-12">
-    <!-- HEADER / NAV -->
-    <header class="bg-white border-b sticky top-0 z-30 mb-8">
-        <div class="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
-            <div class="flex items-center gap-8">
-                <!-- Logo -->
-                <div class="flex items-center gap-3">
-                    <span class="text-xl font-bold text-slate-800">Piedra Azul</span>
-                </div>
+<div>
+    <!-- Header -->
+    <div class="portal-section-header-centered">
+        <div>
+            <h2 class="portal-title">Mi Agenda</h2>
+            <p class="portal-subtitle">Visualiza y organiza tus citas mensuales.</p>
+        </div>
+        <button @onclick='() => OnNavigateTo.InvokeAsync("doc-horario")'
+                class="btn-portal-outline">
+            <svg class="icon-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z"/><path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+            Configurar Horario
+        </button>
+    </div>
 
-                <!-- Nav Links -->
-                <nav class="hidden md:flex items-center gap-8">
-                    <a href="/doctor" class="text-slate-500 font-medium hover:text-slate-900 transition-colors py-7">Dashboard</a>
-                    <a href="/doctor/pacientes" class="text-slate-500 font-medium hover:text-slate-900 transition-colors py-7">Pacientes</a>
-                    <a href="/doctor/agenda" class="text-slate-900 font-semibold border-b-2 border-primary py-7">Mi Agenda</a>
-                </nav>
-            </div>
+    <!-- Calendar -->
+    <div class="cal-card">
 
-            <div class="flex items-center gap-6">
-                <!-- Notifications -->
-                <button class="relative p-2 text-slate-400 hover:text-slate-600 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-                    <span class="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border-2 border-white"></span>
+        <!-- Calendar Header -->
+        <div class="cal-header">
+            <div class="cal-nav">
+                <button @onclick="PreviousMonth" class="cal-nav-btn">
+                    <svg class="icon-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg>
                 </button>
-
-                <!-- User Profile -->
-                <div class="flex items-center gap-3 pl-6 border-l">
-                    <div class="text-right hidden sm:block">
-                        <div class="text-sm font-bold text-slate-900">@(UserState?.User?.Name ?? "Doctor")</div>
-                        <div class="text-xs text-slate-400">Doctor</div>
-                    </div>
-                    <img src="@(string.IsNullOrEmpty(UserState?.User?.AvatarUrl) || UserState?.User?.AvatarUrl == "default.png" ? $"https://ui-avatars.com/api/?name={Uri.EscapeDataString(UserState?.User?.Name ?? "Doctor")}&background=257D8D&color=fff" : UserState?.User?.AvatarUrl)" alt="Doctor" class="w-10 h-10 rounded-full border-2 border-slate-100 shadow-sm" onerror="this.src='https://ui-avatars.com/api/?name=Doctor&background=257D8D&color=fff'" />
-                </div>
-            </div>
-        </div>
-    </header>
-
-    <main class="max-w-7xl mx-auto px-4 pt-2">
-        <!-- Header Title & Controls -->
-        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-            <div>
-                <h1 class="text-2xl md:text-4xl font-black text-slate-900 mb-1">@(UserState?.User?.Name ?? "Cargando...")</h1>
-                <p class="text-slate-500 text-sm font-medium">Visualiza y organiza tu agenda de citas mensuales.</p>
-            </div>
-            
-            <div class="flex items-center gap-4 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100">
-                <a href="/doctor/agenda" class="bg-primary text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-primary/20 transition-all">
-                    Calendario
-                </a>
-                <a href="/doctor/configurar-horario" class="text-slate-500 px-6 py-3 rounded-xl font-bold hover:bg-slate-50 transition-all">
-                    Configurar Horario
-                </a>
+                <h3 class="cal-month-title">
+                    @(char.ToUpper(CurrentDate.ToString("MMMM", new CultureInfo("es-ES"))[0]) + CurrentDate.ToString("MMMM yyyy", new CultureInfo("es-ES"))[1..])
+                </h3>
+                <button @onclick="NextMonth" class="cal-nav-btn">
+                    <svg class="icon-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+                </button>
             </div>
         </div>
 
-        <!-- Calendar Container -->
-        <div data-tour="doctor-agenda-calendar" class="bg-white rounded-2xl md:rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
-
-            <!-- Calendar Header -->
-            <div class="p-4 md:p-8 border-b border-slate-100 flex flex-col md:flex-row items-center justify-between gap-4">
-                
-                <!-- Month/Year Navigation -->
-                <div class="flex items-center gap-8">
-                    <div class="flex items-center gap-2">
-                        <button @onclick="PreviousMonth" class="p-2.5 rounded-xl border border-slate-200 text-slate-400 hover:bg-slate-50 transition-all">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-                        </button>
-
-                        <h2 class="text-xl md:text-3xl font-black text-slate-900 min-w-[180px] md:min-w-[240px] text-center">
-                        @(char.ToUpper(CurrentDate.ToString("MMMM", new CultureInfo("es-ES"))[0]) + CurrentDate.ToString("MMMM yyyy", new CultureInfo("es-ES")).Substring(1))
-                        </h2>
-
-                        <button @onclick="NextMonth" class="p-2.5 rounded-xl border border-slate-200 text-slate-400 hover:bg-slate-50 transition-all">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-                        </button>
-                    </div>
-                    
-                </div>
-
-                <!-- View Switcher -->
-                <div class="flex items-center p-1 bg-slate-100 rounded-xl">
-                    <button class="px-6 py-2 rounded-lg font-bold text-sm bg-white text-slate-900 shadow-sm transition-all">Mes</button>
-                    <button class="px-6 py-2 rounded-lg font-bold text-sm text-slate-500 hover:text-slate-900 transition-all">Semana</button>
-                    <button class="px-6 py-2 rounded-lg font-bold text-sm text-slate-500 hover:text-slate-900 transition-all">Día</button>
-                </div>
-            </div>
-            
-            <!-- Calendar Grid -->
-            <div class="overflow-x-auto">
-             <div class="min-w-[480px]">
-            <div class="grid grid-cols-7 border-b border-slate-100 bg-slate-50/50">
-                @foreach (var day in DaysOfWeek)
-                {
-                    <div class="py-3 text-center text-[9px] md:text-xs font-black text-slate-400 uppercase tracking-widest border-r border-slate-100 last:border-0">
-                        @day[..3]
-                </div>
+        <!-- Days of week -->
+        <div class="cal-days-header">
+            @foreach (var day in DaysOfWeek)
+            {
+                <div class="cal-day-label">@day[..3]</div>
             }
-            </div>
-            <!-- Appointments Placeholder -->
-            <div class="grid grid-cols-7 grid-rows-5 min-h-[500px] md:min-h-[700px]">
-                @foreach (var date in CalendarDays)
-                {
-                    var isCurrentMonth = date.Month == CurrentDate.Month;
-                    var isToday = date.Date == DateTime.Today;
-                    
-                    <div @onclick="() => IrACronograma(date)" class="relative p-2 md:p-4 border-r border-b border-slate-100 last:border-r-0 group hover:bg-slate-50/50 transition-all cursor-pointer @(isCurrentMonth ? "" : "bg-slate-50/30")">
+        </div>
 
-                        <div class="flex items-center justify-between mb-3">
-                            <span class="text-lg font-bold @(isToday ? "bg-primary text-white w-8 h-8 rounded-full flex items-center justify-center shadow-lg shadow-primary/30" : isCurrentMonth ? "text-slate-900" : "text-slate-300")">
+        <!-- Calendar Grid -->
+        @if (_loading)
+        {
+            <div class="cal-loading">
+                <div class="spinner"></div>
+                <span>Cargando citas...</span>
+            </div>
+        }
+        else
+        {
+            <div class="overflow-x-auto">
+                <div class="cal-grid" style="min-height:420px">
+                    @foreach (var date in CalendarDays)
+                    {
+                        var isCurrentMonth = date.Month == CurrentDate.Month;
+                        var isToday = date.Date == DateTime.Today;
+
+                        <div @onclick="() => IrACronograma(date)"
+                             class="cal-cell @(isCurrentMonth ? "" : "opacity-40")">
+
+                            <span class="@(isToday ? "cal-day-today" : "cal-day-normal")">
                                 @date.Day
                             </span>
-                        </div>
 
-                        
-                        <div class="space-y-1.5 overflow-hidden">
-                            @if (MonthlyAppointments.ContainsKey(date.Date))
-                            {
-                                var apps = MonthlyAppointments[date.Date];
-                                @foreach (var app in apps.Take(3))
+                            <div class="mt-1 space-y-0.5 overflow-hidden">
+                                @if (MonthlyAppointments.ContainsKey(date.Date))
                                 {
-                                     <div @onclick:stopPropagation="true" class="text-[10px] font-bold p-2 rounded-lg border border-primary/10 @(app.Status == "Urgent" ? "bg-rose-50 text-rose-600 border-rose-100" : app.Status == "Internal" ? "bg-slate-100 text-slate-600 border-slate-200" : "bg-primary/5 text-primary") truncate flex items-center gap-1.5">
-                                        <span class="font-black opacity-60">@app.Time</span>
-                                        <span class="opacity-80">- @app.Patient</span>
-                                    </div>
+                                    var apps = MonthlyAppointments[date.Date];
+                                    @foreach (var app in apps.Take(2))
+                                    {
+                                        <div class="truncate rounded px-1 py-0.5 text-[10px] font-semibold @GetAppBadgeClass(app.Status)">
+                                            @app.Time · @app.Patient
+                                        </div>
+                                    }
+                                    @if (apps.Count > 2)
+                                    {
+                                        <div class="cal-more">+@(apps.Count - 2) más</div>
+                                    }
                                 }
-                                @if (apps.Count > 3)
-                                {
-                                    <div class="text-[10px] font-black text-primary px-2 pt-1">
-                                        +@(apps.Count - 3) more
-                                    </div>
-                                }
-                            }
+                            </div>
                         </div>
-                    </div>
-                }
+                    }
+                </div>
             </div>
-             </div>
-            </div>
-        </div>
-    </main>
+        }
+    </div>
 </div>
 
 @code {
-    private DateTime CurrentDate = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
-    private string[] DaysOfWeek = { "Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo" };
+    [Parameter] public EventCallback<string> OnNavigateTo { get; set; }
+
+    private DateTime CurrentDate = new(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private string[] DaysOfWeek = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
     private List<DateTime> CalendarDays = new();
+    private bool _loading;
+    private Dictionary<DateTime, List<AppointmentVM>> MonthlyAppointments = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -164,16 +113,10 @@
     private void CalculateCalendar()
     {
         CalendarDays.Clear();
-        var firstDayOfMonth = new DateTime(CurrentDate.Year, CurrentDate.Month, 1);
-        
-        int offset = ((int)firstDayOfMonth.DayOfWeek - (int)DayOfWeek.Monday + 7) % 7;
-        var startDate = firstDayOfMonth.AddDays(-offset);
-
-        // Fill 35 cells (5 weeks) or 42 (6 weeks)
-        for (int i = 0; i < 35; i++)
-        {
-            CalendarDays.Add(startDate.AddDays(i));
-        }
+        var first = new DateTime(CurrentDate.Year, CurrentDate.Month, 1);
+        int offset = ((int)first.DayOfWeek - (int)DayOfWeek.Monday + 7) % 7;
+        var start = first.AddDays(-offset);
+        for (int i = 0; i < 35; i++) CalendarDays.Add(start.AddDays(i));
     }
 
     private async Task PreviousMonth()
@@ -190,50 +133,49 @@
         await LoadAppointmentsAsync();
     }
 
-    private void IrACronograma(DateTime date)
+    private async Task IrACronograma(DateTime date)
     {
-        NavigationManager.NavigateTo($"/doctor/cronograma-diario?date={date:yyyy-MM-dd}");
+        PortalState.SelectedDate = date;
+        await OnNavigateTo.InvokeAsync("doc-cronograma");
     }
-
-    private class AppointmentVM 
-    { 
-        public string Time { get; set; } = ""; 
-        public string Patient { get; set; } = ""; 
-        public string Status { get; set; } = ""; 
-    }
-
-    private Dictionary<DateTime, List<AppointmentVM>> MonthlyAppointments = new();
 
     private async Task LoadAppointmentsAsync()
     {
         if (UserState?.User?.Id == null) return;
-
-        var result = await AppointmentService.GetDoctorAppointments(UserState.User.Id, null);
-        
-        if (result.IsSuccess && result.Value != null)
+        _loading = true; StateHasChanged();
+        try
         {
-            MonthlyAppointments.Clear();
-            
-            var appsByDate = result.Value
-                .GroupBy(a => a.Start.ToLocalTime().Date);
+            var result = await AppointmentService.GetDoctorAppointments(UserState.User.Id, null);
+            if (!result.IsSuccess) return;
 
-            foreach (var group in appsByDate)
+            MonthlyAppointments.Clear();
+            var byDate = (result.Value ?? new()).GroupBy(a => a.Start.Date);
+            foreach (var g in byDate)
             {
-                MonthlyAppointments[group.Key] = group.OrderBy(a => a.Start).Select(a => new AppointmentVM
+                MonthlyAppointments[g.Key] = g.OrderBy(a => a.Start).Select(a => new AppointmentVM
                 {
-                    Time = a.Start.ToLocalTime().ToString("HH:mm"),
-                    Patient = string.IsNullOrWhiteSpace(a.PatientName) ? "Sin Nombre" : a.PatientName,
-                    Status = "Normal"
+                    Time    = a.Start.ToString("HH:mm"),
+                    Patient = string.IsNullOrWhiteSpace(a.PatientName) ? "Paciente" : a.PatientName.Split(' ')[0],
+                    Status  = a.Status
                 }).ToList();
             }
         }
+        finally { _loading = false; }
+    }
+
+    private string GetAppBadgeClass(string status) => status switch
+    {
+        "Active"    => "bg-[#E0F7FA] text-[#257D8D]",
+        "Completed" => "bg-emerald-50 text-emerald-700",
+        "NoShow"    => "bg-rose-50 text-rose-600",
+        "Cancelled" => "bg-slate-100 text-slate-500",
+        _           => "bg-slate-100 text-slate-500",
+    };
+
+    private class AppointmentVM
+    {
+        public string Time { get; set; } = "";
+        public string Patient { get; set; } = "";
+        public string Status { get; set; } = "";
     }
 }
-
-<style>
-    .bg-primary { background-color: #257D8D; }
-    .text-primary { color: #257D8D; }
-    .border-primary { border-color: #257D8D; }
-    .shadow-primary\/20 { --tw-shadow-color: rgba(37, 125, 141, 0.2); shadow-color: var(--tw-shadow-color); }
-    .shadow-primary\/30 { --tw-shadow-color: rgba(37, 125, 141, 0.3); shadow-color: var(--tw-shadow-color); }
-</style>

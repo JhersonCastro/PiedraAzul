@@ -18,7 +18,7 @@
 
             <!-- Header -->
             <div class="modal-header">
-                <h2 class="text-lg font-bold text-slate-900">
+                <h2 class="modal-title-sm text-lg">
                     @(_view == "create" ? "Registrar nuevo paciente" : "Buscar paciente")
                 </h2>
                 <button @onclick="HandleCancel"
@@ -50,11 +50,11 @@
                                    value="@_query"
                                    @oninput="OnSearchInput"
                                    class="input-slate pr-10"
-                                   placeholder="Buscar por nombre o teléfono..." />
+                                   placeholder="Nombre, cédula, email o teléfono..." />
                             @if (_searching)
                             {
                                 <span class="absolute right-3 top-1/2 -translate-y-1/2">
-                                    <svg class="w-4 h-4 animate-spin text-teal-600" fill="none" viewBox="0 0 24 24">
+                                    <svg class="w-4 h-4 animate-spin text-[#257D8D]" fill="none" viewBox="0 0 24 24">
                                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
                                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
                                     </svg>
@@ -63,13 +63,13 @@
                         </div>
 
                         <!-- Resultados -->
-                        <div class="max-h-60 overflow-y-auto space-y-2">
+                        <div class="max-h-72 overflow-y-auto space-y-2">
                             @if (_results.Any())
                             {
                                 @foreach (var p in _results)
                                 {
-                                    <div @onclick="() => SelectPatient(p)"
-                                         class="cursor-pointer rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 hover:border-teal-500 hover:bg-teal-50 transition-colors">
+                                     <div @onclick="() => SelectPatient(p)"
+                                         class="cursor-pointer rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 hover:border-[#257D8D] hover:bg-[#e8f5f3] transition-colors">
                                         <div class="flex items-center justify-between">
                                             <div>
                                                 <p class="text-sm font-semibold text-slate-900">@p.Name</p>
@@ -79,7 +79,7 @@
                                                 </p>
                                             </div>
                                             <span class="text-xs px-2 py-0.5 rounded-full font-medium
-                                                @(p.Type == "REGISTERED" ? "bg-teal-100 text-teal-700" : "bg-slate-200 text-slate-600")">
+                                                @(p.Type == "REGISTERED" ? "bg-[#e8f5f3] text-[#257D8D]" : "bg-slate-200 text-slate-600")">
                                                 @(p.Type == "REGISTERED" ? "Registrado" : "Invitado")
                                             </span>
                                         </div>
@@ -141,9 +141,9 @@
                         <p class="text-sm text-slate-600">
                             Paciente creado correctamente. Comparte esta contraseña temporal con el paciente. Solo se mostrará una vez.
                         </p>
-                        <div class="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">
-                            <code class="text-lg font-mono font-bold text-teal-700 flex-1">@_tempPassword</code>
-                            <button @onclick="CopyTempPassword" class="text-slate-400 hover:text-teal-600 transition-colors" title="Copiar">
+                            <div class="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">
+                            <code class="text-lg font-mono font-bold text-[#257D8D] flex-1">@_tempPassword</code>
+                            <button @onclick="CopyTempPassword" class="text-slate-400 hover:text-[#257D8D] transition-colors" title="Copiar">
                                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/>
                                 </svg>
@@ -160,8 +160,8 @@
 
                 @if (_view == "search")
                 {
-                    <button @onclick="GoToCreate"
-                            class="text-sm font-semibold text-teal-700 hover:text-teal-900 transition-colors flex items-center gap-1.5">
+                        <button @onclick="GoToCreate"
+                            class="text-sm font-semibold text-[#257D8D] hover:text-[#1E5F6F] transition-colors flex items-center gap-1.5">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                         </svg>

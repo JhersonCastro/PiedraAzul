@@ -36,10 +36,8 @@
     [Parameter] public bool ShowLabel { get; set; } = true;
 
     private string ButtonClass =>
-        $"flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors " +
-        (UIModeState.IsEasy
-            ? "bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100"
-            : "bg-teal-50 text-teal-700 border border-teal-200 hover:bg-teal-100") +
+        "uimode-toggle " +
+        (UIModeState.IsEasy ? "uimode-toggle-easy" : "uimode-toggle-modern") +
         " " + Class;
 
     private string LabelClass => ShowLabel ? "" : "sr-only";

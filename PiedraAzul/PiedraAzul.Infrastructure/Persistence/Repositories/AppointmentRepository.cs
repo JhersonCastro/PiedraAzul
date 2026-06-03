@@ -48,11 +48,15 @@ public class AppointmentRepository : IAppointmentRepository
         DateOnly date,
         CancellationToken ct = default)
     {
+        // Un slot está "tomado" si tiene una cita Active, Completed o NoShow.
+        // Cancelled y Rescheduled liberan el cupo.
         return await _context.Appointments
             .AnyAsync(x =>
                 x.DoctorAvailabilitySlotId == doctorAvailabilitySlotId &&
                 x.Date == date &&
-                x.Status == Domain.Entities.Operations.AppointmentStatus.Active,
+                (x.Status == Domain.Entities.Operations.AppointmentStatus.Active    ||
+                 x.Status == Domain.Entities.Operations.AppointmentStatus.Completed ||
+                 x.Status == Domain.Entities.Operations.AppointmentStatus.NoShow),
                 ct);
     }
 
@@ -61,9 +65,10 @@ public class AppointmentRepository : IAppointmentRepository
         DateOnly? date = null,
         CancellationToken ct = default)
     {
+        // Muestra todas las citas excepto Rescheduled (que es un soft-delete de auditoría)
         var query = _context.Appointments
             .Where(x => x.DoctorId == doctorId &&
-                        x.Status == Domain.Entities.Operations.AppointmentStatus.Active);
+                        x.Status != Domain.Entities.Operations.AppointmentStatus.Rescheduled);
 
         if (date.HasValue)
             query = query.Where(x => x.Date == date.Value);
@@ -78,9 +83,10 @@ public class AppointmentRepository : IAppointmentRepository
         DateOnly? date = null,
         CancellationToken ct = default)
     {
+        // Sin filtro de status: el paciente debe ver Completed, NoShow y Cancelled
+        // además de Active. El filtrado visual lo hace el cliente con badges.
         var query = _context.Appointments
-            .Where(x => x.PatientUserId == patientUserId &&
-                        x.Status == Domain.Entities.Operations.AppointmentStatus.Active);
+            .Where(x => x.PatientUserId == patientUserId);
 
         if (date.HasValue)
             query = query.Where(x => x.Date == date.Value);
@@ -95,9 +101,9 @@ public class AppointmentRepository : IAppointmentRepository
         DateOnly? date = null,
         CancellationToken ct = default)
     {
+        // Sin filtro de status: el invitado también ve su historial completo.
         var query = _context.Appointments
-            .Where(x => x.PatientGuestId == patientGuestId &&
-                        x.Status == Domain.Entities.Operations.AppointmentStatus.Active);
+            .Where(x => x.PatientGuestId == patientGuestId);
 
         if (date.HasValue)
             query = query.Where(x => x.Date == date.Value);

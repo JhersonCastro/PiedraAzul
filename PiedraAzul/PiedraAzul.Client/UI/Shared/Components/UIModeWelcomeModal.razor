@@ -108,5 +108,9 @@
             await JS.InvokeVoidAsync("localStorage.setItem", SetupKey, "true");
         }
         catch { }
+
+        // Notifica a la página activa para que arranque su propio tour si corresponde.
+        // Cada página decide si tiene tour y si ya fue visto.
+        UIModeState.NotifySetupComplete(mode);
     }
 }

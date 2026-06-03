@@ -11,6 +11,13 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
     public partial class ManualBooking
     {
         [Inject] private AuthenticationStateProvider AuthStateProvider { get; set; } = default!;
+        [Inject] private PiedraAzul.Client.Services.DoctorPortalState DoctorPortalState { get; set; } = default!;
+
+        /// <summary>
+        /// Paciente pre-seleccionado desde el portal del doctor (DoctorPortalState).
+        /// Si viene con paciente, se auto-selecciona al inicializar.
+        /// </summary>
+        [Parameter] public PatientModel? PreselectedPatient { get; set; }
 
         private BookingModel Model { get; set; } = new();
         private PatientModel? SelectedPatient;
@@ -40,6 +47,14 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
             if (_isDoctor)
             {
                 Model.DoctorId = _currentUserId;
+            }
+
+            // Auto-seleccionar paciente que viene del portal del doctor
+            var patientToPreselect = PreselectedPatient ?? DoctorPortalState.PreselectedPatient;
+            if (patientToPreselect is not null)
+            {
+                OnPatientSelected(patientToPreselect);
+                DoctorPortalState.PreselectedPatient = null; // limpiar para próxima vez
             }
         }
 

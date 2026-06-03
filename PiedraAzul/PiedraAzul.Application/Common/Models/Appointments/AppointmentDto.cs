@@ -25,5 +25,11 @@ namespace PiedraAzul.Application.Common.Models.Appointments
         public DateTime CreatedAt { get; set; }
 
         public string Status { get; set; } = "Active";
+
+        /// <summary>True si esta cita (actual) proviene de un reagendamiento anterior.</summary>
+        public bool WasRescheduled { get; set; }
+
+        /// <summary>Historial completo del linaje de reagendamientos, en orden cronológico.</summary>
+        public List<AppointmentRescheduleEntryDto> RescheduleHistory { get; set; } = [];
     }
 }

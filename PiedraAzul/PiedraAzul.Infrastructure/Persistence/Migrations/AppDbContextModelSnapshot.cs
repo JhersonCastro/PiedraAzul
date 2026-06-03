@@ -213,6 +213,56 @@ namespace PiedraAzul.Infrastructure.Persistence.Migrations
                     b.ToTable("Appointments", (string)null);
                 });
 
+            modelBuilder.Entity("PiedraAzul.Domain.Entities.Operations.AppointmentRescheduleRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("NewAppointmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("NewDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("NewDoctorId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<Guid>("OriginalAppointmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("OriginalDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("OriginalDoctorId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<DateTime>("RescheduledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RescheduledByUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<Guid>("RootAppointmentId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NewAppointmentId");
+
+                    b.HasIndex("OriginalAppointmentId");
+
+                    b.HasIndex("RootAppointmentId");
+
+                    b.ToTable("AppointmentRescheduleRecords", (string)null);
+                });
+
             modelBuilder.Entity("PiedraAzul.Domain.Entities.Profiles.Doctor.Doctor", b =>
                 {
                     b.Property<string>("Id")

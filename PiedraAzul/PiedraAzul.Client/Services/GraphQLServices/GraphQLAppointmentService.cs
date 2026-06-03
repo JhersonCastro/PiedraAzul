@@ -146,6 +146,11 @@ public class GraphQLAppointmentService(GraphQLHttpClient client)
                 myAppointments {
                     id patientUserId patientGuestId patientType patientName
                     appointmentSlotId doctorId doctorName specialty start createdAt status
+                    wasRescheduled
+                    rescheduleHistory {
+                        rescheduledByUserId rescheduledByName rescheduledByRoles rescheduledAt
+                        originalDate newDate originalDoctorName newDoctorName
+                    }
                 }
             }
             """;
@@ -190,6 +195,11 @@ public class GraphQLAppointmentService(GraphQLHttpClient client)
                 doctorAppointments(doctorId: $doctorId, date: $date) {
                     id patientUserId patientGuestId patientType patientName
                     appointmentSlotId doctorId doctorName specialty start createdAt status
+                    wasRescheduled
+                    rescheduleHistory {
+                        rescheduledByUserId rescheduledByName rescheduledByRoles rescheduledAt
+                        originalDate newDate originalDoctorName newDoctorName
+                    }
                 }
             }
             """;
@@ -208,6 +218,36 @@ public class GraphQLAppointmentService(GraphQLHttpClient client)
                         : null
                 },
                 "doctorAppointments");
+            return result ?? new();
+        });
+    }
+
+    /// <summary>
+    /// Obtiene todas las citas de un paciente registrado por su userId.
+    /// Solo Admin (o el propio paciente) está autorizado en el servidor.
+    /// </summary>
+    public async Task<Result<List<AppointmentGQL>>> GetPatientAppointmentsAsync(string patientUserId)
+    {
+        const string query = """
+            query GetPatientAppointments($patientUserId: String) {
+                patientAppointments(patientUserId: $patientUserId) {
+                    id patientUserId patientGuestId patientType patientName
+                    appointmentSlotId doctorId doctorName specialty start createdAt status
+                    wasRescheduled
+                    rescheduleHistory {
+                        rescheduledByUserId rescheduledByName rescheduledByRoles rescheduledAt
+                        originalDate newDate originalDoctorName newDoctorName
+                    }
+                }
+            }
+            """;
+
+        return await GraphQLExecutor.Execute(async () =>
+        {
+            var result = await client.ExecuteAsync<List<AppointmentGQL>>(
+                query,
+                new { patientUserId },
+                "patientAppointments");
             return result ?? new();
         });
     }
@@ -274,6 +314,51 @@ public class GraphQLAppointmentService(GraphQLHttpClient client)
                 new { verificationHash, appointmentId, newSlotId, newDate },
                 "rescheduleAppointmentByHash");
             return result!;
+        });
+    }
+
+    /// <summary>
+    /// Marca una cita como Completada o Inasistencia.
+    /// Solo el doctor dueño puede usarlo.
+    /// </summary>
+    public async Task<Result<bool>> UpdateAppointmentStatusAsync(Guid appointmentId, string newStatus)
+    {
+        const string mutation = """
+            mutation UpdateAppointmentStatus($appointmentId: UUID!, $newStatus: String!) {
+                updateAppointmentStatus(appointmentId: $appointmentId, newStatus: $newStatus)
+            }
+            """;
+
+        return await GraphQLExecutor.Execute(async () =>
+        {
+            var result = await client.ExecuteAsync<bool>(
+                mutation,
+                new { appointmentId, newStatus },
+                "updateAppointmentStatus");
+            return result;
+        });
+    }
+
+    /// <summary>
+    /// Devuelve los pacientes únicos que tienen citas con el doctor indicado.
+    /// </summary>
+    public async Task<Result<List<DoctorPatientGQL>>> GetDoctorPatientsAsync(string doctorId)
+    {
+        const string query = """
+            query GetDoctorPatients($doctorId: String!) {
+                doctorPatients(doctorId: $doctorId) {
+                    id name identification phone type lastVisit
+                }
+            }
+            """;
+
+        return await GraphQLExecutor.Execute(async () =>
+        {
+            var result = await client.ExecuteAsync<List<DoctorPatientGQL>>(
+                query,
+                new { doctorId },
+                "doctorPatients");
+            return result ?? new();
         });
     }
 

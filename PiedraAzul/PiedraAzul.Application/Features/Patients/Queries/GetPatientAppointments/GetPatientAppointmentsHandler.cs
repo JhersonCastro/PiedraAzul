@@ -1,4 +1,5 @@
 ﻿using Mediator;
+using PiedraAzul.Application.Common.Helpers;
 using PiedraAzul.Application.Common.Interfaces;
 using PiedraAzul.Application.Common.Models.Appointments;
 using PiedraAzul.Domain.Entities.Operations;
@@ -16,6 +17,7 @@ namespace PiedraAzul.Application.Features.Patients.Queries.GetPatientAppointment
         private readonly IIdentityService _identityService;
         private readonly IDoctorRepository _doctorRepository;
         private readonly IDoctorAvailabilitySlotRepository _slotRepository;
+        private readonly IAppointmentRescheduleRecordRepository _rescheduleRecordRepository;
 
         public GetPatientAppointmentsHandler(
             IPatientRepository patientRepository,
@@ -23,7 +25,8 @@ namespace PiedraAzul.Application.Features.Patients.Queries.GetPatientAppointment
             IAppointmentRepository appointmentRepository,
             IIdentityService identityService,
             IDoctorRepository doctorRepository,
-            IDoctorAvailabilitySlotRepository slotRepository)
+            IDoctorAvailabilitySlotRepository slotRepository,
+            IAppointmentRescheduleRecordRepository rescheduleRecordRepository)
         {
             _patientRepository = patientRepository;
             _patientGuestRepository = patientGuestRepository;
@@ -31,6 +34,7 @@ namespace PiedraAzul.Application.Features.Patients.Queries.GetPatientAppointment
             _identityService = identityService;
             _doctorRepository = doctorRepository;
             _slotRepository = slotRepository;
+            _rescheduleRecordRepository = rescheduleRecordRepository;
         }
 
         public async ValueTask<IReadOnlyList<AppointmentDto>> Handle(
@@ -113,7 +117,7 @@ namespace PiedraAzul.Application.Features.Patients.Queries.GetPatientAppointment
             var slotDict = slots.ToDictionary(s => s.Id);
 
             // 🔥 Mapping a DTO
-            return appointments.Select(a =>
+            var dtos = appointments.Select(a =>
             {
                 string name;
                 string type;
@@ -157,6 +161,11 @@ namespace PiedraAzul.Application.Features.Patients.Queries.GetPatientAppointment
                     Status = a.Status.ToString()
                 };
             }).ToList();
+
+            await AppointmentRescheduleEnricher.EnrichAsync(
+                dtos, _rescheduleRecordRepository, _identityService, cancellationToken);
+
+            return dtos;
         }
     }
 }

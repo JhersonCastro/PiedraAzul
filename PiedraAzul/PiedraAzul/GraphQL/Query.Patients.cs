@@ -195,48 +195,90 @@ public partial class Query
     public async Task<List<PatientSearchResultType>> SearchAutoCompletePatientsAsync(
         string query,
         [Service] IMediator mediator,
-        [Service] UserManager<ApplicationUser> userManager)
+        [Service] UserManager<ApplicationUser> userManager,
+        [Service] IPatientGuestRepository guestRepository)
     {
-        var patients = await mediator.Send(new SearchPatientsQuery(query));
+        if (string.IsNullOrWhiteSpace(query)) return [];
+        var q = query.Trim();
 
-        // ✅ Cargar todos los usuarios de una vez (evita N+1)
-        var registeredIds = patients
+        // ── 1. Buscar pacientes registrados por nombre EN la tabla Patients (mediator) ──
+        var patientDtos = await mediator.Send(new SearchPatientsQuery(q));
+        var registeredIdsFromName = patientDtos
             .Where(p => p.Type == "Registered")
             .Select(p => p.Id)
             .Distinct()
             .ToList();
 
-        var usersMap = registeredIds.Any()
-            ? (await userManager.Users
-                .Where(u => registeredIds.Contains(u.Id))
-                .ToDictionaryAsync(u => u.Id))
+        // ── 2. Buscar directamente en AspNetUsers por identificación, email o teléfono ──
+        //    Cubre casos donde el nombre coincide con la tabla Patients pero la búsqueda
+        //    es por cédula/email/teléfono que solo viven en Identity.
+        var usersFromIdentity = await userManager.Users
+            .Where(u => !u.IsDeleted && (
+                EF.Functions.ILike(u.IdentificationNumber ?? "", $"%{q}%") ||
+                EF.Functions.ILike(u.Email ?? "", $"%{q}%") ||
+                EF.Functions.ILike(u.PhoneNumber ?? "", $"%{q}%") ||
+                EF.Functions.ILike(u.Name, $"%{q}%")))
+            .Take(15)
+            .ToListAsync();
+
+        // ── 3. Unir IDs únicos y cargar datos de Identity para todos ──
+        var allRegisteredIds = registeredIdsFromName
+            .Union(usersFromIdentity.Select(u => u.Id))
+            .Distinct()
+            .ToList();
+
+        var usersMap = allRegisteredIds.Any()
+            ? await userManager.Users
+                .Where(u => allRegisteredIds.Contains(u.Id) && !u.IsDeleted)
+                .ToDictionaryAsync(u => u.Id)
             : new();
 
         var results = new List<PatientSearchResultType>();
-        foreach (var p in patients)
-        {
-            var phone = p.Phone;
-            if (p.Type == "Registered" && string.IsNullOrEmpty(phone) && usersMap.TryGetValue(p.Id, out var user))
-            {
-                phone = user.PhoneNumber ?? "";
-            }
+        var addedIds = new HashSet<string>();
 
-            var identification = p.Type == "Guest" ? p.Id : "";
-            if (p.Type == "Registered" && usersMap.TryGetValue(p.Id, out var u))
+        foreach (var uid in allRegisteredIds)
+        {
+            if (!addedIds.Add(uid)) continue;
+            usersMap.TryGetValue(uid, out var appUser);
+            results.Add(new PatientSearchResultType
             {
-                identification = u.IdentificationNumber ?? "";
-            }
+                Id             = uid,
+                Name           = appUser?.Name ?? uid,
+                Identification = appUser?.IdentificationNumber ?? "",
+                Phone          = appUser?.PhoneNumber ?? "",
+                Type           = PatientTypeEnum.Registered
+            });
+        }
+
+        // ── 4. Invitados: búsqueda case-insensitive por nombre, teléfono e identificación ──
+        var guestDtos = await guestRepository.SearchAsync(q);
+
+        // Índice de identificaciones de registrados para deduplicar
+        var registeredIdentifications = results
+            .Where(r => !string.IsNullOrEmpty(r.Identification))
+            .Select(r => r.Identification)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var g in guestDtos)
+        {
+            // Si la identificación del invitado coincide con un registrado → skip (misma persona)
+            if (registeredIdentifications.Contains(g.Id)) continue;
+            if (!addedIds.Add(g.Id)) continue;
 
             results.Add(new PatientSearchResultType
             {
-                Id = p.Id,
-                Name = p.Name,
-                Identification = identification,
-                Phone = phone,
-                Type = p.Type == "Guest" ? PatientTypeEnum.Guest : PatientTypeEnum.Registered
+                Id             = g.Id,
+                Name           = g.Name,
+                Identification = g.Id,
+                Phone          = g.Phone ?? "",
+                Type           = PatientTypeEnum.Guest
             });
         }
-        return results;
+
+        return results
+            .OrderBy(r => r.Name)
+            .Take(10)
+            .ToList();
     }
     /// <summary>
     /// Enmascara el nombre: muestra los primeros 2 nombres, máximo 3 caracteres visibles

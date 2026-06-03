@@ -1,0 +1,82 @@
+name: Deploy to MonsterASP.NET
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  # ──────────────────────────────────────────
+  #  1. Build, test y publish
+  # ──────────────────────────────────────────
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      # Restaurar el proyecto servidor restaura también el cliente WASM
+      # y todas las dependencias transitivas de la solución.
+      - name: Restore
+        run: dotnet restore PiedraAzul/PiedraAzul.csproj
+
+      # Tests corren antes del publish; si fallan el job se detiene aquí.
+      - name: Test
+        run: |
+          dotnet restore PiedraAzul.Test/PiedraAzul.Test.csproj
+          dotnet test PiedraAzul.Test/PiedraAzul.Test.csproj \
+            --configuration Release \
+            --verbosity normal
+
+      # Publish genera la carpeta lista para IIS (incluye el WASM del cliente).
+      - name: Publish
+        run: |
+          dotnet publish PiedraAzul/PiedraAzul.csproj \
+            --configuration Release \
+            --no-restore \
+            --output ./publish
+
+      # Escribe el appsettings de producción desde el secreto de GitHub.
+      # ASP.NET Core carga appsettings.Production.json automáticamente cuando
+      # ASPNETCORE_ENVIRONMENT=Production, sobreescribiendo el appsettings.json base.
+      - name: Write appsettings.Production.json
+        run: echo '${{ secrets.APP_SETTINGS_PRODUCTION }}' > ./publish/appsettings.Production.json
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: published-app
+          path: ./publish
+          retention-days: 3
+
+  # ──────────────────────────────────────────
+  #  2. Deploy via MSDeploy (Publish Profile)
+  # ──────────────────────────────────────────
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: read
+
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: published-app
+          path: ./publish
+
+      - name: Deploy to MonsterASP.NET (site62559)
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'site62559'
+          publish-profile: ${{ secrets.MONSTER_PUBLISH_PROFILE }}
+          package: ./publish

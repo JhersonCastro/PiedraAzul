@@ -122,16 +122,16 @@
     @apply w-full rounded-lg bg-[#257D8D] py-3 font-semibold text-white shadow-md transition duration-200 hover:bg-[#1E5F6F] disabled:opacity-60;
   }
 
-  /* --- Botón acción teal-700 full width (modals) --- */
+  /* --- Botón acción: color primario #257D8D full width (modals) --- */
   /* Usado en: ChannelValidationModal, PatientVerificationModal, PatientSearchModal */
   .btn-action {
-    @apply w-full rounded-lg bg-teal-700 py-2.5 text-sm font-bold text-white transition hover:bg-teal-800 disabled:opacity-50;
+    @apply w-full rounded-lg bg-[#257D8D] py-2.5 text-sm font-bold text-white transition hover:bg-[#1E5F6F] disabled:opacity-50;
   }
 
   /* --- Botón acción teal-700 inline con icono --- */
   /* Usado en: UserFormModal, PatientSearchModal, UserManagement */
   .btn-action-inline {
-    @apply flex items-center gap-2 rounded-lg bg-teal-700 px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-teal-800 disabled:opacity-60;
+    @apply flex items-center gap-2 rounded-lg bg-[#257D8D] px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-[#1E5F6F] disabled:opacity-60;
   }
 
   /* --- Botón secondary gris py-3 full width --- */
@@ -298,6 +298,1444 @@
   /* Inline error (no flex, con borde) */
   .alert-error-inline {
     @apply rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700;
+  }
+
+  /* Inline success (no flex, con borde) */
+  .alert-success-inline {
+    @apply rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800;
+  }
+
+  /* Inline warning (no flex, con borde) */
+  .alert-warning-inline {
+    @apply rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800;
+  }
+
+
+  /* =============================================
+     ESTRUCTURA DE FORMULARIOS / AUTH
+     ============================================= */
+
+  /* Wrapper angosto de formulario auth (LoginForm, MFAVerification) */
+  .auth-narrow {
+    @apply mx-auto w-full max-w-lg;
+  }
+
+  /* Centrado vertical del área auth (Auth modo moderno) */
+  .auth-center {
+    @apply my-auto flex flex-col items-center;
+  }
+
+  /* Contenedor de página angosto centrado (PasskeysPage) */
+  .page-narrow {
+    @apply mx-auto max-w-lg px-4 py-10;
+  }
+
+  /* Shell de formulario ancho (RegisterForm) */
+  .form-shell {
+    @apply mx-auto my-6 w-full max-w-4xl rounded-xl bg-white p-10 shadow-2xl;
+  }
+
+  /* Shell de formulario extra ancho con secciones (RegisterPatientForm) */
+  .form-shell-wide {
+    @apply mx-auto my-6 w-full max-w-5xl space-y-10 rounded-xl bg-white p-10 shadow-2xl;
+  }
+
+  /* Grid de 2 columnas para campos */
+  .form-grid {
+    @apply grid grid-cols-1 gap-6 md:grid-cols-2;
+  }
+
+  /* Sección de formulario con espaciado vertical */
+  .form-section {
+    @apply space-y-6;
+  }
+
+  /* Stack del cuerpo de formulario (PasskeysPage) */
+  .form-stack {
+    @apply mt-6 space-y-4;
+  }
+
+  /* Acciones apiladas (RegisterPatientForm) */
+  .form-actions {
+    @apply space-y-4;
+  }
+
+  /* Acciones apiladas de auth con margen superior (LoginForm, MFAVerification) */
+  .auth-actions {
+    @apply mt-6 space-y-3;
+  }
+
+  /* Grupo de campo individual */
+  .field {
+    @apply mb-4;
+  }
+
+
+  /* =============================================
+     ENCABEZADOS
+     ============================================= */
+
+  /* Título auth responsive (LoginForm, MFAVerification) */
+  .auth-heading {
+    @apply text-center text-2xl font-bold text-gray-800 md:text-left md:text-3xl;
+  }
+
+  .auth-subheading {
+    @apply mb-6 mt-2 text-center text-gray-500 md:text-left;
+  }
+
+  /* Título de paso/sección dentro de un form (RegisterForm) */
+  .form-heading {
+    @apply mb-2 text-2xl font-bold;
+  }
+
+  .form-heading-sub {
+    @apply mb-6 text-gray-600;
+  }
+
+  /* Título de tarjeta (PasskeysPage) */
+  .card-heading {
+    @apply text-2xl font-bold text-gray-800;
+  }
+
+  .card-subheading {
+    @apply mt-2 text-sm text-gray-500;
+  }
+
+  /* Título de sección sm (RegisterPatientForm) */
+  .section-heading {
+    @apply text-xl font-bold text-gray-800;
+  }
+
+  .section-subtext {
+    @apply text-sm text-gray-500;
+  }
+
+  /* Título y subtítulo de página (RegisterPatientForm) */
+  .page-heading {
+    @apply text-3xl font-bold text-gray-900;
+  }
+
+  .page-subheading {
+    @apply mt-1 text-sm text-gray-500;
+  }
+
+
+  /* =============================================
+     NOTAS / HINTS DE CAMPO
+     ============================================= */
+
+  .input-hint {
+    @apply mb-2 text-xs text-gray-500;
+  }
+
+  .form-note {
+    @apply mb-3 text-center text-xs text-gray-500;
+  }
+
+
+  /* =============================================
+     TOGGLE SEGMENTADO (MFAVerification)
+     ============================================= */
+
+  .seg-toggle {
+    @apply mb-4 flex overflow-hidden rounded-lg border border-gray-200 text-sm font-semibold;
+  }
+
+  .seg-btn {
+    @apply flex-1 py-2 transition;
+  }
+
+  .seg-btn-active {
+    @apply bg-[#257D8D] text-white;
+  }
+
+  .seg-btn-idle {
+    @apply bg-white text-gray-500 hover:bg-gray-50;
+  }
+
+  /* Input para códigos OTP (compone con .input) */
+  .input-code {
+    @apply text-center text-2xl tracking-widest;
+  }
+
+  /* Mensaje inline dentro de form con estado (MFAVerification) */
+  .form-message {
+    @apply mb-4 rounded-lg p-3 text-sm;
+  }
+
+  .form-message-ok {
+    @apply bg-green-50 text-green-700;
+  }
+
+  .form-message-err {
+    @apply bg-red-50 text-red-700;
+  }
+
+
+  /* =============================================
+     BOTONES / ICONOS (helpers)
+     ============================================= */
+
+  /* Layout de botón con icono centrado */
+  .btn-icon {
+    @apply flex items-center justify-center gap-2;
+  }
+
+  /* Icono decorativo de passkey (LoginForm) */
+  .icon-passkey {
+    @apply h-5 w-5 text-gray-500;
+  }
+
+
+  /* =============================================
+     PORTAL / DASHBOARD (Account, Doctor, Admin)
+     Design system slate compartido.
+     ============================================= */
+
+  /* Encabezado de sección */
+  .portal-head {
+    @apply mb-5;
+  }
+
+  .portal-title {
+    @apply text-[22px] font-extrabold tracking-tight text-[#0F172A];
+  }
+
+  .portal-subtitle {
+    @apply mt-0.5 text-[13px] text-[#64748B];
+  }
+
+  /* Tarjeta de portal */
+  .portal-card {
+    @apply rounded-2xl border border-[#E2E8F0] bg-white p-6;
+  }
+
+  /* Título y subtítulo dentro de una tarjeta */
+  .portal-card-title {
+    @apply text-[13px] font-bold text-[#0F172A];
+  }
+
+  .portal-card-sub {
+    @apply mt-0.5 text-[12px] text-[#64748B];
+  }
+
+  /* Fila de lista (item dentro de tarjeta) */
+  .portal-row {
+    @apply flex items-center justify-between rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3;
+  }
+
+  /* Chip de icono cuadrado teal */
+  .icon-chip {
+    @apply flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-[#e8f4f6];
+  }
+
+  /* Estado vacío (dashed) */
+  .empty-state {
+    @apply rounded-xl border-2 border-dashed border-[#E2E8F0] py-6 text-center text-[13px] text-[#94A3B8];
+  }
+
+  /* Texto meta / timestamp */
+  .text-meta {
+    @apply text-[11px] text-[#94A3B8];
+  }
+
+  /* Contenedores de carga (spinner centrado) */
+  .loading-center {
+    @apply flex justify-center py-14;
+  }
+
+  .loading-center-sm {
+    @apply flex justify-center py-4;
+  }
+
+  /* Botón primario pequeño con icono (portal) */
+  .btn-portal-sm {
+    @apply flex items-center gap-1.5 rounded-lg bg-[#257D8D] px-3.5 py-1.5 text-[12px] font-bold text-white transition hover:bg-[#1a5f6d];
+  }
+
+  /* Botón peligro pequeño */
+  .btn-danger-sm {
+    @apply rounded-lg border border-[#fecdd3] bg-white px-3 py-1.5 text-[11px] font-bold text-[#E11D48] transition hover:bg-red-50 disabled:opacity-50;
+  }
+
+  /* Iconos por tamaño (helpers) */
+  .icon-3 { @apply h-3 w-3; }
+  .icon-4 { @apply h-4 w-4; }
+  .icon-6 { @apply h-6 w-6; }
+
+
+  /* =============================================
+     HELP BANNER (TourHelpBanner)
+     ============================================= */
+
+  .help-banner {
+    @apply mx-4 mt-4 flex items-center justify-between gap-4 rounded-xl border border-teal-200 bg-teal-50 px-5 py-3.5 shadow-sm md:mx-7 md:mt-6;
+  }
+
+  .help-banner-left {
+    @apply flex items-center gap-3;
+  }
+
+  .help-banner-right {
+    @apply flex flex-shrink-0 items-center gap-2;
+  }
+
+  .help-banner-icon {
+    @apply flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-teal-100;
+  }
+
+  .help-banner-title {
+    @apply text-sm font-semibold text-teal-900;
+  }
+
+  .help-banner-sub {
+    @apply text-xs text-teal-700;
+  }
+
+  .help-banner-btn {
+    @apply rounded-lg bg-teal-600 px-4 py-1.5 text-sm font-semibold text-white transition hover:bg-teal-700 active:scale-95;
+  }
+
+  .help-banner-close {
+    @apply flex h-7 w-7 items-center justify-center rounded-full text-teal-500 transition hover:bg-teal-100 hover:text-teal-800;
+  }
+
+
+  /* =============================================
+     FORMULARIOS DE CUENTA (acento #2A9D8F)
+     PasswordChange, EmailChange, ProfileSection
+     ============================================= */
+
+  /* Stack vertical compacto */
+  .form-stack-sm {
+    @apply flex flex-col gap-3;
+  }
+
+  /* Label xs gris */
+  .label-xs {
+    @apply mb-1.5 block text-xs font-medium text-gray-700;
+  }
+
+  /* Input base con acento teal (#2A9D8F). El color de borde se aplica aparte. */
+  .input-field {
+    @apply w-full rounded-lg border px-3 py-2 text-sm text-gray-900 transition focus:border-[#2A9D8F] focus:outline-none focus:ring-2 focus:ring-[#2A9D8F]/20;
+  }
+
+  /* Input readonly */
+  .input-field-readonly {
+    @apply w-full cursor-not-allowed rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-500;
+  }
+
+  /* Input de código de verificación (EmailChange) */
+  .input-verify-code {
+    @apply w-full rounded-lg border border-gray-300 px-4 py-2 text-center text-2xl tracking-widest focus:border-[#2A9D8F] focus:outline-none focus:ring-2 focus:ring-[#2A9D8F]/20;
+  }
+
+  /* Input + botón en línea */
+  .input-with-btn {
+    @apply flex w-full gap-2;
+  }
+
+  .btn-row {
+    @apply flex gap-2;
+  }
+
+  /* Botón teal de cuenta */
+  .btn-teal {
+    @apply rounded-lg bg-[#2A9D8F] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1e7168] disabled:opacity-50;
+  }
+
+  /* Botón outline gris */
+  .btn-outline {
+    @apply rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50;
+  }
+
+  /* Acciones alineadas a la derecha */
+  .actions-end {
+    @apply flex justify-end pt-1;
+  }
+
+  /* Hints de estado bajo un campo */
+  .hint-warn { @apply mt-1 text-xs text-yellow-600; }
+  .hint-err { @apply mt-1 text-xs text-red-500; }
+  .hint-ok { @apply mt-1 text-xs text-[#4CAF7D]; }
+  .hint-danger { @apply mt-1 text-xs text-[#E76F51]; }
+
+  /* Icono de validación dentro del input (posición absoluta) */
+  .input-icon-ok {
+    @apply absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#4CAF7D];
+  }
+
+  .input-icon-err {
+    @apply absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#E76F51];
+  }
+
+  /* Avisos compactos (px-3 py-2 text-xs) */
+  .notice-error {
+    @apply rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-xs text-[#E76F51];
+  }
+
+  .notice-ok {
+    @apply rounded-lg border border-[#4CAF7D] bg-[#edf7f2] px-3 py-2 text-xs text-[#166534];
+  }
+
+  /* Caja de verificación (EmailChange) */
+  .verify-box {
+    @apply rounded-lg border border-[#2A9D8F]/30 bg-[#e8f5f3] p-4;
+  }
+
+  .verify-title {
+    @apply mb-3 text-sm font-semibold text-gray-900;
+  }
+
+  .verify-sub {
+    @apply mb-3 text-xs text-gray-600;
+  }
+
+
+  /* =============================================
+     PERFIL / AVATAR / BANNERS (acento #257D8D)
+     ProfileSection, Doctor, Admin
+     ============================================= */
+
+  .loading-center-lg {
+    @apply flex justify-center py-20;
+  }
+
+  /* Avatar + badge de edición */
+  .avatar-wrap {
+    @apply relative flex-shrink-0;
+  }
+
+  .avatar-sm {
+    @apply h-10 w-10 rounded-full border-2 border-[#E2E8F0] object-cover;
+  }
+
+  .avatar-md {
+    @apply h-12 w-12 rounded-full border-2 border-[#E2E8F0] object-cover;
+  }
+
+  .avatar-badge {
+    @apply absolute -bottom-0.5 -right-0.5 cursor-pointer rounded-full bg-[#257D8D] p-1 shadow transition hover:bg-[#1a5f6d];
+  }
+
+  /* Nombre / email de usuario */
+  .user-name {
+    @apply text-sm font-bold text-[#0F172A];
+  }
+
+  .user-email {
+    @apply text-xs text-[#94A3B8];
+  }
+
+  /* Chip de rol */
+  .role-chip {
+    @apply rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-bold capitalize text-blue-600;
+  }
+
+  /* Fila identidad de perfil */
+  .profile-id-row {
+    @apply flex items-center gap-4 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-3.5;
+  }
+
+  /* Label de campo (semibold slate) */
+  .label-field {
+    @apply mb-1.5 block text-xs font-semibold text-[#374151];
+  }
+
+  /* Input primario pill (rounded-xl, acento #257D8D) */
+  .input-primary {
+    @apply rounded-xl border border-[#CBD5E1] bg-white px-3.5 py-2.5 text-[13px] text-[#0F172A] transition focus:border-[#257D8D] focus:outline-none focus:ring-2 focus:ring-[#257D8D]/20;
+  }
+
+  /* Botón primario pill */
+  .btn-primary-pill {
+    @apply rounded-xl bg-[#257D8D] px-5 py-2.5 text-[13px] font-bold text-white transition hover:bg-[#1a5f6d] disabled:opacity-50;
+  }
+
+  /* Botones de modal (flex-1) */
+  .btn-primary-modal {
+    @apply flex-1 rounded-xl bg-[#257D8D] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#1a5f6d] disabled:opacity-50;
+  }
+
+  .btn-outline-modal {
+    @apply flex-1 rounded-xl border border-[#CBD5E1] px-4 py-2.5 text-sm font-bold text-[#475569] transition hover:bg-gray-50;
+  }
+
+  /* Link de texto teal */
+  .btn-link-full {
+    @apply w-full text-xs font-semibold text-[#257D8D] hover:underline;
+  }
+
+  /* Input de código primario (rounded-xl) */
+  .input-code-primary {
+    @apply w-full rounded-xl border border-[#CBD5E1] px-4 py-2.5 text-center text-2xl tracking-widest focus:border-[#257D8D] focus:outline-none focus:ring-2 focus:ring-[#257D8D]/20;
+  }
+
+  /* Modal overlay + card pequeña (no usa modal-* genérico) */
+  .modal-overlay-center {
+    @apply fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4;
+  }
+
+  .modal-card-sm {
+    @apply w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl;
+  }
+
+  .modal-title-sm {
+    @apply mb-2 text-base font-extrabold text-[#0F172A];
+  }
+
+  .modal-text {
+    @apply text-[13px] text-[#475569];
+  }
+
+  /* Banners full-width (rounded-2xl) */
+  .banner-error {
+    @apply w-full rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600;
+  }
+
+  .banner-success {
+    @apply w-full rounded-2xl border border-[#4CAF7D] bg-[#edf7f2] px-4 py-3 text-sm text-[#166534];
+  }
+
+  .banner-warning {
+    @apply flex items-center justify-between rounded-2xl border border-yellow-300 bg-yellow-50 p-4;
+  }
+
+  .btn-warning-sm {
+    @apply rounded-lg bg-yellow-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-yellow-700;
+  }
+
+
+  /* =============================================
+     TABS / EMPTY STATE / MODAL CONFIRM
+     PatientAppointments y reutilizado en Booking/Admin/Doctor
+     ============================================= */
+
+  /* Banner verde con icono */
+  .banner-ok-flex {
+    @apply flex items-center gap-2 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700;
+  }
+
+  /* Tabs segmentados */
+  .tabs {
+    @apply flex gap-1 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-1;
+  }
+
+  .tab-btn {
+    @apply flex-1 rounded-xl px-4 py-2.5 text-[13px] transition;
+  }
+
+  .tab-btn-active {
+    @apply bg-white font-bold text-[#257D8D] shadow;
+  }
+
+  .tab-btn-idle {
+    @apply font-medium text-[#64748B] hover:text-[#0F172A];
+  }
+
+  .tab-badge {
+    @apply ml-1.5 inline-flex items-center rounded-full bg-[#257D8D] px-2 py-0.5 text-[11px] font-bold text-white;
+  }
+
+  .tab-badge-muted {
+    @apply ml-1.5 inline-flex items-center rounded-full bg-[#94A3B8] px-2 py-0.5 text-[11px] font-bold text-white;
+  }
+
+  /* Estado vacío grande (centrado con icono) */
+  .empty-lg {
+    @apply flex flex-col items-center justify-center py-16 text-center;
+  }
+
+  .empty-icon {
+    @apply mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F1F5F9];
+  }
+
+  .empty-title {
+    @apply text-[15px] font-bold text-[#0F172A];
+  }
+
+  .empty-sub {
+    @apply mt-1 text-[13px] text-[#94A3B8];
+  }
+
+  /* Overlay de modal (negro 40%) */
+  .modal-overlay-40 {
+    @apply fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4;
+  }
+
+  /* Icono circular de modal (danger) */
+  .modal-icon-danger {
+    @apply mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100;
+  }
+
+  .modal-title-center {
+    @apply text-center text-[16px] font-bold text-[#0F172A];
+  }
+
+  .modal-text-center {
+    @apply mt-1.5 text-center text-[13px] text-[#64748B];
+  }
+
+  .modal-actions {
+    @apply mt-5 flex gap-3;
+  }
+
+  /* Botones de modal de confirmación */
+  .btn-modal-cancel {
+    @apply flex-1 rounded-xl border border-[#E2E8F0] bg-white py-2.5 text-[13px] font-semibold text-[#64748B] transition hover:bg-[#F8FAFC] disabled:opacity-50;
+  }
+
+  .btn-modal-danger {
+    @apply flex flex-1 items-center justify-center gap-2 rounded-xl bg-red-500 py-2.5 text-[13px] font-bold text-white transition hover:bg-red-600 disabled:opacity-60;
+  }
+
+  /* Spinner inline (botón) */
+  .spinner-inline {
+    @apply h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent;
+  }
+
+
+  /* =============================================
+     ACCOUNT PAGE — layout shell
+     ============================================= */
+
+  .loading-fullscreen {
+    @apply flex h-screen items-center justify-center;
+  }
+
+  .mobile-header {
+    @apply flex items-center border-b border-[#E2E8F0] bg-white px-4 py-3 md:hidden;
+  }
+
+  .mobile-header-title {
+    @apply text-[15px] font-bold text-[#0F172A];
+  }
+
+  .breadcrumb-bar {
+    @apply hidden md:flex items-center gap-1.5 border-b border-[#E2E8F0] bg-white px-6 py-2 text-[13px] font-medium text-[#94A3B8];
+  }
+
+  .layout-shell {
+    @apply flex;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    @apply hidden md:flex w-60 flex-col flex-shrink-0 overflow-y-auto border-r border-[#E2E8F0] bg-white;
+  }
+
+  .sidebar-user-card {
+    @apply flex-shrink-0 border-b border-[#F1F5F9] px-4 py-5 text-center;
+  }
+
+  .avatar-lg {
+    @apply h-14 w-14 rounded-full border-2 border-[#E2E8F0] object-cover;
+  }
+
+  .online-dot {
+    @apply absolute bottom-0.5 right-0.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-[#10B981];
+  }
+
+  .sidebar-nav {
+    @apply flex flex-1 flex-col overflow-y-auto py-2;
+  }
+
+  .sidebar-footer {
+    @apply flex-shrink-0 border-t border-[#F1F5F9] px-3 pb-3 pt-2;
+  }
+
+  .btn-sidebar-logout {
+    @apply flex w-full items-center gap-2.5 rounded-xl border border-[#FEE2E2] bg-white px-3.5 py-2.5 text-[13px] font-bold text-[#E11D48] transition hover:bg-red-50;
+  }
+
+  .sidebar-ad {
+    @apply mt-auto p-3;
+  }
+
+  /* Main content */
+  .main-content {
+    @apply flex-1 overflow-y-auto;
+  }
+
+  .mobile-sections {
+    @apply p-4 md:hidden;
+  }
+
+  .desktop-content {
+    @apply hidden p-7 md:block;
+  }
+
+  /* Logout modal (glass) */
+  .modal-overlay-z300 {
+    @apply fixed inset-0 flex items-center justify-center px-5;
+  }
+
+  .modal-card-glass {
+    @apply relative w-full max-w-sm rounded-2xl p-6 text-center;
+  }
+
+  .modal-icon-lg {
+    @apply mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full;
+  }
+
+  .icon-7 { @apply h-7 w-7; }
+
+  .modal-actions-col {
+    @apply flex flex-col gap-2.5;
+  }
+
+  .btn-logout-confirm {
+    @apply w-full rounded-xl py-3 text-[14px] font-bold text-white transition;
+  }
+
+  .btn-logout-cancel {
+    @apply w-full rounded-xl border border-[#E2E8F0] bg-white py-3 text-[14px] font-semibold text-[#64748B] transition hover:bg-[#F8FAFC];
+  }
+
+  /* Sidebar nav item states */
+  .nav-item {
+    @apply flex w-full items-center gap-2.5 border-l-[3px] px-4 py-2.5 text-[14px] font-medium transition;
+  }
+
+  .nav-item-active {
+    @apply border-[#257D8D] bg-[#e8f4f6] font-bold text-[#257D8D];
+  }
+
+  .nav-item-idle {
+    @apply border-transparent text-[#374151] hover:bg-gray-50;
+  }
+
+  .nav-dot-active { @apply h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#257D8D]; }
+  .nav-dot-idle   { @apply h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#CBD5E1]; }
+
+  .nav-group-btn {
+    @apply flex w-full items-center justify-between border-0 bg-transparent px-4 pb-1.5 pt-2 cursor-pointer;
+  }
+
+  .nav-group-label {
+    @apply text-[10px] font-extrabold uppercase tracking-[0.1em] text-[#94A3B8];
+  }
+
+  .nav-group-icon {
+    @apply h-3.5 w-3.5 text-[#94A3B8];
+  }
+
+  .nav-group-left {
+    @apply flex items-center gap-1.5;
+  }
+
+
+  /* =============================================
+     MAIN LAYOUT — sitio moderno
+     ============================================= */
+
+  .layout-root { @apply flex min-h-screen flex-col bg-gray-50; }
+
+  /* Top bar */
+  .topbar       { @apply bg-primary text-sm text-white; }
+  .topbar-inner { @apply mx-auto flex max-w-7xl justify-between px-6 py-2; }
+  .topbar-link  { @apply flex items-center gap-2 text-white opacity-90 hover:opacity-100 hover:underline; }
+  .topbar-item  { @apply flex items-center gap-2; }
+
+  /* Header */
+  .header       { @apply sticky top-0 z-50 border-b border-slate-100 bg-white shadow-sm shadow-slate-200/50; }
+  .header-inner { @apply mx-auto flex h-[60px] max-w-7xl items-center justify-between gap-4 px-6 py-0; }
+  .header-logo  { @apply flex shrink-0 items-center gap-2 text-lg font-bold tracking-tight text-primary; }
+
+  /* Desktop nav */
+  .header-nav         { @apply hidden md:flex items-center gap-1 text-sm text-gray-600; }
+  .nav-link           { @apply flex items-center gap-1.5 rounded-lg px-3 py-2 font-medium transition-colors hover:bg-gray-100 hover:text-gray-900; }
+  .nav-link-highlight { @apply flex items-center gap-1.5 rounded-lg px-3 py-2 font-semibold text-primary transition-colors hover:bg-gray-100; }
+
+  /* Header auth states */
+  .header-user-loading { @apply ml-2 flex cursor-default select-none items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white opacity-80; }
+  .header-user-btn     { @apply ml-2 flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#1a5b67]; }
+  .header-login-btn    { @apply ml-2 rounded-md bg-primary px-6 py-2 text-sm font-bold text-white shadow-md shadow-primary/25 transition-all active:scale-95 hover:opacity-90; }
+
+  /* Hamburger */
+  .btn-hamburger { @apply flex items-center justify-center rounded-lg p-2 text-gray-700 transition-colors hover:bg-gray-100 md:hidden; }
+
+  /* Mobile overlay */
+  .mobile-overlay { @apply fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm md:hidden; }
+
+  /* Mobile drawer */
+  .drawer         { @apply fixed bottom-0 right-0 top-0 z-[61] flex w-[270px] flex-col bg-white shadow-2xl transition-transform duration-300 md:hidden; }
+  .drawer-open    { @apply translate-x-0; }
+  .drawer-closed  { @apply translate-x-full; }
+  .drawer-header  { @apply flex items-center justify-between border-b border-slate-50 px-5 py-4; }
+  .drawer-logo    { @apply flex items-center gap-2 text-base font-bold tracking-tight text-primary; }
+  .drawer-user    { @apply flex items-center gap-3 border-b border-slate-50 px-5 py-4; }
+  .drawer-avatar  { @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-teal-50 text-sm font-bold text-primary; }
+  .drawer-links   { @apply flex flex-1 flex-col gap-0.5 overflow-y-auto px-3 py-3; }
+  .drawer-link    { @apply flex w-full items-center gap-3 rounded-lg px-3 py-3 text-[15px] font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-900; }
+  .drawer-link-highlight { @apply flex w-full items-center gap-3 rounded-lg px-3 py-3 text-[15px] font-semibold text-primary transition-colors hover:bg-teal-50; }
+  .drawer-link-danger    { @apply flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-[15px] font-medium text-red-500 transition-colors hover:bg-red-50; }
+  .drawer-cta     { @apply border-t border-slate-50 p-4; }
+  .btn-primary-block { @apply block w-full rounded-lg bg-primary py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-[#1a5b67]; }
+
+  .role-chip-sm { @apply mt-0.5 inline-block rounded-full bg-teal-50 px-2 py-0.5 text-[11px] font-semibold text-primary; }
+
+  /* Main */
+  .main-flex { @apply flex flex-1 flex-col; }
+
+  /* Footer */
+  .footer         { @apply bg-[#0F172A] text-gray-300; }
+  .footer-inner   { @apply mx-auto grid max-w-7xl gap-10 px-6 py-12 md:grid-cols-3; }
+  .footer-heading { @apply mb-4 flex items-center gap-2 text-lg font-semibold text-white; }
+  .footer-links   { @apply space-y-2 text-sm; }
+  .footer-link    { @apply cursor-pointer text-gray-400 transition-colors hover:text-white; }
+  .footer-bottom  { @apply border-t border-slate-800/60 py-4 text-center text-sm text-gray-500; }
+  .btn-whatsapp   { @apply flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 py-2.5 text-sm font-bold text-white shadow-sm shadow-green-500/20 transition-all active:scale-95 hover:opacity-90; }
+
+  /* Blazor error UI */
+  .blazor-error  { @apply -translate-x-1/2 fixed bottom-4 left-1/2 hidden w-[90%] max-w-lg rounded-2xl border border-red-100 bg-white p-6 shadow-2xl; }
+  .blazor-error-body { @apply flex items-start gap-4; }
+
+
+  /* =============================================
+     UI MODE TOGGLE
+     ============================================= */
+
+  .uimode-toggle {
+    @apply flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors;
+  }
+
+  .uimode-toggle-easy {
+    @apply border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100;
+  }
+
+  .uimode-toggle-modern {
+    @apply border border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100;
+  }
+
+
+  /* =============================================
+     LOADING OVERLAY
+     ============================================= */
+
+  .overlay-screen {
+    @apply fixed inset-0 z-[999] flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm;
+  }
+
+  .overlay-card {
+    @apply flex max-w-xs flex-col items-center gap-5 rounded-2xl border border-[#E2E8F0] bg-white px-10 py-8 text-center shadow-xl;
+  }
+
+  .overlay-spinner-wrap {
+    @apply relative flex h-16 w-16 items-center justify-center;
+  }
+
+  .overlay-spinner-track {
+    @apply absolute inset-0 rounded-full border-4 border-[#E0F7FA];
+  }
+
+  .overlay-spinner-head {
+    @apply absolute inset-0 animate-spin rounded-full border-4 border-transparent border-t-[#257D8D];
+  }
+
+  .overlay-spinner-icon {
+    @apply h-7 w-7 text-[#257D8D];
+  }
+
+  .overlay-title { @apply text-[17px] font-bold text-[#0F172A]; }
+  .overlay-sub   { @apply mt-1.5 text-[13px] leading-relaxed text-[#64748B]; }
+  .overlay-note  { @apply text-[11px] italic text-[#94A3B8]; }
+
+
+  /* =============================================
+     STEPPER / SLIDE
+     ============================================= */
+
+  .stepper-actions  { @apply mt-6 flex w-full max-w-lg justify-between; }
+  .stepper-btn-back { @apply cursor-pointer rounded border px-4 py-2; }
+  .stepper-btn-next { @apply cursor-pointer rounded bg-primary px-4 py-2 text-white; }
+
+  .step-slide          { @apply mb-6 w-full; }
+  .step-label          { @apply text-sm font-semibold text-gray-500; }
+  .step-title          { @apply text-lg font-bold; }
+  .step-progress-track { @apply mt-2 h-2 w-full rounded-full bg-gray-200; }
+  .step-progress-bar   { @apply h-2 rounded-full bg-primary; }
+
+
+  /* =============================================
+     HOME PAGE
+     ============================================= */
+
+  /* Hero */
+  .hero          { @apply mx-auto grid max-w-7xl items-center gap-10 px-6 py-16 md:grid-cols-2; }
+  .hero-heading  { @apply mb-6 text-5xl font-bold leading-tight text-gray-900; }
+  .hero-text     { @apply mb-8 max-w-md text-lg text-gray-600; }
+  .hero-actions  { @apply flex items-center gap-6; }
+  .hero-cta      { @apply cursor-pointer rounded-md bg-primary px-6 py-3 text-white shadow hover:bg-[#1a5b67]; }
+  .hero-badge    { @apply flex items-center gap-2; }
+  .hero-badge-text { @apply text-sm font-medium text-teal-700; }
+
+  /* Sección agenda */
+  .section-alt     { @apply bg-gray-100 py-16; }
+  .section-center  { @apply mx-auto mb-12 max-w-7xl px-6 text-center; }
+  .section-heading-lg { @apply mb-2 text-3xl font-bold text-gray-900; }
+  .section-sub     { @apply text-gray-600; }
+  .section-grid-2  { @apply mx-auto grid max-w-7xl gap-8 px-6 md:grid-cols-2; }
+
+  /* Cards de agendamiento — `group` se aplica inline en el elemento raíz */
+  .booking-card { @apply block overflow-hidden rounded-2xl border-2 border-transparent bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary hover:bg-slate-50 hover:shadow-xl; }
+  .booking-card-img { @apply h-56 w-full object-cover transition-transform duration-700; }
+  .booking-card-body { @apply p-8; }
+  .booking-card-icon-row { @apply mb-3 flex items-center gap-2; }
+  .booking-card-title { @apply text-xl font-bold text-gray-900; }
+  .booking-card-text  { @apply mb-6 text-gray-600 leading-relaxed; }
+  .booking-card-btn   { @apply inline-block rounded-lg bg-primary px-6 py-2.5 font-semibold text-white shadow-sm transition-colors duration-300; }
+  .booking-card-badge { @apply mb-3 inline-flex items-center rounded-md bg-teal-50 px-2.5 py-1 text-xs font-bold text-teal-700 ring-1 ring-inset ring-teal-600/20; }
+
+  /* Especialidades — `group` se aplica inline */
+  .section-plain    { @apply py-16; }
+  .section-inner    { @apply mx-auto mb-16 max-w-7xl px-6 text-center; }
+  .section-heading-bordered { @apply inline-block border-b-[3px] border-primary pb-2 text-3xl font-bold text-[#0B212D]; }
+  .specialties-grid { @apply mx-auto grid max-w-6xl gap-10 px-6 text-center md:grid-cols-3; }
+  .specialty-card   { @apply cursor-pointer rounded-2xl border border-transparent p-6 transition-all duration-300 hover:-translate-y-2 hover:border-slate-100 hover:bg-white hover:shadow-xl; }
+  .specialty-icon   { @apply mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[#eef8f8] text-primary transition-all duration-300; }
+  .specialty-title  { @apply mb-3 text-lg font-bold text-gray-900 transition-colors; }
+  .specialty-text   { @apply text-sm text-gray-500 leading-relaxed transition-colors; }
+
+
+  /* =============================================
+     PORTAL — componentes comunes Doctor/Admin
+     ============================================= */
+
+  /* Encabezado de sección con acción a la derecha */
+  .portal-section-header {
+    @apply mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between;
+  }
+
+  .portal-section-header-centered {
+    @apply mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between;
+  }
+
+  /* Botón outline del portal (nav/acción secundaria) */
+  .btn-portal-outline {
+    @apply flex items-center gap-2 rounded-xl border border-[#E2E8F0] bg-white px-4 py-2 text-sm font-bold text-[#475569] shadow-sm transition hover:border-[#257D8D] hover:text-[#257D8D];
+  }
+
+  /* Dropdown del portal */
+  .portal-dropdown {
+    @apply absolute right-0 top-full z-20 mt-1 w-40 overflow-hidden rounded-xl border border-[#E2E8F0] bg-white shadow-xl;
+  }
+
+  .portal-dropdown-item {
+    @apply flex w-full items-center gap-2 px-4 py-2.5 text-sm font-semibold text-[#0F172A] hover:bg-[#F8FAFC];
+  }
+
+  /* Stat cards */
+  .stat-grid { @apply mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3; }
+
+  .stat-card {
+    @apply rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm;
+  }
+
+  .stat-label {
+    @apply mb-1 text-xs font-semibold uppercase tracking-wider text-[#94A3B8];
+  }
+
+  .stat-value {
+    @apply text-4xl font-black text-[#0F172A];
+  }
+
+  .stat-sub {
+    @apply mt-1 text-xs text-[#64748B];
+  }
+
+  /* Quick action card */
+  .quick-grid { @apply grid grid-cols-1 gap-4 sm:grid-cols-2; }
+
+  .quick-card {
+    @apply flex items-center justify-between rounded-2xl border border-[#E2E8F0] bg-white p-5 text-left shadow-sm transition hover:border-[#257D8D] hover:shadow-md;
+  }
+
+  .quick-card-title { @apply text-sm font-bold text-[#0F172A]; }
+  .quick-card-sub   { @apply mt-0.5 text-xs text-[#64748B]; }
+
+  /* Dot de estado */
+  .dot-active   { @apply h-2 w-2 rounded-full bg-emerald-500; }
+  .dot-inactive { @apply h-2 w-2 rounded-full bg-slate-400; }
+
+  /* Tarjeta con tabla */
+  .table-card       { @apply overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-sm; }
+  .table-scroll     { @apply overflow-x-auto; }
+  .table-base       { @apply w-full border-collapse text-left; }
+  .table-head-row   { @apply border-b border-[#E2E8F0] bg-[#F8FAFC]; }
+  .table-th         { @apply px-6 py-4 text-xs font-semibold uppercase tracking-wider text-[#94A3B8]; }
+  .table-th-right   { @apply px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-[#94A3B8]; }
+  .table-body       { @apply divide-y divide-[#E2E8F0]; }
+  .table-row        { @apply transition hover:bg-[#F8FAFC]; }
+  .table-td         { @apply px-6 py-4; }
+  .table-td-right   { @apply px-6 py-4 text-right; }
+  .table-empty      { @apply py-12 text-center text-sm italic text-[#94A3B8]; }
+  .table-loading    { @apply py-12 text-center text-sm text-[#94A3B8]; }
+
+  /* Table footer paginación */
+  .table-footer     { @apply flex items-center justify-between border-t border-[#E2E8F0] bg-[#F8FAFC] px-6 py-3; }
+  .table-count      { @apply text-sm text-[#64748B]; }
+  .pagination       { @apply flex items-center gap-1; }
+  .page-btn         { @apply flex h-8 w-8 items-center justify-center rounded-lg border border-[#E2E8F0] text-[#94A3B8] transition hover:bg-white disabled:opacity-40; }
+  .page-btn-active  { @apply flex h-8 w-8 items-center justify-center rounded-lg bg-[#257D8D] text-sm font-semibold text-white shadow; }
+  .page-btn-idle    { @apply flex h-8 w-8 items-center justify-center rounded-lg border border-[#E2E8F0] text-sm font-semibold text-[#475569] transition hover:bg-white; }
+
+  /* Avatar inicial (tabla pacientes) */
+  .table-avatar {
+    @apply flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[#E0F7FA] text-xs font-bold text-[#257D8D];
+  }
+
+  /* Botones de acción en tabla */
+  .btn-table-outline {
+    @apply rounded-lg border border-[#E2E8F0] bg-white px-3 py-1.5 text-xs font-semibold text-[#475569] transition hover:border-[#257D8D] hover:text-[#257D8D];
+  }
+
+  .btn-table-primary {
+    @apply rounded-lg bg-[#257D8D] px-3 py-1.5 text-xs font-bold text-white transition hover:opacity-90;
+  }
+
+  /* Badge de estado en tabla */
+  .badge-registered {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-emerald-200/50 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700;
+  }
+
+  .badge-guest {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-amber-200/50 bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-700;
+  }
+
+  /* Barra de búsqueda del portal */
+  .search-bar-card { @apply mb-5 overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white p-5 shadow-sm; }
+  .search-bar-row  { @apply flex flex-col gap-3 sm:flex-row; }
+  .search-input-wrap { @apply relative flex-1; }
+  .search-icon { @apply pointer-events-none absolute inset-y-0 left-4 flex items-center text-[#94A3B8]; }
+  .search-input {
+    @apply w-full rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] py-2.5 pl-11 pr-4 text-sm text-[#0F172A] focus:border-[#257D8D] focus:outline-none focus:ring-2 focus:ring-[#257D8D]/20;
+  }
+
+  /* Info banner del portal */
+  .portal-info-banner {
+    @apply mt-4 rounded-2xl border border-[#257D8D]/20 bg-[#E0F7FA] px-4 py-3 text-sm font-medium text-[#257D8D];
+  }
+
+  /* Calendario */
+  .cal-card          { @apply overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-sm; }
+  .cal-header        { @apply flex flex-col gap-4 border-b border-[#E2E8F0] px-6 py-4 sm:flex-row sm:items-center sm:justify-between; }
+  .cal-nav           { @apply flex items-center gap-4; }
+  .cal-nav-btn       { @apply flex h-8 w-8 items-center justify-center rounded-lg border border-[#E2E8F0] text-[#94A3B8] transition hover:bg-[#F8FAFC]; }
+  .cal-month-title   { @apply min-w-[160px] text-center text-lg font-black text-[#0F172A]; }
+  .cal-days-header   { @apply grid grid-cols-7 border-b border-[#E2E8F0] bg-[#F8FAFC]; }
+  .cal-day-label     { @apply py-2 text-center text-[10px] font-bold uppercase tracking-widest text-[#94A3B8]; }
+  .cal-grid          { @apply min-w-[480px] grid grid-cols-7; }
+  .cal-cell          { @apply relative cursor-pointer border-b border-r border-[#E2E8F0] p-2 transition hover:bg-[#F8FAFC]; }
+  .cal-day-today     { @apply flex h-7 w-7 items-center justify-center rounded-full bg-[#257D8D] text-xs font-black text-white shadow; }
+  .cal-day-normal    { @apply text-sm font-bold text-[#0F172A]; }
+  .cal-loading       { @apply flex items-center justify-center gap-3 py-16 text-sm text-[#64748B]; }
+  .cal-more          { @apply px-1 text-[10px] font-bold text-[#257D8D]; }
+
+
+  /* =============================================
+     SCHEDULE CONFIG (grilla de horario)
+     ============================================= */
+
+  /* Layout dos columnas (sidebar + grilla) */
+  .schedule-layout {
+    @apply grid grid-cols-1 gap-6 lg:grid-cols-[220px_1fr];
+  }
+
+  /* Tab switcher inline (tipo pill-nav en header) */
+  .tab-switcher {
+    @apply flex items-center gap-3 rounded-xl border border-[#E2E8F0] bg-white p-1 shadow-sm;
+  }
+
+  .tab-switcher-idle {
+    @apply rounded-lg px-4 py-2 text-sm font-semibold text-[#475569] transition hover:bg-[#F8FAFC];
+  }
+
+  .tab-switcher-active {
+    @apply rounded-lg bg-[#257D8D] px-4 py-2 text-sm font-bold text-white shadow;
+  }
+
+  /* Input de configuración del portal (time/select) */
+  .sched-input {
+    @apply w-full rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2 text-sm font-semibold text-[#0F172A] focus:border-[#257D8D] focus:outline-none;
+  }
+
+  /* Legend item */
+  .legend-item { @apply flex items-center gap-2; }
+  .legend-dot-primary { @apply h-4 w-4 rounded bg-[#257D8D]; }
+  .legend-dot-idle    { @apply h-4 w-4 rounded bg-slate-200; }
+  .legend-text        { @apply text-sm text-[#475569]; }
+
+  /* Botón guardar (schedule) */
+  .btn-save {
+    @apply flex items-center gap-3 rounded-2xl bg-primary px-8 py-3 text-sm font-black text-white shadow-2xl shadow-primary/40 transition-all hover:opacity-90 disabled:opacity-50;
+  }
+
+  /* Footer de acciones */
+  .actions-end-row {
+    @apply flex flex-wrap items-center justify-end gap-3;
+  }
+
+
+  /* =============================================
+     ADMIN PAGES
+     ============================================= */
+
+  /* Page wrapper */
+  .admin-page       { @apply min-h-screen bg-slate-50 p-8; }
+  .admin-inner      { @apply mx-auto max-w-6xl; }
+  .admin-inner-xl   { @apply mx-auto max-w-7xl; }
+
+  /* Page heading (h1) */
+  .admin-heading    { @apply text-2xl font-black tracking-tight text-slate-900 md:text-4xl; }
+  .admin-sub        { @apply mt-1 max-w-2xl text-sm text-slate-500; }
+
+  /* Action buttons in header */
+  .btn-admin-outline {
+    @apply flex items-center gap-2 rounded-xl border-2 border-primary/20 bg-white px-4 py-2 text-sm font-bold text-primary shadow-sm transition-all hover:border-primary;
+  }
+
+  .btn-admin-primary {
+    @apply flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white shadow-lg shadow-primary/20 transition-all hover:opacity-90;
+  }
+
+  /* Filter card */
+  .filter-card {
+    @apply mb-6 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm;
+  }
+
+  .filter-label {
+    @apply mb-2 block text-xs font-bold uppercase tracking-wider text-slate-500;
+  }
+
+  /* Toasts */
+  .toast-ok  { @apply mb-4 flex items-center gap-3 rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm font-semibold text-teal-800 shadow-sm; }
+  .toast-err { @apply mb-4 flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 shadow-sm; }
+
+  /* Panel de detalle de usuario */
+  .detail-panel {
+    @apply flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl;
+  }
+
+  .detail-header {
+    @apply flex flex-shrink-0 items-center justify-between border-b border-slate-100 bg-white px-6 py-4;
+  }
+
+  .detail-header-title { @apply text-[18px] font-bold text-slate-900; }
+
+  .detail-body {
+    @apply flex-1 space-y-6 overflow-y-auto p-6;
+  }
+
+  .detail-footer {
+    @apply flex flex-shrink-0 justify-end gap-3 border-t border-slate-100 bg-slate-50 px-6 py-4;
+  }
+
+  .detail-section-title { @apply mb-4 text-[14px] font-bold text-slate-900; }
+  .detail-grid   { @apply grid grid-cols-2 gap-4 rounded-xl bg-slate-50 p-4; }
+  .detail-label  { @apply text-[11px] font-semibold uppercase text-slate-500; }
+  .detail-value  { @apply mt-1 text-[13px] font-bold text-slate-900; }
+
+  /* Tabs lineales (sin borde-bg, solo underline activo) */
+  .underline-tabs { @apply mb-4 flex gap-2 border-b border-slate-200; }
+  .underline-tab-active { @apply border-b-2 border-[#257D8D] pb-2 text-[13px] font-semibold text-[#257D8D] transition; }
+  .underline-tab-idle   { @apply pb-2 text-[13px] text-slate-500 transition; }
+
+  /* Botón cerrar (modal detalle) */
+  .btn-close-filled {
+    @apply rounded-lg bg-slate-700 px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-slate-800;
+  }
+
+  /* Spinner pequeño teal */
+  .spinner-teal {
+    @apply h-7 w-7 animate-spin rounded-full border-2 border-[#257D8D] border-t-transparent;
+  }
+
+
+  /* =============================================
+     BOOKING — AppointmentCard, modales, scheduler
+     ============================================= */
+
+  /* Card de cita */
+  .appt-card {
+    @apply rounded-2xl border bg-white p-4 transition hover:shadow-sm md:p-5;
+  }
+
+  .appt-card-rescheduled {
+    @apply border-[#BAE6FD];
+  }
+
+  .appt-card-normal {
+    @apply border-[#E2E8F0];
+  }
+
+  /* Icono de la cita */
+  .appt-icon {
+    @apply flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-[#E0F2FE];
+  }
+
+  /* Chip de tipo (Registrado/Invitado/Especialidad) */
+  .type-chip {
+    @apply rounded-full bg-[#F1F5F9] px-2 py-0.5 text-[11px] font-semibold text-[#475569];
+  }
+
+  /* Badge reagendado (button) */
+  .badge-rescheduled {
+    @apply mt-2 inline-flex items-center gap-1.5 rounded-full bg-[#E0F7FA] px-2.5 py-1 text-[11px] font-bold text-[#257D8D] transition hover:bg-[#CFF0F4];
+  }
+
+  /* Botón de acción pequeño (circular, en card) */
+  .appt-action-btn {
+    @apply flex h-8 w-8 items-center justify-center rounded-lg border border-[#E2E8F0] bg-white text-[#64748B] transition hover:border-[#257D8D] hover:text-[#257D8D];
+  }
+
+  .appt-cancel-btn {
+    @apply flex h-8 w-8 items-center justify-center rounded-lg border border-[#E2E8F0] bg-white text-[#94A3B8] transition hover:border-red-400 hover:text-red-500;
+  }
+
+  /* Historial accordion */
+  .history-list {
+    @apply relative space-y-4 pl-5 before:absolute before:bottom-1 before:left-[5px] before:top-1 before:w-px before:bg-[#BAE6FD] before:content-[''];
+  }
+
+  .history-dot {
+    @apply absolute -left-5 top-0.5 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-[#257D8D] ring-4 ring-[#E0F7FA];
+  }
+
+  /* Resumen de cita (tabla simple) */
+  .summary-table {
+    @apply divide-y divide-slate-100 rounded-xl border border-slate-200 bg-slate-50;
+  }
+
+  .summary-row {
+    @apply flex justify-between px-4 py-3;
+  }
+
+  .summary-label { @apply text-sm text-slate-500; }
+  .summary-value { @apply text-sm font-semibold text-slate-800; }
+
+  /* Spinner de carga en modal (teal-600) */
+  .spinner-modal {
+    @apply h-8 w-8 animate-spin rounded-full border-b-2 border-teal-600;
+  }
+
+  /* Botón atrás/siguiente en modales */
+  .btn-modal-back {
+    @apply rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-100 disabled:opacity-50;
+  }
+
+  .btn-modal-next {
+    @apply rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-40;
+  }
+
+  .btn-modal-confirm {
+    @apply flex items-center gap-2 rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-40;
+  }
+
+  /* Dots de stepper en modal */
+  .step-dot-active   { @apply h-2 w-6 rounded-full bg-teal-600 transition-all; }
+  .step-dot-done     { @apply h-2 w-2 rounded-full bg-teal-400; }
+  .step-dot-idle     { @apply h-2 w-2 rounded-full bg-slate-200; }
+
+
+  /* Grilla de tipos de médico */
+  .specialty-select {
+    @apply h-full min-h-[90px] flex items-center gap-3 rounded-lg border-2 p-4 shadow transition;
+  }
+
+  .specialty-select-active  { @apply border-primary bg-primary/10; }
+  .specialty-select-idle    { @apply border-gray-200 hover:bg-gray-50; }
+
+  /* MedicSelectCard — botón SELECCIONAR/SELECCIONADO */
+  .btn-select {
+    @apply ml-3 shrink-0 rounded-md px-3 py-2 text-sm font-medium transition;
+  }
+
+  .btn-select-active { @apply bg-primary text-white; }
+  .btn-select-idle   { @apply bg-neutral-200 hover:bg-neutral-300; }
+
+
+  /* =============================================
+     BOOKING PAGES — ManualBooking, InstantBooking
+     ============================================= */
+
+  /* Page wrapper con fondo gris */
+  .booking-page {
+    @apply mx-auto min-h-screen max-w-5xl space-y-10 bg-gray-100 p-8;
+  }
+
+  /* Sección / card de reserva */
+  .booking-section {
+    @apply space-y-6 rounded-2xl bg-white p-6 shadow-md;
+  }
+
+  .booking-section-title {
+    @apply text-lg font-semibold text-gray-800;
+  }
+
+  /* Paciente seleccionado */
+  .selected-patient {
+    @apply flex items-center justify-between rounded-xl border border-teal-300 bg-teal-50 px-4 py-3;
+  }
+
+  /* Botón para buscar paciente (dashed) */
+  .btn-patient-search {
+    @apply flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-300 py-5 text-sm text-gray-500 transition hover:border-teal-500 hover:text-teal-600;
+  }
+
+  /* Doctor info en booking */
+  .doctor-info-row {
+    @apply flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3;
+  }
+
+  /* Placeholder cuando no hay doctor */
+  .placeholder-slot {
+    @apply flex h-32 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-400;
+  }
+
+  /* Acciones de booking */
+  .booking-actions {
+    @apply flex gap-4;
+  }
+
+  .btn-booking-submit {
+    @apply flex flex-1 items-center justify-center gap-2 rounded-xl bg-teal-600 py-3 text-sm font-bold tracking-wide text-white shadow-md transition hover:bg-teal-700 disabled:opacity-60;
+  }
+
+  .btn-booking-cancel {
+    @apply rounded-xl border border-gray-300 px-6 py-3 text-sm text-gray-600 transition hover:bg-gray-50;
+  }
+
+
+  /* =============================================
+     CONSULTATION PAGE
+     ============================================= */
+
+  /* Sección encuesta */
+  .survey-section {
+    @apply mx-auto max-w-3xl px-6 py-12;
+  }
+
+  /* Card de pregunta */
+  .survey-card {
+    @apply rounded-2xl border border-gray-100 bg-white p-6 shadow-sm;
+  }
+
+  .survey-card-title {
+    @apply mb-4 text-lg font-bold text-gray-900;
+  }
+
+  .survey-grid {
+    @apply grid gap-3 sm:grid-cols-2;
+  }
+
+  /* Botón de opción */
+  .choice-btn {
+    @apply flex items-center gap-3 rounded-xl border-2 p-4 text-left transition;
+  }
+
+  .choice-btn-active { @apply border-primary bg-primary/10; }
+  .choice-btn-idle   { @apply border-gray-200 hover:bg-gray-50; }
+
+  /* Botón submit de consulta */
+  .btn-consult {
+    @apply flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-4 text-lg font-semibold text-white shadow-md transition hover:bg-[#1a5b67] disabled:opacity-60;
+  }
+
+  /* Card de resultado */
+  .result-card {
+    @apply rounded-2xl border border-gray-100 bg-white p-8 shadow-xl;
+  }
+
+  .result-actions {
+    @apply mt-8 flex flex-col gap-3;
+  }
+
+  .btn-result-primary {
+    @apply w-full rounded-lg bg-primary py-3.5 text-lg font-semibold text-white shadow-md transition hover:bg-[#1a5b67];
+  }
+
+  .btn-result-secondary {
+    @apply w-full rounded-lg bg-gray-100 py-3 font-semibold text-gray-700 transition hover:bg-gray-200;
+  }
+
+
+  /* =============================================
+     MFA SETTINGS
+     ============================================= */
+
+  /* Card base para secciones MFA (rounded-xl, sombra suave) */
+  .settings-card {
+    @apply rounded-xl border border-gray-200 bg-white p-5 shadow-sm;
+  }
+
+  /* Fila de método MFA — borde/fondo dinámico (se aplica condicional en razor) */
+  .mfa-row {
+    @apply flex items-center justify-between rounded-lg border px-4 py-3 transition;
+  }
+
+  .mfa-row-active {
+    @apply border-[#4CAF7D] bg-[#edf7f2];
+  }
+
+  .mfa-row-idle {
+    @apply border-gray-200;
+  }
+
+  /* Botón para desactivar un método MFA */
+  .btn-mfa-off {
+    @apply rounded-lg border border-[#E76F51] bg-white px-3 py-1.5 text-xs font-semibold text-[#E76F51] transition hover:bg-orange-50 disabled:opacity-50;
+  }
+
+  /* Botón para habilitar un método MFA */
+  .btn-mfa-on {
+    @apply rounded-lg border border-[#2A9D8F] bg-white px-3 py-1.5 text-xs font-semibold text-[#2A9D8F] transition hover:bg-[#e8f5f3] disabled:opacity-50;
+  }
+
+  /* Card de configuración TOTP (fondo azul claro) */
+  .totp-card {
+    @apply rounded-xl border border-blue-200 bg-blue-50 p-5 shadow-sm;
+  }
+
+  /* Fila de código de recuperación */
+  .code-row {
+    @apply flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-3 py-2;
+  }
+
+  /* Botón copiar código */
+  .btn-copy-code {
+    @apply ml-2 rounded p-1 text-gray-400 transition hover:text-[#2A9D8F];
+  }
+
+  /* Botón generar códigos (fondo teal suave) */
+  .btn-generate {
+    @apply w-full rounded-lg border border-[#2A9D8F] bg-[#e8f4f6] px-4 py-3 text-sm font-semibold text-[#1e7168] transition hover:bg-[#c2e8e3] disabled:opacity-50;
+  }
+
+  /* Enlace peligro para regenerar */
+  .btn-link-danger {
+    @apply border-none bg-none text-xs font-medium text-[#E76F51] underline transition hover:text-orange-700 disabled:opacity-50;
+  }
+
+  /* Header de backup codes (entre título y botón copiar) */
+  .settings-card-head {
+    @apply mb-1 flex items-center justify-between;
+  }
+
+  .settings-card-title-row {
+    @apply flex items-center gap-2;
+  }
+
+  /* Botón copiar todos */
+  .btn-copy-all {
+    @apply flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50;
+  }
+
+  /* Modal de confirmación de método (mismo estilo que modal-card-sm pero rounded-xl) */
+  .modal-card-xs {
+    @apply w-full max-w-sm rounded-xl bg-white p-6 shadow-xl;
   }
 
 }

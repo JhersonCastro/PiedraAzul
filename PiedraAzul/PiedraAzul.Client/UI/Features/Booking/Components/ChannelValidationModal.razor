@@ -19,7 +19,7 @@
 
             <!-- Header -->
             <div class="modal-header">
-                <h2 class="text-base font-bold text-slate-900">@GetTitle()</h2>
+                <h2 class="modal-title-sm text-base">@GetTitle()</h2>
                 @if (!IsLoading && _stage != Stage.ConfirmData)
                 {
                     <button @onclick="HandleClose"
@@ -85,7 +85,7 @@
 
                         @if (!string.IsNullOrEmpty(_error))
                         {
-                            <p class="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-600">@_error</p>
+                            <p class="alert-error-inline">@_error</p>
                         }
 
                         <button type="button"
@@ -108,12 +108,11 @@
                                @bind:event="oninput"
                                maxlength="6"
                                placeholder="000000"
-                               class="w-44 rounded-xl border-2 border-slate-300 px-4 py-3 text-center text-2xl
-                                      font-bold tracking-widest focus:border-teal-600 focus:outline-none" />
+                               class="input input-code w-44 rounded-xl border-2" />
 
                         @if (!string.IsNullOrEmpty(_error))
                         {
-                            <p class="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-600">@_error</p>
+                            <p class="alert-error-inline">@_error</p>
                         }
 
                         <button type="button"
@@ -168,7 +167,7 @@
 
                         @if (!string.IsNullOrEmpty(_error))
                         {
-                            <p class="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-600">@_error</p>
+                            <p class="alert-error-inline">@_error</p>
                         }
 
                         <button type="button"

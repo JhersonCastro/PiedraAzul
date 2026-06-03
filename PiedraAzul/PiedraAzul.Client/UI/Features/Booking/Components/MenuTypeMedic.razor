@@ -27,10 +27,7 @@
                        class="hidden"
                        checked="@(SelectedType == DoctorType.NaturalMedicine)" />
 
-                <div class="flex h-full min-h-[90px] items-center gap-3 rounded-lg border-2 p-4 shadow transition
-                    @(SelectedType == DoctorType.NaturalMedicine
-                                             ? "border-primary bg-primary/10"
-                                             : "border-gray-200 hover:bg-gray-50")">
+                <div class="specialty-select @(SelectedType == DoctorType.NaturalMedicine ? "specialty-select-active" : "specialty-select-idle")">
 
                     <svg xmlns="http://www.w3.org/2000/svg"
                          viewBox="0 -960 960 960"
@@ -57,10 +54,7 @@
                        class="hidden"
                        checked="@(SelectedType == DoctorType.Chiropractic)" />
 
-                <div class="flex h-full min-h-[90px] items-center gap-3 rounded-lg border-2 p-4 shadow transition
-                    @(SelectedType == DoctorType.Chiropractic
-                                             ? "border-primary bg-primary/10"
-                                             : "border-gray-200 hover:bg-gray-50")">
+                <div class="specialty-select @(SelectedType == DoctorType.Chiropractic ? "specialty-select-active" : "specialty-select-idle")">
 
                     <svg xmlns="http://www.w3.org/2000/svg"
                          viewBox="0 -960 960 960"
@@ -87,10 +81,7 @@
                        class="hidden"
                        checked="@(SelectedType == DoctorType.Optometry)" />
 
-                <div class="flex h-full min-h-[90px] items-center gap-3 rounded-lg border-2 p-4 shadow transition
-                    @(SelectedType == DoctorType.Optometry
-                                             ? "border-primary bg-primary/10"
-                                             : "border-gray-200 hover:bg-gray-50")">
+                <div class="specialty-select @(SelectedType == DoctorType.Optometry ? "specialty-select-active" : "specialty-select-idle")">
 
                     <svg xmlns="http://www.w3.org/2000/svg"
                          viewBox="0 -960 960 960"
@@ -117,10 +108,7 @@
                        class="hidden"
                        checked="@(SelectedType == DoctorType.Physiotherapy)" />
 
-                <div class="flex h-full min-h-[90px] items-center gap-3 rounded-lg border-2 p-4 shadow transition
-                    @(SelectedType == DoctorType.Physiotherapy
-                                             ? "border-primary bg-primary/10"
-                                             : "border-gray-200 hover:bg-gray-50")">
+                <div class="specialty-select @(SelectedType == DoctorType.Physiotherapy ? "specialty-select-active" : "specialty-select-idle")">
 
                     <svg xmlns="http://www.w3.org/2000/svg"
                          viewBox="0 -960 960 960"
@@ -163,10 +151,7 @@
                 @foreach (var doctor in _currentDoctors)
                 {
                     var selected = SelectedMedicId == doctor.Id;
-                    <li class="cursor-pointer rounded-lg border p-3 shadow-sm transition
-                        @(selected
-                                                    ? "border-primary bg-primary/10"
-                                                    : "border-gray-200 hover:bg-gray-50")"
+                    <li class="specialty-select cursor-pointer rounded-lg p-3 shadow-sm @(selected ? "specialty-select-active" : "specialty-select-idle")"
                         @onclick="() => SelectDoctor(doctor)">
                         <MedicSelectCard MedicDTO="doctor"
                                          Selected="selected" />

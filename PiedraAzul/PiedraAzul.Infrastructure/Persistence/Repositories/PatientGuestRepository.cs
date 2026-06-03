@@ -17,13 +17,15 @@ public class PatientGuestRepository(AppDbContext context) : IPatientGuestReposit
 
     public async Task<IReadOnlyList<GuestPatient>> SearchAsync(string text, CancellationToken ct = default)
     {
+        // ILike = case-insensitive. Busca por nombre, teléfono e identificación (Id)
         return await context.Patients
             .OfType<GuestPatient>()
             .Where(x =>
-                EF.Functions.Like(x.Name, $"%{text}%") ||
-                EF.Functions.Like(x.Phone, $"%{text}%"))
+                EF.Functions.ILike(x.Name, $"%{text}%") ||
+                EF.Functions.ILike(x.Phone ?? "", $"%{text}%") ||
+                EF.Functions.ILike(x.Id, $"%{text}%"))
             .OrderBy(x => x.Name)
-            .Take(10)
+            .Take(15)
             .AsNoTracking()
             .ToListAsync(ct);
     }

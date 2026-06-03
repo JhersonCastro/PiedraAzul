@@ -8,16 +8,16 @@
 @inject UserState UserState
 @inject IJSRuntime JSRuntime
 
-<EditForm Model="@mfaModel" OnValidSubmit="HandleVerifyMFA" class="mx-auto w-full max-w-lg">
+<EditForm Model="@mfaModel" OnValidSubmit="HandleVerifyMFA" class="auth-narrow">
     <DataAnnotationsValidator />
     <div class="form-card">
 
         <!-- Header -->
-        <h2 class="text-center text-2xl font-bold text-gray-800 md:text-left md:text-3xl">
+        <h2 class="auth-heading">
             Verifica tu identidad
         </h2>
 
-        <p class="mb-6 mt-2 text-center text-gray-500 md:text-left">
+        <p class="auth-subheading">
             @GetMFAMethodText()
         </p>
 
@@ -27,30 +27,30 @@
         <!-- Toggle: OTP / Backup Code -->
         @if (MFARequired?.MFAMethod != "BackupCode")
         {
-            <div class="mb-4 flex rounded-lg border border-gray-200 overflow-hidden text-sm font-semibold">
+            <div class="seg-toggle">
                 <button type="button"
                         @onclick="() => _useBackupCode = false"
-                        class="flex-1 py-2 transition @(_useBackupCode ? "bg-white text-gray-500 hover:bg-gray-50" : "bg-[#257D8D] text-white")">
+                        class="seg-btn @(_useBackupCode ? "seg-btn-idle" : "seg-btn-active")">
                     @GetInputLabel()
                 </button>
                 <button type="button"
                         @onclick="() => _useBackupCode = true"
-                        class="flex-1 py-2 transition @(_useBackupCode ? "bg-[#257D8D] text-white" : "bg-white text-gray-500 hover:bg-gray-50")">
+                        class="seg-btn @(_useBackupCode ? "seg-btn-active" : "seg-btn-idle")">
                     Código de recuperación
                 </button>
             </div>
         }
 
         <!-- Input del código -->
-        <div class="mb-4">
+        <div class="field">
             @if (_useBackupCode)
             {
-                <p class="mb-2 text-xs text-gray-500">Ingresa uno de tus códigos de recuperación de 8 caracteres</p>
+                <p class="input-hint">Ingresa uno de tus códigos de recuperación de 8 caracteres</p>
                 <input type="text"
                        @bind="mfaModel.OTP"
                        placeholder="XXXXXXXX"
                        maxlength="8"
-                       class="input text-center text-2xl tracking-widest"
+                       class="input input-code"
                        autocomplete="off"
                        disabled="@_loading" />
             }
@@ -60,7 +60,7 @@
                        @bind="mfaModel.OTP"
                        placeholder="000000"
                        maxlength="8"
-                       class="input text-center text-2xl tracking-widest"
+                       class="input input-code"
                        autocomplete="off"
                        disabled="@_loading" />
             }
@@ -69,7 +69,7 @@
         <!-- Error/Success Message -->
         @if (!string.IsNullOrEmpty(_errorMessage))
         {
-            <div class="mb-4 rounded-lg @(_errorMessage.StartsWith("✅") ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700") p-3 text-sm">
+            <div class="form-message @(_errorMessage.StartsWith("✅") ? "form-message-ok" : "form-message-err")">
                 @_errorMessage
             </div>
         }
@@ -77,13 +77,13 @@
         <!-- Reintentos Counter -->
         @if (_resendAttempts > 0 && _resendAttempts < 3)
         {
-            <p class="mb-3 text-center text-xs text-gray-500">
+            <p class="form-note">
                 Reintentos: @_resendAttempts / 3
             </p>
         }
 
         <!-- Actions -->
-        <div class="mt-6 space-y-3">
+        <div class="auth-actions">
             <button type="submit"
                     disabled="@_loading"
                     class="btn-primary">

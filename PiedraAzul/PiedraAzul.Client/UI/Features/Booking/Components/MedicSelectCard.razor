@@ -16,13 +16,8 @@
 
     <!-- botón -->
     <button type="button"
-            class="ml-3 shrink-0 rounded-md px-3 py-2 text-sm font-medium transition
-        @(Selected
-                        ? "bg-primary text-white"
-                        : "bg-neutral-200 hover:bg-neutral-300")">
-
+            class="btn-select @(Selected ? "btn-select-active" : "btn-select-idle")">
         @(Selected ? "SELECCIONADO" : "SELECCIONAR")
-
     </button>
 
 </div>

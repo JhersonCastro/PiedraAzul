@@ -1,108 +1,92 @@
 @using PiedraAzul.Client.Models.Schedule
-@page "/doctor/configurar-horario"
-@layout PiedraAzul.Client.UI.Shared.Layout.EmptyLayout
 @using System.Globalization
+@using PiedraAzul.Client.Services.Schedule
 @using PiedraAzul.Client.States
 @inject UserState UserState
+@inject IScheduleConfigService ScheduleConfigService
 @inject IJSRuntime JS
 
-<div class="bg-slate-50 pb-12">
-
-    <main class="max-w-7xl mx-auto px-4 pt-2">
-        <!-- Header Title & Controls -->
-        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-            <div class="flex items-center gap-3">
-                <button @onclick="GoBack" class="p-3 bg-white border border-slate-200 rounded-2xl text-slate-400 hover:text-primary transition-all shadow-sm flex-shrink-0">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-                </button>
-                <div>
-                    <h1 class="text-2xl md:text-4xl font-black text-slate-900 mb-1">Configurar Horario</h1>
-                    <p class="text-slate-500 text-sm font-medium">Gestiona tu disponibilidad semanal para citas con pacientes.</p>
-                </div>
-            </div>
-
-            <div class="flex items-center gap-2 bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100">
-                <a href="/doctor/agenda" class="text-slate-500 px-4 py-2 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all">
-                    Calendario
-                </a>
-                <a href="/doctor/configurar-horario" class="bg-primary text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-primary/20 transition-all">
-                    Mi Horario
-                </a>
-            </div>
+<div>
+    <!-- Header -->
+    <div class="portal-section-header-centered">
+        <div>
+            <h2 class="portal-title">Mi Horario</h2>
+            <p class="portal-subtitle">Gestiona tu disponibilidad semanal para citas con pacientes.</p>
         </div>
+        <div class="tab-switcher">
+            <button @onclick='() => OnNavigateTo.InvokeAsync("doc-agenda")'
+                    class="tab-switcher-idle">
+                Calendario
+            </button>
+            <span class="tab-switcher-active">Mi Horario</span>
+        </div>
+    </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6 md:gap-10">
-            
-            <!-- Sidebar -->
-            <aside class="space-y-8">
-                <!-- Mini Calendar Card -->
-                <div class="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
-                    <div class="flex items-center justify-between mb-8">
-                        <h3 class="font-black text-slate-900 text-xl">Marzo 2026</h3>
-                        <div class="text-primary">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-tighter mb-6">
-                        <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span>
-                    </div>
-                    <div class="grid grid-cols-5 text-center gap-y-3">
-                        @for (int i = 1; i <= 31; i++)
-                        {
-                            var date = new DateTime(2026, 3, i);
-                            if (date.DayOfWeek == DayOfWeek.Saturday || date.DayOfWeek == DayOfWeek.Sunday) continue;
+    <div class="schedule-layout">
 
-                            var isSelectedWeek = i >= 9 && i <= 13;
-                            <div class="py-1 text-sm font-black @(isSelectedWeek ? "bg-primary text-white rounded-full w-8 h-8 flex items-center justify-center mx-auto shadow-lg shadow-primary/30" : "text-slate-400")">
-                                @i
-                            </div>
-                        }
+        <!-- Sidebar legend -->
+        <aside class="space-y-4">
+            <div class="portal-card">
+                <p class="portal-card-title mb-4 uppercase tracking-wider">Leyenda</p>
+                <div class="space-y-3">
+                    <div class="legend-item">
+                        <div class="legend-dot-primary"></div>
+                        <span class="legend-text">Disponible</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot-idle"></div>
+                        <span class="legend-text">Bloqueado</span>
                     </div>
                 </div>
+                <p class="mt-4 text-xs text-[#94A3B8]">Clic en una franja de @Intervalo min para cambiar disponibilidad.</p>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
 
-                <!-- Status Legend -->
-                <div class="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
-                    <h3 class="font-black text-slate-900 mb-6">Estado</h3>
-                    <div class="space-y-5">
-                        <div class="flex items-center gap-3">
-                            <div class="w-5 h-5 rounded-lg bg-primary"></div>
-                            <span class="text-sm font-bold text-slate-600">Disponible</span>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <div class="w-5 h-5 rounded-lg bg-slate-200"></div>
-                            <span class="text-sm font-bold text-slate-600">Bloqueado</span>
-                        </div>
-                    </div>
-                    <div class="mt-8 pt-8 border-t border-slate-50">
-                        <div class="flex gap-4 text-slate-400">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-                            <p class="text-xs font-bold leading-relaxed">Haz clic en cualquier franja horaria de @Intervalo min para cambiar su disponibilidad.</p>
-                        </div>
-                    </div>
+                <div class="portal-card">
+                    <p class="portal-card-title mb-3 uppercase tracking-wider">Intervalo</p>
+                    <select value="@Intervalo" @onchange="OnIntervalChanged" class="sched-input">
+                        <option value="5">5 min</option>
+                        <option value="10">10 min</option>
+                        <option value="15">15 min</option>
+                        <option value="20">20 min</option>
+                        <option value="30">30 min</option>
+                        <option value="60">60 min</option>
+                    </select>
+                    <p class="mt-2 text-[11px] text-[#94A3B8]">Detectado: @Intervalo min por slot</p>
                 </div>
-            </aside>
+
+                <div class="portal-card">
+                    <p class="portal-card-title mb-3 uppercase tracking-wider">Franja Horaria</p>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="mb-1 block text-[11px] text-[#64748B]">Apertura</label>
+                            <input type="time" value="@StartTimeText" @onchange="OnStartTimeChanged" class="sched-input" />
+                        </div>
+                        <div>
+                            <label class="mb-1 block text-[11px] text-[#64748B]">Cierre</label>
+                            <input type="time" value="@EndTimeText" @onchange="OnEndTimeChanged" class="sched-input" />
+                        </div>
+                    </div>
+                    <p class="mt-2 text-[11px] text-[#94A3B8]">Se aplica a todos los días habilitados.</p>
+                </div>
+            </div>
+        </aside>
 
             <!-- Main Content -->
-            <div class="space-y-8">
-                <!-- Interval Selection Card -->
-                <div class="bg-white rounded-[2.5rem] p-10 shadow-sm border border-slate-100 flex flex-col md:flex-row items-center justify-between gap-8">
-                    <div>
-                        <h2 class="text-4xl font-black text-slate-900 mb-3">Configuración de intervalo de atención</h2>
-                        <p class="text-slate-500 font-medium">Ajusta la configuración detallada del cronograma para la semana seleccionada.</p>
+            <div class="space-y-4">
+
+                @if (_loading)
+                {
+                    <div class="cal-loading">
+                        <div class="spinner"></div>
+                        <span>Cargando horario...</span>
                     </div>
-                    <div class="bg-slate-50 p-4 rounded-3xl border border-slate-100 flex items-center gap-4 min-w-[280px]">
-                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2 whitespace-nowrap">Intervalo de atención</span>
-                        <select @bind="Intervalo" class="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-2 font-black text-slate-700 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all">
-                            <option value="5">5 min</option>
-                            <option value="10">10 min</option>
-                            <option value="15">15 min</option>
-                            <option value="20">20 min</option>
-                        </select>
-                    </div>
-                </div>
+                }
+                else
+                {
 
                 <!-- Schedule Grid -->
-                <div class="bg-white rounded-2xl md:rounded-[2.5rem] shadow-xl shadow-slate-200/40 border border-slate-100 overflow-hidden">
+                <div class="overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-sm">
                   <div class="overflow-x-auto">
                    <div class="min-w-[520px]">
                     <div class="grid grid-cols-[100px_1fr_1fr_1fr_1fr_1fr] border-b border-slate-100 bg-slate-50/20">
@@ -112,7 +96,8 @@
                             <div class="p-5 border-r border-slate-100 last:border-0 text-center relative group @(day.IsBlocked ? "bg-slate-50/50" : "")">
                                 <button @onclick="() => ToggleDay(day)" class="block w-full text-center hover:opacity-70 transition-all">
                                     <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">@day.DayName</div>
-                                    <div class="text-xl font-black text-slate-900 mb-3">@day.DayNumber</div>
+                                    <div class="text-xl font-black text-slate-900 mb-1">@day.DayNumber</div>
+                                    <div class="text-[9px] text-slate-400 mb-3">@(day.IsBlocked ? "—" : GetDayRange(day))</div>
                                 </button>
                                 <div class="flex justify-center">
                                     <label class="relative inline-flex items-center cursor-pointer group">
@@ -179,95 +164,342 @@
                 </div>
 
                 <!-- Footer Actions -->
-                <div class="flex flex-wrap items-center justify-end gap-3 pt-6">
-                    <a href="/servicios/exportar-citas" class="bg-white border-2 border-slate-100 px-6 py-3 rounded-2xl font-black text-slate-600 hover:bg-slate-50 transition-all uppercase tracking-widest text-xs">
-                        Exportar datos
-                    </a>
-                    <button class="flex items-center gap-3 bg-primary text-white px-8 py-3 rounded-2xl font-black text-sm hover:opacity-90 transition-all shadow-2xl shadow-primary/40">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                <div class="actions-end-row">
+                    @if (!string.IsNullOrEmpty(_saveError))
+                    {
+                        <span class="text-xs font-bold text-rose-500">@_saveError</span>
+                    }
+                    @if (_saveSuccess)
+                    {
+                        <span class="text-xs font-bold text-emerald-600">¡Horario guardado correctamente!</span>
+                    }
+                    <button @onclick="SaveScheduleAsync"
+                            disabled="@_saving"
+                            class="btn-save">
+                        @if (_saving)
+                        {
+                            <div class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                        }
+                        else
+                        {
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                        }
                         GUARDAR
                     </button>
                 </div>
+                } @* end else loading *@
             </div>
-        </div>
-    </main>
+    </div>
 </div>
 
 @code {
-    private async Task GoBack() => await JS.InvokeVoidAsync("history.back");
+    [Parameter] public EventCallback<string> OnNavigateTo { get; set; }
 
-    private int Intervalo { get; set; } = 10;
+    private int Intervalo { get; set; } = 15;
+    private string StartTimeText { get; set; } = "08:00";
+    private string EndTimeText   { get; set; } = "17:00";
     private List<DayScheduleModel> WeekDays = new();
-    private List<int> Hours = new() { 9, 10, 11 };
+    private List<int> Hours = new();
+    private bool _saving, _loading = true;
+    private string? _saveError;
+    private bool _saveSuccess;
+    private ScheduleConfigModel? _config;
 
-    protected override void OnInitialized()
+    private static readonly DayOfWeek[] WorkWeek =
+    [
+        DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday,
+        DayOfWeek.Thursday, DayOfWeek.Friday
+    ];
+
+    protected override async Task OnInitializedAsync()
     {
-        InitializeSchedule();
+        if (UserState?.User?.Id == null) { _loading = false; return; }
+        _config = await ScheduleConfigService.GetByDoctorIdAsync(UserState.User.Id);
+        if (_config != null)
+        {
+            Intervalo = DetectIntervalFromSlots(_config);
+            SyncTimeRangeFromConfig(_config);
+        }
+        BuildWeekGrid();
+        _loading = false;
     }
 
-    private void InitializeSchedule()
+    private void SyncTimeRangeFromConfig(ScheduleConfigModel config)
     {
-        WeekDays = new List<DayScheduleModel>
-        {
-            new() { DayName = "Lun", DayNumber = 9 },
-            new() { DayName = "Mar", DayNumber = 10 },
-            new() { DayName = "Mier", DayNumber = 11, IsBlocked = true },
-            new() { DayName = "Jue", DayNumber = 12 },
-            new() { DayName = "Vie", DayNumber = 13 }
-        };
+        var sample = config.Availability.FirstOrDefault(a => a.IsEnabled) ?? config.Availability.FirstOrDefault();
+        if (sample is null) return;
+        var st = sample.StartTimeSpan;
+        var et = sample.EndTimeSpan;
+        StartTimeText = $"{st.Hours:00}:{st.Minutes:00}";
+        EndTimeText   = $"{et.Hours:00}:{et.Minutes:00}";
+    }
 
-        foreach (var day in WeekDays)
+    private void OnStartTimeChanged(ChangeEventArgs e)
+    {
+        StartTimeText = e.Value?.ToString() ?? StartTimeText;
+        ApplyTimeRangeAndRegenerate();
+    }
+
+    private void OnEndTimeChanged(ChangeEventArgs e)
+    {
+        EndTimeText = e.Value?.ToString() ?? EndTimeText;
+        ApplyTimeRangeAndRegenerate();
+    }
+
+    /// <summary>
+    /// Aplica el nuevo rango horario a la config y regenera todos los slots en fresco.
+    /// Permite al usuario modificar su horario libremente.
+    /// </summary>
+    private void ApplyTimeRangeAndRegenerate()
+    {
+        if (_config is null) return;
+        if (!TimeSpan.TryParse(StartTimeText, out var start) ||
+            !TimeSpan.TryParse(EndTimeText,   out var end)   || start >= end) return;
+
+        foreach (var day in _config.Availability)
         {
-            GenerateSlotsForDay(day);
+            day.StartTimeSpan = start;
+            day.EndTimeSpan   = end;
+        }
+        RegenerateAllSlots();
+    }
+
+    /// <summary>
+    /// Calcula el intervalo real desde la DURACIÓN de un slot (EndTime - StartTime),
+    /// no desde la diferencia entre slots (que puede confundirse con 1 min).
+    /// </summary>
+    private static int DetectIntervalFromSlots(ScheduleConfigModel config)
+    {
+        var firstActive = config.Slots.FirstOrDefault(s => !s.IsDeleted);
+        if (firstActive is null) return config.IntervalMinutes > 0 ? config.IntervalMinutes : 15;
+
+        if (TimeSpan.TryParse(firstActive.StartTime, out var st) &&
+            TimeSpan.TryParse(firstActive.EndTime, out var et))
+        {
+            var mins = (int)(et - st).TotalMinutes;
+            if (mins >= 5 && mins <= 60) return mins;
+        }
+        return config.IntervalMinutes > 0 ? config.IntervalMinutes : 15;
+    }
+
+    private void BuildWeekGrid()
+    {
+        var today  = DateTime.Today;
+        var monday = today.AddDays(-((7 + (int)today.DayOfWeek - (int)DayOfWeek.Monday) % 7));
+
+        WeekDays = WorkWeek.Select((dow, i) =>
+        {
+            var dayDate = monday.AddDays(i);
+            var avail   = _config?.Availability.FirstOrDefault(a => a.DayOfWeek == dow);
+            var isBlocked = avail == null || !avail.IsEnabled;
+
+            var model = new DayScheduleModel
+            {
+                DayName   = dow.ToString()[..3],
+                DayNumber = dayDate.Day,
+                DayOfWeek = dow,
+                IsBlocked = isBlocked
+            };
+
+            if (!isBlocked && _config != null)
+                model.Slots = BuildSlotsForDay(dow);
+
+            return model;
+        }).ToList();
+
+        // Rango de horas a mostrar: desde el slot más temprano al más tardío de cualquier día
+        var allSlots = WeekDays.SelectMany(d => d.Slots).ToList();
+        if (allSlots.Any())
+        {
+            var minHour = allSlots.Min(s => ParseHour(s.StartTime));
+            var maxHour = allSlots.Max(s => ParseHour(s.StartTime));
+            Hours = Enumerable.Range(minHour, maxHour - minHour + 1).ToList();
+        }
+        else
+        {
+            Hours = Enumerable.Range(8, 9).ToList(); // 8:00–16:00 por defecto
         }
     }
 
-    private void GenerateSlotsForDay(DayScheduleModel day)
+    /// <summary>
+    /// Construye la lista de slots de un día directamente desde los datos del backend.
+    /// Los slots vienen con StartTime y EndTime reales. Solo usamos StartTime para mostrar.
+    /// </summary>
+    private List<TimeSlotModel> BuildSlotsForDay(DayOfWeek dow)
     {
-        day.Slots.Clear();
-        foreach (var hour in Hours)
+        if (_config is null) return [];
+
+        var dbSlots = _config.Slots
+            .Where(s => s.DayOfWeek == dow)
+            .OrderBy(s => s.StartTime)
+            .ToList();
+
+        // Si hay slots en la DB, usarlos directamente
+        if (dbSlots.Any())
         {
-            for (int min = 0; min < 60; min += Intervalo)
+            return dbSlots.Select(s => new TimeSlotModel
             {
-                var time = DateTime.Today.AddHours(hour).AddMinutes(min);
-                day.Slots.Add(new TimeSlotModel { StartTime = $"{time:HH:mm}", IsActive = true });
+                StartTime     = s.StartTime.Length >= 5 ? s.StartTime[..5] : s.StartTime, // "HH:mm"
+                IsActive      = !s.IsDeleted,
+                IsDeletedInDb = s.IsDeleted
+            }).ToList();
+        }
+
+        // Si no hay slots en DB para este día, generarlos desde la disponibilidad
+        var avail = _config.Availability.FirstOrDefault(a => a.DayOfWeek == dow);
+        if (avail is null) return [];
+
+        var startHour = TimeSpan.TryParse(avail.StartTime, out var st) ? st.Hours : 8;
+        var endHour   = TimeSpan.TryParse(avail.EndTime,   out var et) ? et.Hours : 17;
+        var slots     = new List<TimeSlotModel>();
+
+        for (int h = startHour; h < endHour; h++)
+        {
+            for (int m = 0; m < 60; m += Intervalo)
+            {
+                slots.Add(new TimeSlotModel
+                {
+                    StartTime     = $"{h:D2}:{m:D2}",
+                    IsActive      = true,
+                    IsDeletedInDb = false
+                });
             }
         }
-        
-        // Mock some inactive slots as in prototype
-        if (day.DayName == "Lun") {
-            day.Slots[2].IsActive = false;
-            day.Slots[3].IsActive = false;
-        }
-        if (day.DayName == "Jue") {
-            day.Slots[1].IsActive = false;
-            day.Slots[5].IsActive = false;
-            day.Slots[7].IsActive = false;
-            day.Slots[11].IsActive = false;
-            day.Slots[17].IsActive = false;
-        }
-        if (day.DayName == "Vie") {
-            day.Slots[3].IsActive = false;
-            day.Slots[4].IsActive = false;
-            day.Slots[5].IsActive = false;
-            day.Slots[10].IsActive = false;
-            day.Slots[11].IsActive = false;
-            day.Slots[15].IsActive = false;
-            day.Slots[16].IsActive = false;
-            day.Slots[17].IsActive = false;
-        }
+
+        return slots;
+    }
+
+    private static int ParseHour(string time)
+    {
+        if (time.Length >= 2 && int.TryParse(time[..2], out var h)) return h;
+        return 8;
     }
 
     private IEnumerable<TimeSlotModel> GetSlotsForHour(DayScheduleModel day, int hour)
+        => day.Slots.Where(s => ParseHour(s.StartTime) == hour);
+
+    /// <summary>Devuelve la franja horaria del día: "08:00 – 17:00"</summary>
+    private string GetDayRange(DayScheduleModel day)
     {
-        return day.Slots.Where(s => int.TryParse(s.StartTime[..2], out var slotHour) && slotHour == hour);
+        var active = day.Slots.Where(s => s.IsActive).ToList();
+        if (!active.Any()) return "—";
+        return $"{active.First().StartTime} – {GetSlotEnd(active.Last())}";
+    }
+
+    private string GetSlotEnd(TimeSlotModel slot)
+    {
+        // Busca el slot real en el config para obtener el EndTime
+        if (_config != null)
+        {
+            var raw = _config.Slots.FirstOrDefault(s =>
+                !s.IsDeleted && s.DayOfWeek == WeekDays.FirstOrDefault(d =>
+                    d.Slots.Contains(slot))?.DayOfWeek &&
+                s.StartTime.StartsWith(slot.StartTime));
+            if (raw != null && raw.EndTime.Length >= 5)
+                return raw.EndTime[..5];
+        }
+        // Calcular desde intervalo
+        if (slot.StartTime.Length >= 5 &&
+            int.TryParse(slot.StartTime[..2], out var h) &&
+            int.TryParse(slot.StartTime[3..5], out var m))
+        {
+            var endMin = m + Intervalo;
+            var endH   = endMin >= 60 ? h + 1 : h;
+            return $"{endH:D2}:{endMin % 60:D2}";
+        }
+        return "—";
     }
 
     private void ToggleDay(DayScheduleModel day)
     {
         day.IsBlocked = !day.IsBlocked;
+        if (!day.IsBlocked && !day.Slots.Any())
+            day.Slots = BuildSlotsForDay(day.DayOfWeek);
     }
 
+    private void OnIntervalChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var newInterval) && newInterval >= 5)
+        {
+            Intervalo = newInterval;
+            // Regenerar TODOS los días con el nuevo intervalo
+            RegenerateAllSlots();
+        }
+    }
+
+    /// <summary>
+    /// Regenera todos los slots habilitados desde StartTime/EndTime con el intervalo actual.
+    /// Usa siempre slots frescos (activos por defecto) para permitir modificar libremente.
+    /// </summary>
+    private void RegenerateAllSlots()
+    {
+        if (_config is null) return;
+
+        foreach (var day in WeekDays)
+        {
+            if (day.IsBlocked) { day.Slots = []; continue; }
+
+            var avail = _config.Availability.FirstOrDefault(a => a.DayOfWeek == day.DayOfWeek);
+            int startH = avail != null && TimeSpan.TryParse(avail.StartTime, out var st) ? st.Hours : ParseHour(StartTimeText);
+            int endH   = avail != null && TimeSpan.TryParse(avail.EndTime,   out var et) ? et.Hours : ParseHour(EndTimeText);
+
+            day.Slots = GenerateFreshSlots(startH, endH);
+        }
+
+        // Recalcular rango de horas visible
+        var allSlots = WeekDays.SelectMany(d => d.Slots).ToList();
+        if (allSlots.Any())
+        {
+            var minH = allSlots.Min(s => ParseHour(s.StartTime));
+            var maxH = allSlots.Max(s => ParseHour(s.StartTime));
+            Hours = Enumerable.Range(minH, maxH - minH + 1).ToList();
+        }
+    }
+
+    /// <summary>Genera una lista limpia de slots con el intervalo actual.</summary>
+    private List<TimeSlotModel> GenerateFreshSlots(int startHour, int endHour)
+    {
+        var slots = new List<TimeSlotModel>();
+        for (int h = startHour; h < endHour; h++)
+            for (int m = 0; m < 60; m += Intervalo)
+                slots.Add(new TimeSlotModel { StartTime = $"{h:D2}:{m:D2}", IsActive = true });
+        return slots;
+    }
+
+    private async Task SaveScheduleAsync()
+    {
+        if (_config == null || UserState?.User?.Id == null) return;
+        _saving = true; _saveError = null; _saveSuccess = false; StateHasChanged();
+
+        var activeSlots = new List<SlotItem>();
+        foreach (var day in WeekDays.Where(d => !d.IsBlocked))
+        {
+            foreach (var slot in day.Slots.Where(s => s.IsActive))
+            {
+                if (!int.TryParse(slot.StartTime.Split(':')[0], out var h) ||
+                    !int.TryParse(slot.StartTime.Split(':').ElementAtOrDefault(1) ?? "0", out var m)) continue;
+
+                var endMin = m + Intervalo;
+                var endH   = endMin >= 60 ? h + 1 : h;
+                activeSlots.Add(new SlotItem
+                {
+                    DayOfWeek = day.DayOfWeek,
+                    StartTime = $"{h:D2}:{m:D2}:00",
+                    EndTime   = $"{endH:D2}:{endMin % 60:D2}:00"
+                });
+            }
+        }
+
+        _config.DoctorId       = UserState.User.Id;
+        _config.IntervalMinutes = Intervalo;
+        _config.ActiveSlots    = activeSlots;
+
+        var result = await ScheduleConfigService.SaveAsync(_config);
+        if (result.IsSuccess) { _saveSuccess = true; _config = await ScheduleConfigService.GetByDoctorIdAsync(UserState.User.Id); Intervalo = DetectIntervalFromSlots(_config!); BuildWeekGrid(); }
+        else _saveError = result.Error?.Message ?? "No se pudo guardar el horario.";
+
+        _saving = false; StateHasChanged();
+    }
 }
 
 <style>

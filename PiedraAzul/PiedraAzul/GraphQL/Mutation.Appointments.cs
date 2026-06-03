@@ -6,6 +6,8 @@ using PiedraAzul.Application.Common.Models.Patients;
 using PiedraAzul.Application.Features.Appointments.CancelAppointment;
 using PiedraAzul.Application.Features.Appointments.CreateAppointment;
 using PiedraAzul.Application.Features.Appointments.RescheduleAppointment;
+using PiedraAzul.Application.Features.Appointments.UpdateAppointmentStatus;
+using PiedraAzul.Domain.Entities.Operations;
 using PiedraAzul.GraphQL.Inputs;
 using PiedraAzul.GraphQL.Types;
 using System.Security.Claims;
@@ -122,7 +124,7 @@ public partial class Mutation
     /// <summary>
     /// Reagenda una cita para un paciente autenticado (registrado).
     /// </summary>
-    [Authorize(Roles = new[] { "Patient", "Admin" })]
+    [Authorize(Roles = new[] { "Patient", "Admin", "Doctor" })]
     public async Task<AppointmentType> RescheduleAppointmentAsync(
         Guid appointmentId,
         Guid newSlotId,
@@ -133,17 +135,35 @@ public partial class Mutation
         var userId = httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)
             ?? throw new GraphQLException("No autenticado");
 
-        var isAdmin = httpContextAccessor.HttpContext!.User.IsInRole("Admin");
-
+        // El permiso (paciente dueño / doctor de la cita / admin) se deriva del userId en el handler.
         var appointment = await mediator.Send(
             new RescheduleAppointmentCommand(
                 appointmentId,
                 userId,
                 newSlotId,
-                DateOnly.FromDateTime(newDate),
-                isAdmin));
+                DateOnly.FromDateTime(newDate)));
 
         return AppointmentType.FromDomain(appointment);
+    }
+
+    /// <summary>
+    /// Permite al doctor marcar una de sus citas como Completada (Completed)
+    /// o como Inasistencia (NoShow). Solo el doctor dueño puede hacerlo.
+    /// </summary>
+    [Authorize(Roles = new[] { "Doctor", "Admin" })]
+    public async Task<bool> UpdateAppointmentStatusAsync(
+        Guid appointmentId,
+        string newStatus,
+        [Service] IMediator mediator,
+        [Service] IHttpContextAccessor httpContextAccessor)
+    {
+        var userId = httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? throw new GraphQLException("No autenticado");
+
+        if (!Enum.TryParse<AppointmentStatus>(newStatus, ignoreCase: true, out var status))
+            throw new GraphQLException($"Estado inválido: {newStatus}. Use 'Completed' o 'NoShow'.");
+
+        return await mediator.Send(new UpdateAppointmentStatusCommand(appointmentId, userId, status));
     }
 
     /// <summary>

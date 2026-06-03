@@ -53,7 +53,7 @@ public class PatientServiceTests
         var doctorRepo = new Mock<IDoctorRepository>();
         var slotRepo = new Mock<IDoctorAvailabilitySlotRepository>();
 
-        var sut = new GetPatientAppointmentsHandler(patientRepo.Object, guestRepo.Object, appointmentRepo.Object, identity.Object, doctorRepo.Object, slotRepo.Object);
+        var sut = new GetPatientAppointmentsHandler(patientRepo.Object, guestRepo.Object, appointmentRepo.Object, identity.Object, doctorRepo.Object, slotRepo.Object, new Mock<IAppointmentRescheduleRecordRepository>().Object);
 
         await Assert.ThrowsAsync<ArgumentException>(() =>
             sut.Handle(new GetPatientAppointmentsQuery(null, null), CancellationToken.None).AsTask());
@@ -83,7 +83,7 @@ public class PatientServiceTests
         slotRepo.Setup(x => x.GetByIdsAsync(It.IsAny<List<Guid>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([slot]);
 
-        var sut = new GetPatientAppointmentsHandler(patientRepo.Object, guestRepo.Object, appointmentRepo.Object, identity.Object, doctorRepo.Object, slotRepo.Object);
+        var sut = new GetPatientAppointmentsHandler(patientRepo.Object, guestRepo.Object, appointmentRepo.Object, identity.Object, doctorRepo.Object, slotRepo.Object, new Mock<IAppointmentRescheduleRecordRepository>().Object);
 
         var result = await sut.Handle(new GetPatientAppointmentsQuery("u-2", null), CancellationToken.None);
 
