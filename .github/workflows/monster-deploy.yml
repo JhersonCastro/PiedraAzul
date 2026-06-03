@@ -85,7 +85,6 @@ jobs:
         run: |
           dotnet publish PiedraAzul/PiedraAzul/PiedraAzul.csproj \
             --configuration Release \
-            --no-restore \
             --output ./publish
 
       - name: Write appsettings.Production.json
