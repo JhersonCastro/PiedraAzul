@@ -59,7 +59,7 @@ jobs:
           retention-days: 3
 
   # ──────────────────────────────────────────
-  #  2. Deploy via MSDeploy (Publish Profile)
+  #  2. Deploy via FTP a MonsterASP.NET
   # ──────────────────────────────────────────
   deploy:
     runs-on: ubuntu-latest
@@ -74,9 +74,16 @@ jobs:
           name: published-app
           path: ./publish
 
-      - name: Deploy to MonsterASP.NET (site62559)
-        uses: azure/webapps-deploy@v3
+      - name: Deploy via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          app-name: 'site62559'
-          publish-profile: ${{ secrets.MONSTER_PUBLISH_PROFILE }}
-          package: ./publish
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./publish/
+          server-dir: /wwwroot/
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/appsettings.Development.json
+            **/*.pdb
