@@ -27,20 +27,20 @@ jobs:
       # Restaurar el proyecto servidor restaura también el cliente WASM
       # y todas las dependencias transitivas de la solución.
       - name: Restore
-        run: dotnet restore PiedraAzul/PiedraAzul.csproj
+        run: dotnet restore PiedraAzul/PiedraAzul/PiedraAzul.csproj
 
       # Tests corren antes del publish; si fallan el job se detiene aquí.
       - name: Test
         run: |
-          dotnet restore PiedraAzul.Test/PiedraAzul.Test.csproj
-          dotnet test PiedraAzul.Test/PiedraAzul.Test.csproj \
+          dotnet restore PiedraAzul/PiedraAzul.Test/PiedraAzul.Test.csproj
+          dotnet test PiedraAzul/PiedraAzul.Test/PiedraAzul.Test.csproj \
             --configuration Release \
             --verbosity normal
 
       # Publish genera la carpeta lista para IIS (incluye el WASM del cliente).
       - name: Publish
         run: |
-          dotnet publish PiedraAzul/PiedraAzul.csproj \
+          dotnet publish PiedraAzul/PiedraAzul/PiedraAzul.csproj \
             --configuration Release \
             --no-restore \
             --output ./publish
