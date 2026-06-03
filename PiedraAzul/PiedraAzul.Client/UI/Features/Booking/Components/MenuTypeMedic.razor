@@ -202,7 +202,7 @@
             _currentDoctors = [];
             StateHasChanged();
 
-            var response = await DoctorService.GetDoctorsByTypeAsync(doctorType.ToGraphQL());
+            var response = await DoctorService.GetDoctorsByTypeAsync(doctorType.ToGraphQL(), onlyAvailable: true);
 
             medics = response.Select(ds => new DoctorModel()
             {

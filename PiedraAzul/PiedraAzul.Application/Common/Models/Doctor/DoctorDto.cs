@@ -14,5 +14,6 @@ namespace PiedraAzul.Application.Common.Models.Doctor
         public DoctorType Specialty { get; set; }
         public string LicenseNumber { get; set; } = default!;
         public string? Notes { get; set; }
+        public bool IsAvailable { get; set; }
     }
 }

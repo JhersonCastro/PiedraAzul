@@ -14,5 +14,6 @@ public interface IDoctorRepository
     Task UpdateAsync(Doctor doctor, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Doctor>> GetBySpecialtyAsync(
     DoctorType specialty,
+    bool onlyAvailable = false,
     CancellationToken cancellationToken = default);
 }

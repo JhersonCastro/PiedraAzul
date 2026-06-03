@@ -24,7 +24,7 @@ public class GetDoctorsBySpecialtyHandlerTests
     public async Task GetDoctorsBySpecialty_WhenNoDoctors_ReturnsEmpty()
     {
         _doctorRepository
-            .Setup(x => x.GetBySpecialtyAsync(DoctorType.NaturalMedicine, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetBySpecialtyAsync(DoctorType.NaturalMedicine, It.IsAny<bool>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 
         var result = await _sut.Handle(
@@ -40,7 +40,7 @@ public class GetDoctorsBySpecialtyHandlerTests
         var doctor = new Doctor("doc-1", DoctorType.NaturalMedicine, "LIC-001", "Notes");
 
         _doctorRepository
-            .Setup(x => x.GetBySpecialtyAsync(DoctorType.NaturalMedicine, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetBySpecialtyAsync(DoctorType.NaturalMedicine, It.IsAny<bool>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([doctor]);
 
         // Cambiar string[] a List<string>
@@ -65,7 +65,7 @@ public class GetDoctorsBySpecialtyHandlerTests
         var doctor2 = new Doctor("doc-2", DoctorType.NaturalMedicine, "LIC-002", "");
 
         _doctorRepository
-            .Setup(x => x.GetBySpecialtyAsync(DoctorType.NaturalMedicine, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetBySpecialtyAsync(DoctorType.NaturalMedicine, It.IsAny<bool>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([doctor1, doctor2]);
 
         // Cambiar It.IsAny<IEnumerable<string>>() a It.IsAny<List<string>>()
@@ -85,7 +85,7 @@ public class GetDoctorsBySpecialtyHandlerTests
     public async Task GetDoctorsBySpecialty_DoesNotQueryIdentityWhenNoDoctors()
     {
         _doctorRepository
-            .Setup(x => x.GetBySpecialtyAsync(It.IsAny<DoctorType>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetBySpecialtyAsync(It.IsAny<DoctorType>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 
         await _sut.Handle(

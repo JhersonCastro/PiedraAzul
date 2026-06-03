@@ -1178,6 +1178,7 @@
   .section-heading-lg { @apply mb-2 text-3xl font-bold text-gray-900; }
   .section-sub     { @apply text-gray-600; }
   .section-grid-2  { @apply mx-auto grid max-w-7xl gap-8 px-6 md:grid-cols-2; }
+  .section-grid-3  { @apply mx-auto grid max-w-7xl gap-8 px-6 md:grid-cols-3; }
 
   /* Cards de agendamiento — `group` se aplica inline en el elemento raíz */
   .booking-card { @apply block overflow-hidden rounded-2xl border-2 border-transparent bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary hover:bg-slate-50 hover:shadow-xl; }

@@ -1,6 +1,7 @@
 ﻿using HotChocolate;
 using HotChocolate.Authorization;
 using Microsoft.AspNetCore.Identity;
+using System.Security.Claims;
 using PiedraAzul.Application.Common.Interfaces;
 using PiedraAzul.Domain.Entities.Profiles.Doctor;
 using PiedraAzul.Domain.Entities.Profiles.Patients;

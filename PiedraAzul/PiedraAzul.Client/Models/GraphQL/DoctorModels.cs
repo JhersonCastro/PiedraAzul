@@ -9,4 +9,11 @@ public class DoctorGQL
     public string? AvatarUrl { get; set; }
     public string? LicenseNumber { get; set; }
     public string? Notes { get; set; }
+    public bool IsAvailable { get; set; }
+}
+
+public class DoctorAvailabilityGQL
+{
+    public string DoctorId { get; set; } = "";
+    public bool IsAvailable { get; set; }
 }

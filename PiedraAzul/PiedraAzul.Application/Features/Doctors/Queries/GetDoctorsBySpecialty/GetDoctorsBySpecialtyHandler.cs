@@ -24,7 +24,7 @@ namespace PiedraAzul.Application.Features.Doctors.Queries.GetDoctorsBySpecialty
             CancellationToken cancellationToken)
         {
             var doctors = await _doctorRepository
-                .GetBySpecialtyAsync(request.Specialty, cancellationToken);
+                .GetBySpecialtyAsync(request.Specialty, request.OnlyAvailable, cancellationToken);
 
             if (doctors.Count == 0)
                 return [];
@@ -46,10 +46,10 @@ namespace PiedraAzul.Application.Features.Doctors.Queries.GetDoctorsBySpecialty
                         Id = d.Id,
                         Name = user.Name,
                         AvatarUrl = user.AvatarUrl,
-
                         Specialty = d.Specialty,
                         LicenseNumber = d.LicenseNumber,
-                        Notes = d.Notes
+                        Notes = d.Notes,
+                        IsAvailable = d.IsAvailable
                     };
                 })
                 .ToList();

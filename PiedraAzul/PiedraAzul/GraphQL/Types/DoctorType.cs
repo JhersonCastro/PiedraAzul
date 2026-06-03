@@ -13,6 +13,7 @@ public class DoctorType
     public string LicenseNumber { get; set; } = "";
     public string? Notes { get; set; }
     public string? AvatarUrl { get; set; }
+    public bool IsAvailable { get; set; }
 
     public static DoctorType FromDto(DoctorDto d) => new()
     {
@@ -22,6 +23,7 @@ public class DoctorType
         Specialty = (DoctorSpecialty)d.Specialty,
         LicenseNumber = d.LicenseNumber,
         Notes = d.Notes,
-        AvatarUrl = d.AvatarUrl
+        AvatarUrl = d.AvatarUrl,
+        IsAvailable = d.IsAvailable
     };
 }

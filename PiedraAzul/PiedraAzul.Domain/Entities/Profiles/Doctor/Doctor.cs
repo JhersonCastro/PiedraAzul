@@ -12,6 +12,7 @@ namespace PiedraAzul.Domain.Entities.Profiles.Doctor
         public DoctorType Specialty { get; private set; }
         public string LicenseNumber { get; private set; }
         public string Notes { get; private set; }
+        public bool IsAvailable { get; private set; } = true;
 
         private readonly List<DoctorAvailabilitySlot> _slots = new();
         public IReadOnlyCollection<DoctorAvailabilitySlot> Slots => _slots;
@@ -24,7 +25,10 @@ namespace PiedraAzul.Domain.Entities.Profiles.Doctor
             Specialty = specialty;
             LicenseNumber = licenseNumber;
             Notes = notes;
+            IsAvailable = true;
         }
+
+        public void SetAvailability(bool available) => IsAvailable = available;
 
         public void AddAvailability(DayOfWeek day, TimeSpan start, TimeSpan end)
         {

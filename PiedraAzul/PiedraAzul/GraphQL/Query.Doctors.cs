@@ -26,10 +26,11 @@ public partial class Query
 
     public async Task<List<DoctorType>> GetDoctorsByTypeAsync(
         DoctorSpecialty doctorType,
+        bool onlyAvailable,
         [Service] IMediator mediator)
     {
         var doctors = await mediator.Send(
-            new GetDoctorsBySpecialtyQuery((Domain.Entities.Shared.Enums.DoctorType)doctorType));
+            new GetDoctorsBySpecialtyQuery((Domain.Entities.Shared.Enums.DoctorType)doctorType, onlyAvailable));
         return doctors.Select(DoctorType.FromDto).ToList();
     }
 

@@ -70,7 +70,7 @@ public class DoctorServiceTests
         var doctorRepo = new Mock<IDoctorRepository>();
         var identity = new Mock<IIdentityService>();
 
-        doctorRepo.Setup(x => x.GetBySpecialtyAsync(DoctorType.NaturalMedicine, It.IsAny<CancellationToken>()))
+        doctorRepo.Setup(x => x.GetBySpecialtyAsync(DoctorType.NaturalMedicine, It.IsAny<bool>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([
                 new Doctor("doc-a", DoctorType.NaturalMedicine, "L-A", ""),
                 new Doctor("doc-b", DoctorType.NaturalMedicine, "L-B", "")
@@ -95,7 +95,7 @@ public class DoctorServiceTests
         var doctorRepo = new Mock<IDoctorRepository>();
         var identity = new Mock<IIdentityService>();
 
-        doctorRepo.Setup(x => x.GetBySpecialtyAsync(DoctorType.Physiotherapy, It.IsAny<CancellationToken>()))
+        doctorRepo.Setup(x => x.GetBySpecialtyAsync(DoctorType.Physiotherapy, It.IsAny<bool>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([]);
 
         var sut = new GetDoctorsBySpecialtyHandler(doctorRepo.Object, identity.Object);
@@ -111,7 +111,7 @@ public class DoctorServiceTests
         var doctorRepo = new Mock<IDoctorRepository>();
         var identity = new Mock<IIdentityService>();
 
-        doctorRepo.Setup(x => x.GetBySpecialtyAsync(DoctorType.Optometry, It.IsAny<CancellationToken>()))
+        doctorRepo.Setup(x => x.GetBySpecialtyAsync(DoctorType.Optometry, It.IsAny<bool>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([
                 new Doctor("doc-a", DoctorType.Optometry, "L-A", ""),
                 new Doctor("doc-b", DoctorType.Optometry, "L-B", "")

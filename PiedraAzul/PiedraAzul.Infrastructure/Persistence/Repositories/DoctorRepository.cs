@@ -34,11 +34,11 @@ public class DoctorRepository(AppDbContext context) : IDoctorRepository
 
     public async Task<IReadOnlyList<Doctor>> GetBySpecialtyAsync(
         DoctorType specialty,
+        bool onlyAvailable = false,
         CancellationToken ct = default)
     {
-        return await context.Doctors
-            .Where(x => x.Specialty == specialty)
-            .AsNoTracking()
-            .ToListAsync(ct);
+        var query = context.Doctors.Where(x => x.Specialty == specialty);
+        if (onlyAvailable) query = query.Where(x => x.IsAvailable);
+        return await query.AsNoTracking().ToListAsync(ct);
     }
 }

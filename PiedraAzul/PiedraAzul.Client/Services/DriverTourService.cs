@@ -152,9 +152,9 @@ internal static class AccountProfileTourSteps
                 "Portal Doctor",
                 "Accede a tu panel médico, agenda de citas y lista de pacientes.",
                 "top"));
-            steps.Add(Step("[data-tour='doctor-profile-card']", null,
-                "Tu perfil médico",
-                "Aquí ves tu nombre, especialidad y estado. Puedes cambiar entre disponible e inactivo.",
+            steps.Add(Step("[data-tour='doctor-status']", null,
+                "Tu disponibilidad",
+                "Cambia entre Activo e Inactivo para indicar si estás disponible para recibir pacientes hoy.",
                 "bottom"));
             steps.Add(Step("[data-tour='doctor-stats']", null,
                 "Resumen del día",
@@ -250,11 +250,13 @@ internal static class AccountProfileTourSteps
         if (isDoctor)
         {
             steps.Add(Step("[data-tour='nav-doc-dashboard']", "doc-dashboard", "Portal Doctor — Dashboard",
-                "Tu panel principal como médico.", "right"));
-            steps.Add(Step(D + "[data-tour='doctor-profile-card']", null, "Tu perfil médico",
-                "Aquí ves tu nombre, especialidad y estado de disponibilidad. Puedes cambiar entre activo e inactivo con un solo clic.", "bottom"));
+                "Tu panel principal como médico. Aquí ves el resumen del día y accesos rápidos a cada sección.", "right"));
+            steps.Add(Step(D + "[data-tour='doctor-status']", null, "Tu disponibilidad",
+                "Indica si estás disponible para recibir pacientes hoy. Cambia entre Activo e Inactivo con un solo clic.", "bottom"));
             steps.Add(Step(D + "[data-tour='doctor-stats']", null, "Resumen del día",
                 "De un vistazo ves el total de citas, cuántas ya completaste y cuántas están pendientes para hoy.", "top"));
+            steps.Add(Step(D + "[data-tour='doctor-quick-actions']", null, "Accesos rápidos",
+                "Desde aquí puedes ir directamente a tu agenda, cronograma del día, lista de pacientes o configurar tu horario.", "top"));
             steps.Add(Step("[data-tour='nav-doc-agenda']", "doc-agenda", "Mi Agenda",
                 "Visualiza y gestiona todas tus citas programadas.", "right"));
             steps.Add(Step(D + "[data-tour='doctor-agenda-calendar']", null, "Calendario mensual",

@@ -8,6 +8,6 @@ using System.Text;
 
 namespace PiedraAzul.Application.Features.Doctors.Queries.GetDoctorsBySpecialty
 {
-    public record GetDoctorsBySpecialtyQuery(DoctorType Specialty)
+    public record GetDoctorsBySpecialtyQuery(DoctorType Specialty, bool OnlyAvailable = false)
        : IRequest<IReadOnlyList<DoctorDto>>;
 }
