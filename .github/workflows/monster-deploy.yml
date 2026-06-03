@@ -87,9 +87,6 @@ jobs:
             --configuration Release \
             --output ./publish
 
-      - name: Write appsettings.Production.json
-        run: echo '${{ secrets.APP_SETTINGS_PRODUCTION }}' > ./publish/appsettings.Production.json
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -109,6 +106,9 @@ jobs:
         with:
           name: published-app
           path: ./publish
+
+      - name: Write appsettings.Production.json
+        run: echo '${{ secrets.APP_SETTINGS_PRODUCTION }}' > ./publish/appsettings.Production.json
 
       - name: Take app offline
         run: |
