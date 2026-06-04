@@ -1,0 +1,37 @@
+@implements IDisposable
+@using PiedraAzul.Client.Services
+@inject ClientIpState State
+@inject IClientIpResolver Resolver
+@inject PersistentComponentState AppState
+
+@* Componente invisible: captura el IP del cliente en el prerender y lo persiste
+   al circuito/WASM para reenviarlo en las llamadas GraphQL del servidor. *@
+
+@code {
+    private PersistingComponentStateSubscription _sub;
+
+    protected override void OnInitialized()
+    {
+        _sub = AppState.RegisterOnPersisting(Persist);
+
+        // En la fase interactiva (circuito Server o WASM) recuperamos el IP persistido.
+        if (AppState.TryTakeFromJson<string>("clientIp", out var persisted) && !string.IsNullOrEmpty(persisted))
+        {
+            State.ClientIp = persisted;
+            return;
+        }
+
+        // En el prerender (servidor) el resolver lee el HttpContext; en WASM devuelve null.
+        var ip = Resolver.Resolve();
+        if (!string.IsNullOrEmpty(ip))
+            State.ClientIp = ip;
+    }
+
+    private Task Persist()
+    {
+        AppState.PersistAsJson("clientIp", State.ClientIp);
+        return Task.CompletedTask;
+    }
+
+    public void Dispose() => _sub.Dispose();
+}

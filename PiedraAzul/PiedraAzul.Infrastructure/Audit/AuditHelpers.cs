@@ -30,6 +30,11 @@ internal static class AuditActor
     {
         if (ctx is null) return null;
 
+        // IP real reenviado por el servidor (llamadas SSR/circuito) — ver CookieForwardingHandler.
+        var clientIpHeader = ctx.Request?.Headers["X-Client-Ip"].FirstOrDefault();
+        if (!string.IsNullOrWhiteSpace(clientIpHeader))
+            return clientIpHeader.Trim();
+
         var forwarded = ctx.Request?.Headers["X-Forwarded-For"].FirstOrDefault();
         if (!string.IsNullOrWhiteSpace(forwarded))
             return forwarded.Split(',')[0].Trim();

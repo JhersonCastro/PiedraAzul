@@ -48,6 +48,17 @@ builder.Services.AddSignalR();
 builder.Services.AddPiedraAzulGraphQL();
 builder.Services.AddHttpContextAccessor();
 
+// 🔹 Forwarded Headers - para obtener el IP real del cliente detrás del proxy (X-Forwarded-For)
+builder.Services.Configure<Microsoft.AspNetCore.Builder.ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders =
+        Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor |
+        Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto;
+    // Confiar en el proxy del hosting (no conocemos su IP fija).
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 // 🔹 Form Options - Allow larger file uploads
 builder.Services.Configure<FormOptions>(options =>
 {
@@ -63,11 +74,15 @@ builder.Services.AddClientServer(graphqlUrl, hubUrl);
 // Override auth state provider for server-side: reads from HttpContext, persists to WASM
 builder.Services.AddScoped<AuthenticationStateProvider, PersistingRevalidatingAuthenticationStateProvider>();
 
-// Override GraphQL client for SSR: forwards the incoming request cookie to the outgoing HTTP call
+// IP real del cliente para auditoría: el servidor lee el HttpContext (override del Null de WASM)
+builder.Services.AddScoped<PiedraAzul.Client.Services.IClientIpResolver, PiedraAzul.Services.HttpContextClientIpResolver>();
+
+// Override GraphQL client for SSR: forwards the incoming request cookie + IP real del cliente
 builder.Services.AddScoped<GraphQLHttpClient>(sp =>
 {
     var accessor = sp.GetRequiredService<IHttpContextAccessor>();
-    var handler = new CookieForwardingHandler(accessor);
+    var clientIp = sp.GetRequiredService<PiedraAzul.Client.Services.ClientIpState>();
+    var handler = new CookieForwardingHandler(accessor, clientIp);
     return new GraphQLHttpClient(new HttpClient(handler) { BaseAddress = new Uri(graphqlUrl) });
 });
 
@@ -80,6 +95,9 @@ builder.Services.AddAuth(builder.Configuration);
 var app = builder.Build();
 
 // middlewares
+// Forwarded headers primero: reescribe RemoteIpAddress con el IP real del cliente (proxy).
+app.UseForwardedHeaders();
+
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.MapStaticAssets();

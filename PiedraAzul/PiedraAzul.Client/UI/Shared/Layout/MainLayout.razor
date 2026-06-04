@@ -14,6 +14,9 @@
 @inherits LayoutComponentBase
 @implements IDisposable
 
+@* Captura el IP real del cliente (prerender) para la auditoría. Invisible. *@
+<PiedraAzul.Client.UI.Shared.Components.ClientIpCapture />
+
 @if (UIModeState.IsEasy)
 {
     <!-- ══════════════════════════════════════════════════════

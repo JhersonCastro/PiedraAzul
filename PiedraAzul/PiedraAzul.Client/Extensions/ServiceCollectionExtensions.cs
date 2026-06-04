@@ -17,6 +17,9 @@ public static class SharedClientServicesExtensions
         services.AddScoped<UserState>();
         services.AddScoped<UIModeState>();
         services.AddScoped<DoctorPortalState>();
+        services.AddScoped<ClientIpState>();
+        // El servidor sobrescribe IClientIpResolver con una implementación que lee HttpContext.
+        services.AddScoped<IClientIpResolver, NullClientIpResolver>();
         #endregion
 
         #region UI Mode
