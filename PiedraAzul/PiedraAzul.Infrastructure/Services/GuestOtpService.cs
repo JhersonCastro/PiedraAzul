@@ -229,6 +229,84 @@ public class GuestOtpService : IGuestOtpService
         return BuildVerifiedData(session);
     }
 
+    // ── Merge guest → cuenta registrada ──────────────────────────────────
+
+    public async Task<MergeableGuestInfo?> GetMergeableGuestAsync(string identification)
+    {
+        if (string.IsNullOrWhiteSpace(identification)) return null;
+        var id = identification.Trim();
+
+        var guest = await _context.Patients
+            .OfType<GuestPatient>()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(g => g.Id == id && g.MergedToUserId == null);
+
+        if (guest is null) return null;
+
+        // Transferimos TODAS las citas del invitado (historial incluido) para que la
+        // cuenta registrada conserve su historial completo.
+        var apptCount = await _context.Appointments
+            .CountAsync(a => a.PatientGuestId == guest.Id);
+
+        if (apptCount == 0) return null;
+
+        var hash = await CreateSessionAsync(guest.Id, expirationMinutes: 0);
+
+        return new MergeableGuestInfo(
+            GuestId: guest.Id,
+            GuestName: guest.Name,
+            AppointmentCount: apptCount,
+            VerificationHash: hash,
+            Phone: guest.Phone,
+            Email: guest.Email);
+    }
+
+    public async Task<GuestMergeResult> MergeGuestAppointmentsAsync(
+        string hash, string code, string registeredUserId, string registeredUserIdentification)
+    {
+        var session = await _context.GuestVerificationSessions
+            .Include(s => s.Guest)
+            .FirstOrDefaultAsync(s => s.Hash == hash);
+
+        if (session is null || session.IsExpired)
+            return new GuestMergeResult(false, 0, "Sesión de verificación inválida o expirada.");
+
+        if (session.SessionType != VerificationSessionType.Guest || session.Guest is null)
+            return new GuestMergeResult(false, 0, "Sesión de verificación inválida para vincular.");
+
+        // Seguridad: la cédula del invitado debe coincidir con la del usuario autenticado.
+        if (!string.Equals(session.Guest.Id, registeredUserIdentification?.Trim(), StringComparison.OrdinalIgnoreCase))
+            return new GuestMergeResult(false, 0, "La cuenta invitada no corresponde a tu cédula.");
+
+        if (session.Guest.IsMerged)
+            return new GuestMergeResult(false, 0, "Esta cuenta invitada ya fue vinculada.");
+
+        if (!session.Verified)
+        {
+            if (session.OtpCode != code.Trim())
+                return new GuestMergeResult(false, 0, "Código incorrecto. Intenta de nuevo.");
+            session.MarkVerified();
+        }
+
+        // Transferir TODAS las citas del invitado al usuario registrado.
+        var appointments = await _context.Appointments
+            .Where(a => a.PatientGuestId == session.Guest.Id)
+            .ToListAsync();
+
+        foreach (var appt in appointments)
+            appt.ReassignToRegisteredUser(registeredUserId);
+
+        session.Guest.MarkAsMerged(registeredUserId);
+
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation(
+            "[GuestMerge] Guest {GuestId} vinculado a usuario {UserId}. Citas transferidas: {Count}",
+            session.Guest.Id, registeredUserId, appointments.Count);
+
+        return new GuestMergeResult(true, appointments.Count, null);
+    }
+
     // ── Helpers ─────────────────────────────────────────────────────────
 
     private static VerifiedUserData? BuildVerifiedData(GuestVerificationSession session)
@@ -261,8 +339,9 @@ public class GuestOtpService : IGuestOtpService
         if (channel == OtpChannel.WhatsApp)
         {
             var phoneE164 = ToE164Colombia(phone);
-            var message = $"Tu código de confirmación para tu cita en Piedra Azul es: *{code}*\nVálido por {expirationMinutes} minutos.";
-            await _whatsApp.SendMessageAsync(phoneE164, message);
+            var sent = await _whatsApp.SendOtpAsync(phoneE164, code);
+            if (!sent)
+                throw new InvalidOperationException("No se pudo enviar el WhatsApp. Intenta con otro canal.");
         }
         else if (channel == OtpChannel.SMS)
         {

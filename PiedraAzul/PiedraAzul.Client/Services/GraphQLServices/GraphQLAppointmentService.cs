@@ -120,6 +120,44 @@ public class GraphQLAppointmentService(GraphQLHttpClient client)
     }
 
     /// <summary>
+    /// Detecta si existe una cuenta invitada con la misma cédula del usuario autenticado
+    /// que tenga citas transferibles. Retorna null si no hay nada que vincular.
+    /// </summary>
+    public async Task<Result<MergeableGuestGQL?>> CheckForMergeableGuestAsync()
+    {
+        const string query = """
+            query CheckForMergeableGuest {
+                checkForMergeableGuest {
+                    verificationHash guestName appointmentCount
+                    hasPhone hasEmail maskedPhone maskedEmail
+                }
+            }
+            """;
+
+        return await GraphQLExecutor.Execute(async () =>
+            await client.ExecuteAsync<MergeableGuestGQL?>(query, null, "checkForMergeableGuest")
+        );
+    }
+
+    /// <summary>
+    /// Verifica el OTP y transfiere las citas de la cuenta invitada al usuario autenticado.
+    /// </summary>
+    public async Task<Result<MergeGuestResultGQL?>> MergeGuestAppointmentsAsync(string hash, string code)
+    {
+        const string mutation = """
+            mutation MergeGuestAppointments($hash: String!, $code: String!) {
+                mergeGuestAppointments(hash: $hash, code: $code) {
+                    success mergedCount error
+                }
+            }
+            """;
+
+        return await GraphQLExecutor.Execute(async () =>
+            await client.ExecuteAsync<MergeGuestResultGQL?>(mutation, new { hash, code }, "mergeGuestAppointments")
+        );
+    }
+
+    /// <summary>
     /// Verifica OTP por hash y opcionalmente actualiza datos editados por el usuario.
     /// Si name/phone/email son null, solo verifica el OTP.
     /// </summary>

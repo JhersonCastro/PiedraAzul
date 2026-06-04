@@ -1,29 +1,25 @@
 @using PiedraAzul.Client.Models.GraphQL
-@using PiedraAzul.Client.States
-@inject UIModeState UIModeState
+@using PiedraAzul.Client.Services.GraphQLServices
+@inject GraphQLAppointmentService AppointmentService
 
 @*
-    Modal de validación de canal para FLUJO 2 (usuario registrado) y FLUJO 3 (guest invitado).
-    Tiene 3 estados internos:
-    1. SelectChannel - mostrar datos enmascarados y selector de canal
-    2. EnterOtp - ingresar código OTP
-    3. ConfirmData - mostrar formulario editable con datos NO enmascarados (después de verificar OTP)
+    Modal para vincular (merge) una cuenta invitada con la misma cédula del usuario registrado.
+    Verifica identidad con OTP por el canal que tenía la cuenta invitada (WhatsApp/SMS/Email)
+    y luego transfiere las citas a la cuenta. No edita datos del usuario.
 *@
 
-@if (IsOpen)
+@if (IsOpen && Guest is not null)
 {
     <div class="modal-backdrop"></div>
 
-    <div class="modal-container @(UIModeState.IsEasy ? "easy-modal" : "")">
+    <div class="modal-container">
         <div class="modal-panel">
 
-            <!-- Header -->
             <div class="modal-header">
-                <h2 class="modal-title-sm text-base">@GetTitle()</h2>
-                @if (!IsLoading && _stage != Stage.ConfirmData)
+                <h2 class="modal-title-sm text-base">Vincular citas anteriores</h2>
+                @if (!_loading)
                 {
-                    <button @onclick="HandleClose"
-                            class="btn-close">
+                    <button @onclick="HandleClose" class="btn-close">
                         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -31,7 +27,6 @@
                 }
             </div>
 
-            <!-- Body -->
             <div class="modal-body">
 
                 @if (_stage == Stage.SelectChannel)
@@ -42,14 +37,16 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             <p class="text-sm text-teal-800">
-                                Para continuar, verifica tu identidad. Te enviaremos un código por el canal que elijas.
+                                Encontramos <strong>@Guest.AppointmentCount @(Guest.AppointmentCount == 1 ? "cita" : "citas")</strong>
+                                a nombre de <strong>@Guest.GuestName</strong> con tu misma cédula.
+                                Verifica tu identidad para traerlas a tu cuenta.
                             </p>
                         </div>
 
                         <div>
                             <p class="mb-3 text-sm font-semibold text-slate-700">¿Cómo quieres recibir el código?</p>
                             <div class="space-y-2">
-                                @if (HasPhone)
+                                @if (Guest.HasPhone)
                                 {
                                     <button type="button"
                                             @onclick='() => _selectedChannel = "whatsapp"'
@@ -61,7 +58,7 @@
                                         </svg>
                                         <div class="flex flex-col">
                                             <span class="text-xs font-semibold @(_selectedChannel == "whatsapp" ? "text-teal-700" : "text-slate-700")">WhatsApp</span>
-                                            <span class="text-xs text-slate-600">@MaskedPhone</span>
+                                            <span class="text-xs text-slate-600">@Guest.MaskedPhone</span>
                                         </div>
                                     </button>
 
@@ -74,12 +71,12 @@
                                         </svg>
                                         <div class="flex flex-col">
                                             <span class="text-xs font-semibold @(_selectedChannel == "sms" ? "text-teal-700" : "text-slate-700")">SMS</span>
-                                            <span class="text-xs text-slate-600">@MaskedPhone</span>
+                                            <span class="text-xs text-slate-600">@Guest.MaskedPhone</span>
                                         </div>
                                     </button>
                                 }
 
-                                @if (HasEmail)
+                                @if (Guest.HasEmail)
                                 {
                                     <button type="button"
                                             @onclick='() => _selectedChannel = "email"'
@@ -90,7 +87,7 @@
                                         </svg>
                                         <div class="flex flex-col">
                                             <span class="text-xs font-semibold @(_selectedChannel == "email" ? "text-teal-700" : "text-slate-700")">Email</span>
-                                            <span class="text-xs text-slate-600">@MaskedEmail</span>
+                                            <span class="text-xs text-slate-600">@Guest.MaskedEmail</span>
                                         </div>
                                     </button>
                                 }
@@ -104,9 +101,9 @@
 
                         <button type="button"
                                 @onclick="HandleSendOtp"
-                                disabled="@(IsLoading || string.IsNullOrEmpty(_selectedChannel))"
+                                disabled="@(_loading || string.IsNullOrEmpty(_selectedChannel))"
                                 class="btn-action">
-                            @(IsLoading ? "Enviando..." : "Enviar código")
+                            @(_loading ? "Enviando..." : "Enviar código")
                         </button>
                     </div>
                 }
@@ -130,10 +127,10 @@
                         }
 
                         <button type="button"
-                                @onclick="HandleVerifyOtp"
-                                disabled="@(_otpCode?.Length != 6 || IsLoading)"
+                                @onclick="HandleMerge"
+                                disabled="@(_otpCode?.Length != 6 || _loading)"
                                 class="btn-action">
-                            @(IsLoading ? "Verificando..." : "Verificar")
+                            @(_loading ? "Vinculando..." : "Vincular citas")
                         </button>
 
                         <button type="button"
@@ -143,186 +140,78 @@
                         </button>
                     </div>
                 }
-                else if (_stage == Stage.ConfirmData)
-                {
-                    <div class="space-y-4">
-                        <div class="flex items-start gap-3 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3">
-                            <svg class="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                            </svg>
-                            <p class="text-sm text-emerald-800">
-                                @(_isRegisteredUser
-                                    ? "Identidad verificada. Estos son los datos de tu cuenta."
-                                    : "Identidad verificada. Confirma o actualiza tus datos antes de continuar.")
-                            </p>
-                        </div>
-
-                        <div>
-                            <label class="label-modal">Nombre completo</label>
-                            <input type="text"
-                                   @bind="_editName"
-                                   @bind:event="oninput"
-                                   readonly="@_isRegisteredUser"
-                                   class="input-modal @(_isRegisteredUser ? "bg-slate-100 text-slate-500 cursor-not-allowed" : "")" />
-                        </div>
-
-                        <div>
-                            <label class="label-modal">Teléfono</label>
-                            <input type="tel"
-                                   @bind="_editPhone"
-                                   @bind:event="oninput"
-                                   readonly="@_isRegisteredUser"
-                                   class="input-modal @(_isRegisteredUser ? "bg-slate-100 text-slate-500 cursor-not-allowed" : "")" />
-                        </div>
-
-                        <div>
-                            <label class="label-modal">Email @(_isRegisteredUser ? "" : "(opcional)")</label>
-                            <input type="email"
-                                   @bind="_editEmail"
-                                   @bind:event="oninput"
-                                   readonly="@_isRegisteredUser"
-                                   class="input-modal @(_isRegisteredUser ? "bg-slate-100 text-slate-500 cursor-not-allowed" : "")" />
-                        </div>
-
-                        @if (_isRegisteredUser)
-                        {
-                            <p class="text-xs text-slate-500">
-                                Para cambiar tus datos, ingresa a tu cuenta y edítalos en tu perfil.
-                            </p>
-                        }
-
-                        @if (!string.IsNullOrEmpty(_error))
-                        {
-                            <p class="alert-error-inline">@_error</p>
-                        }
-
-                        <button type="button"
-                                @onclick="HandleConfirmData"
-                                disabled="@(IsLoading || string.IsNullOrWhiteSpace(_editName) || string.IsNullOrWhiteSpace(_editPhone))"
-                                class="btn-action">
-                            @(_isRegisteredUser ? "Continuar" : "Confirmar y continuar")
-                        </button>
-                    </div>
-                }
             </div>
         </div>
     </div>
 }
 
 @code {
-    enum Stage { SelectChannel, EnterOtp, ConfirmData }
+    enum Stage { SelectChannel, EnterOtp }
 
     [Parameter] public bool IsOpen { get; set; }
-    [Parameter] public bool HasPhone { get; set; }
-    [Parameter] public bool HasEmail { get; set; }
-    [Parameter] public string? MaskedPhone { get; set; }
-    [Parameter] public string? MaskedEmail { get; set; }
-    [Parameter] public bool IsLoading { get; set; }
-    [Parameter] public string? ExternalError { get; set; }
-
-    /// <summary>Callback que envía OTP. Recibe el canal seleccionado. Retorna true si el envío fue exitoso.</summary>
-    [Parameter] public Func<string, Task<bool>>? OnSendOtp { get; set; }
-
-    /// <summary>
-    /// Callback que verifica OTP. Recibe (canal, código).
-    /// Debe retornar GuestDataGQL? con los datos del usuario si fue exitoso, null si falló.
-    /// </summary>
-    [Parameter] public Func<string, string, Task<GuestDataGQL?>>? OnVerifyOtp { get; set; }
-
-    /// <summary>
-    /// Callback final que recibe los datos confirmados por el usuario y el código OTP usado.
-    /// El padre debe persistir estos cambios en BD usando el código.
-    /// </summary>
-    [Parameter] public EventCallback<(GuestDataGQL Data, string OtpCode)> OnConfirmData { get; set; }
-
+    [Parameter] public MergeableGuestGQL? Guest { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
+
+    /// <summary>Se invoca tras un merge exitoso con la cantidad de citas transferidas.</summary>
+    [Parameter] public EventCallback<int> OnMerged { get; set; }
 
     private Stage _stage = Stage.SelectChannel;
     private string? _selectedChannel;
     private string? _otpCode;
     private string? _error;
-
-    private string? _editName;
-    private string? _editPhone;
-    private string? _editEmail;
-    private bool _isRegisteredUser;
-
-    protected override void OnParametersSet()
-    {
-        if (!string.IsNullOrEmpty(ExternalError))
-            _error = ExternalError;
-
-        // Auto-seleccionar canal único si solo hay uno disponible
-        if (string.IsNullOrEmpty(_selectedChannel))
-        {
-            if (HasPhone && !HasEmail) _selectedChannel = "sms";
-            else if (HasEmail && !HasPhone) _selectedChannel = "email";
-        }
-    }
-
-    private string GetTitle() => _stage switch
-    {
-        Stage.SelectChannel => "Verifica tu identidad",
-        Stage.EnterOtp => "Ingresa el código",
-        Stage.ConfirmData => "Confirma tus datos",
-        _ => "Verificación"
-    };
+    private bool _loading;
 
     private string GetChannelLabel() => _selectedChannel switch
     {
-        "sms" => MaskedPhone ?? "tu teléfono",
-        "whatsapp" => MaskedPhone ?? "tu WhatsApp",
-        "email" => MaskedEmail ?? "tu email",
+        "sms" => Guest?.MaskedPhone ?? "tu teléfono",
+        "whatsapp" => Guest?.MaskedPhone ?? "tu WhatsApp",
+        "email" => Guest?.MaskedEmail ?? "tu email",
         _ => "tu canal"
     };
 
     private async Task HandleSendOtp()
     {
-        if (string.IsNullOrEmpty(_selectedChannel) || OnSendOtp is null) return;
+        if (Guest is null || string.IsNullOrEmpty(_selectedChannel)) return;
         _error = null;
+        _loading = true;
 
-        var success = await OnSendOtp(_selectedChannel);
+        var result = await AppointmentService.SendGuestOtpByHashAsync(Guest.VerificationHash, _selectedChannel);
 
-        if (success)
-            _stage = Stage.EnterOtp;
-    }
+        _loading = false;
 
-    private async Task HandleVerifyOtp()
-    {
-        if (string.IsNullOrEmpty(_otpCode) || _otpCode.Length != 6 || string.IsNullOrEmpty(_selectedChannel)) return;
-        if (OnVerifyOtp is null) return;
-
-        _error = null;
-        var result = await OnVerifyOtp(_selectedChannel, _otpCode);
-
-        if (result is null)
+        if (!result.IsSuccess)
         {
-            _error = "Código incorrecto. Intenta de nuevo.";
+            _error = result.Error?.Message ?? "No se pudo enviar el código. Intenta con otro canal.";
             return;
         }
 
-        // Pre-llenar campos con los datos del usuario.
-        // Solo los invitados (guests) pueden editarlos; los registrados los ven readonly.
-        _isRegisteredUser = string.Equals(result.SessionType, "RegisteredUser", StringComparison.OrdinalIgnoreCase);
-        _editName = result.Name;
-        _editPhone = result.Phone;
-        _editEmail = result.Email;
-        _stage = Stage.ConfirmData;
+        _stage = Stage.EnterOtp;
     }
 
-    private async Task HandleConfirmData()
+    private async Task HandleMerge()
     {
-        if (string.IsNullOrWhiteSpace(_editName) || string.IsNullOrWhiteSpace(_editPhone)) return;
-        if (string.IsNullOrEmpty(_otpCode)) return;
+        if (Guest is null || _otpCode?.Length != 6) return;
+        _error = null;
+        _loading = true;
 
-        var data = new GuestDataGQL
+        var result = await AppointmentService.MergeGuestAppointmentsAsync(Guest.VerificationHash, _otpCode);
+
+        _loading = false;
+
+        if (!result.IsSuccess || result.Value is null)
         {
-            Name = _editName.Trim(),
-            Phone = _editPhone.Trim(),
-            Email = (_editEmail ?? "").Trim()
-        };
+            _error = result.Error?.Message ?? "No se pudo vincular. Intenta de nuevo.";
+            return;
+        }
 
-        await OnConfirmData.InvokeAsync((data, _otpCode));
+        if (!result.Value.Success)
+        {
+            _error = result.Value.Error ?? "Código incorrecto. Intenta de nuevo.";
+            return;
+        }
+
+        await OnMerged.InvokeAsync(result.Value.MergedCount);
+        await HandleClose();
     }
 
     private void GoBackToChannel()
@@ -338,10 +227,7 @@
         _selectedChannel = null;
         _otpCode = null;
         _error = null;
-        _editName = null;
-        _editPhone = null;
-        _editEmail = null;
-        _isRegisteredUser = false;
+        _loading = false;
         await OnClose.InvokeAsync();
     }
 }

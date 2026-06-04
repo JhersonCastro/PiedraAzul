@@ -33,6 +33,13 @@ namespace PiedraAzul.Infrastructure.Persistence
             base.OnModelCreating(modelBuilder);
 
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+
+            // Una sola cédula por usuario registrado (no aplica a soft-deleted ni a cédula vacía).
+            // El lado de invitados ya está garantizado por la PK de Patients (Id = cédula del guest).
+            modelBuilder.Entity<ApplicationUser>()
+                .HasIndex(u => u.IdentificationNumber)
+                .IsUnique()
+                .HasFilter("\"IdentificationNumber\" <> '' AND \"IsDeleted\" = false");
         }
     }
 }

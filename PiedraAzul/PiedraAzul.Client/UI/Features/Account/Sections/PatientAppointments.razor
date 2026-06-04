@@ -2,6 +2,7 @@
 @using PiedraAzul.Client.Models.GraphQL
 @using PiedraAzul.Client.Services.GraphQLServices
 @using PiedraAzul.Client.States
+@using PiedraAzul.Client.UI.Features.Account.Components
 @using PiedraAzul.Client.UI.Features.Booking.Components
 @inject GraphQLAppointmentService AppointmentService
 @inject UserState UserState
@@ -31,6 +32,26 @@ else
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
             @_successMessage
+        </div>
+    }
+
+    @if (_mergeableGuest is not null)
+    {
+        <div class="mb-4 flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex items-start gap-3">
+                <svg class="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p class="text-sm text-amber-800">
+                    Encontramos una cuenta invitada con tu misma cédula
+                    (@_mergeableGuest.AppointmentCount @(_mergeableGuest.AppointmentCount == 1 ? "cita" : "citas")).
+                    Vincúlala para traer esas citas a tu perfil.
+                </p>
+            </div>
+            <button @onclick="OpenMergeModal"
+                    class="btn-action whitespace-nowrap sm:w-auto">
+                Vincular ahora
+            </button>
         </div>
     }
 
@@ -157,6 +178,12 @@ else
                  OnConfirm="HandleRescheduleConfirm"
                  OnClose="CloseRescheduleModal" />
 
+<!-- Merge de citas de cuenta invitada con la misma cédula -->
+<GuestMergeModal IsOpen="_mergeModalOpen"
+                 Guest="_mergeableGuest"
+                 OnMerged="HandleMerged"
+                 OnClose="CloseMergeModal" />
+
 @code {
     private bool _loading = true;
     private string _tab = "upcoming";
@@ -177,9 +204,43 @@ else
     private string? _cancelConfirmId;
     private bool _cancelLoading;
 
+    // Merge de cuenta invitada
+    private MergeableGuestGQL? _mergeableGuest;
+    private bool _mergeModalOpen;
+
     protected override async Task OnInitializedAsync()
     {
         _currentUserId = UserState.User?.Id;
+        await LoadAppointmentsAsync();
+        await CheckForMergeableGuestAsync();
+    }
+
+    private async Task CheckForMergeableGuestAsync()
+    {
+        var result = await AppointmentService.CheckForMergeableGuestAsync();
+        if (result.IsSuccess && result.Value is not null)
+        {
+            _mergeableGuest = result.Value;
+            StateHasChanged();
+        }
+    }
+
+    private void OpenMergeModal()
+    {
+        _mergeModalOpen = true;
+        _error = null;
+        _successMessage = null;
+    }
+
+    private void CloseMergeModal() => _mergeModalOpen = false;
+
+    private async Task HandleMerged(int mergedCount)
+    {
+        _mergeModalOpen = false;
+        _mergeableGuest = null;
+        _successMessage = mergedCount == 1
+            ? "Vinculamos 1 cita anterior a tu cuenta."
+            : $"Vinculamos {mergedCount} citas anteriores a tu cuenta.";
         await LoadAppointmentsAsync();
     }
 

@@ -1,6 +1,12 @@
 using HotChocolate;
+using HotChocolate.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using PiedraAzul.Application.Common.Interfaces;
 using PiedraAzul.GraphQL.Types;
+using PiedraAzul.Infrastructure.Identity;
+using System.Security.Claims;
 
 namespace PiedraAzul.GraphQL;
 
@@ -119,6 +125,41 @@ public partial class Mutation
         {
             throw new GraphQLException(ex.Message);
         }
+    }
+
+    /// <summary>
+    /// Verifica el OTP y vincula (merge) las citas de la cuenta invitada con la misma
+    /// cédula del usuario autenticado. Transfiere todas las citas del invitado a la cuenta.
+    /// </summary>
+    [Authorize]
+    public async Task<MergeGuestResultType> MergeGuestAppointmentsAsync(
+        string hash,
+        string code,
+        [Service] IHttpContextAccessor httpContextAccessor,
+        [Service] UserManager<ApplicationUser> userManager,
+        [Service] IGuestOtpService guestOtp)
+    {
+        if (string.IsNullOrWhiteSpace(hash) || string.IsNullOrWhiteSpace(code))
+            throw new GraphQLException("hash y code son requeridos.");
+
+        var userId = httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? throw new GraphQLException("No autenticado");
+
+        var user = await userManager.Users.FirstOrDefaultAsync(u => u.Id == userId && !u.IsDeleted)
+            ?? throw new GraphQLException("Usuario no encontrado.");
+
+        if (string.IsNullOrWhiteSpace(user.IdentificationNumber))
+            throw new GraphQLException("Tu cuenta no tiene cédula registrada.");
+
+        var result = await guestOtp.MergeGuestAppointmentsAsync(
+            hash, code, user.Id, user.IdentificationNumber);
+
+        return new MergeGuestResultType
+        {
+            Success = result.Success,
+            MergedCount = result.MergedCount,
+            Error = result.Error
+        };
     }
 
     private static OtpChannel ParseChannel(string channel) =>

@@ -1,6 +1,7 @@
 using HotChocolate;
 using HotChocolate.Authorization;
 using Mediator;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using PiedraAzul.Application.Common.Interfaces;
@@ -8,6 +9,7 @@ using PiedraAzul.Application.Features.Patients.Queries.SearchPatients;
 using PiedraAzul.GraphQL.Types;
 using PiedraAzul.Domain.Repositories;
 using PiedraAzul.Infrastructure.Identity;
+using System.Security.Claims;
 
 namespace PiedraAzul.GraphQL;
 
@@ -135,6 +137,43 @@ public partial class Query
             return $"{local[0]}***@{domain}";
 
         return $"{local[0]}***{local[^1]}@{domain}";
+    }
+
+    /// <summary>
+    /// Para el usuario registrado autenticado: detecta si existe una cuenta invitada
+    /// con su misma cédula que tenga citas transferibles. Si existe, devuelve la info
+    /// (con canales enmascarados) y un hash para verificar OTP antes del merge.
+    /// Retorna null si no hay nada que vincular.
+    /// </summary>
+    [Authorize]
+    public async Task<MergeableGuestType?> CheckForMergeableGuestAsync(
+        [Service] IHttpContextAccessor httpContextAccessor,
+        [Service] UserManager<ApplicationUser> userManager,
+        [Service] IGuestOtpService guestOtpService)
+    {
+        var userId = httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? throw new GraphQLException("No autenticado");
+
+        var user = await userManager.Users.FirstOrDefaultAsync(u => u.Id == userId && !u.IsDeleted);
+        if (user is null || string.IsNullOrWhiteSpace(user.IdentificationNumber))
+            return null;
+
+        var info = await guestOtpService.GetMergeableGuestAsync(user.IdentificationNumber);
+        if (info is null) return null;
+
+        var hasPhone = !string.IsNullOrEmpty(info.Phone);
+        var hasEmail = !string.IsNullOrEmpty(info.Email);
+
+        return new MergeableGuestType
+        {
+            VerificationHash = info.VerificationHash,
+            GuestName = info.GuestName,
+            AppointmentCount = info.AppointmentCount,
+            HasPhone = hasPhone,
+            HasEmail = hasEmail,
+            MaskedPhone = hasPhone ? MaskPhoneShort(info.Phone!) : null,
+            MaskedEmail = hasEmail ? MaskEmail(info.Email!) : null
+        };
     }
 
     [Authorize(Roles = new[] { "Doctor", "Admin" })]

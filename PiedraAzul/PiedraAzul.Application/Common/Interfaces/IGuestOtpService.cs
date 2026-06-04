@@ -15,6 +15,22 @@ public record VerifiedUserData(
 
 public record GuestVerificationResult(bool Success, VerifiedUserData? Data);
 
+/// <summary>
+/// Información de un invitado (guest) con la misma cédula que un usuario registrado,
+/// candidato a merge. Incluye un hash de verificación listo para enviar OTP.
+/// </summary>
+public record MergeableGuestInfo(
+    string GuestId,
+    string GuestName,
+    int AppointmentCount,
+    string VerificationHash,
+    string? Phone,
+    string? Email
+);
+
+/// <summary>Resultado de un merge guest → cuenta registrada.</summary>
+public record GuestMergeResult(bool Success, int MergedCount, string? Error);
+
 public interface IGuestOtpService
 {
     /// <summary>Genera un OTP, lo guarda en caché y lo envía. Devuelve un sessionToken opaco.</summary>
@@ -46,4 +62,21 @@ public interface IGuestOtpService
 
     /// <summary>Obtiene los datos verificados de una sesión (para uso en booking).</summary>
     Task<VerifiedUserData?> GetVerifiedDataAsync(string hash);
+
+    // ── Merge guest → cuenta registrada ──────────────────────────────────
+
+    /// <summary>
+    /// Busca un invitado NO mergeado con la cédula dada que tenga al menos una cita
+    /// transferible. Si existe, crea una sesión de verificación y devuelve su info.
+    /// Retorna null si no hay candidato a merge.
+    /// </summary>
+    Task<MergeableGuestInfo?> GetMergeableGuestAsync(string identification);
+
+    /// <summary>
+    /// Verifica el OTP de la sesión hash y, si es correcto, transfiere las citas del
+    /// invitado al usuario registrado y marca al invitado como mergeado. La cédula del
+    /// invitado debe coincidir con la del usuario registrado (seguridad).
+    /// </summary>
+    Task<GuestMergeResult> MergeGuestAppointmentsAsync(
+        string hash, string code, string registeredUserId, string registeredUserIdentification);
 }

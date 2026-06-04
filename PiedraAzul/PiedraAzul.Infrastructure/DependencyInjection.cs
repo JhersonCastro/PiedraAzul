@@ -111,8 +111,7 @@ public static class DependencyInjection
         // MFA Token Service
         services.AddScoped<IMFATokenService, MFATokenService>();
 
-        // WhatsApp Service (Meta Cloud API)
-        services.AddHttpClient("WhatsApp");
+        // WhatsApp Service (Twilio — mismo Account que SMS)
         services.AddScoped<IWhatsAppService, WhatsAppService>();
 
         // Gemini AI (Consulta inteligente) — el servicio se auto-registra vía Scan

@@ -75,6 +75,21 @@ namespace PiedraAzul.Domain.Entities.Operations
                 patientGuestId);
         }
 
+        /// <summary>
+        /// Reasigna una cita de invitado a un usuario registrado (merge guest → cuenta).
+        /// Solo aplica a citas que pertenecen a un guest.
+        /// </summary>
+        public void ReassignToRegisteredUser(string userId)
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+                throw new DomainException("userId requerido para reasignar la cita");
+            if (PatientGuestId is null)
+                throw new DomainException("Solo se pueden reasignar citas de invitados");
+
+            PatientUserId = userId;
+            PatientGuestId = null;
+        }
+
         /// <summary>Soft-delete: marca esta cita como reagendada y registra el Id de la nueva.</summary>
         public void MarkAsRescheduled(Guid newAppointmentId)
         {

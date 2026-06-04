@@ -1,53 +1,97 @@
-using System.Net.Http.Headers;
-using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using PiedraAzul.Application.Common.Interfaces;
+using Twilio;
+using Twilio.Rest.Api.V2010.Account;
 
 namespace PiedraAzul.Infrastructure.Services;
 
 /// <summary>
-/// Envía mensajes de texto libre por WhatsApp Business Cloud API (Meta).
-/// En modo desarrollo funciona sin templates para números de prueba registrados.
-/// En producción también funciona dentro de la ventana de 24h de conversación activa.
+/// Envía mensajes por WhatsApp a través de Twilio (mismo Account que SMS).
+/// Para OTP usa una plantilla aprobada (ContentSid); para texto libre usa Body,
+/// válido solo dentro de la ventana de sesión de 24h de Twilio.
 /// </summary>
 public class WhatsAppService : IWhatsAppService
 {
-    private readonly IHttpClientFactory _httpFactory;
     private readonly IConfiguration _config;
+    private readonly ILogger<WhatsAppService> _logger;
+    private readonly bool _ready;
 
-    public WhatsAppService(IHttpClientFactory httpFactory, IConfiguration config)
+    public WhatsAppService(IConfiguration config, ILogger<WhatsAppService> logger)
     {
-        _httpFactory = httpFactory;
         _config = config;
+        _logger = logger;
+
+        var accountSid = _config["Twilio:AccountSid"];
+        var authToken = _config["Twilio:AuthToken"];
+
+        if (string.IsNullOrEmpty(accountSid) || string.IsNullOrEmpty(authToken))
+        {
+            _logger.LogWarning("Twilio credentials not configured — WhatsApp will be disabled");
+            return;
+        }
+
+        TwilioClient.Init(accountSid, authToken);
+        _ready = true;
+    }
+
+    public async Task<bool> SendOtpAsync(string phoneE164, string code)
+    {
+        var contentSid = _config["Twilio:WhatsAppOtpContentSid"];
+        if (string.IsNullOrEmpty(contentSid))
+        {
+            _logger.LogError("Twilio:WhatsAppOtpContentSid no configurado");
+            return false;
+        }
+
+        var variables = JsonSerializer.Serialize(new Dictionary<string, string> { ["1"] = code });
+
+        return await SendAsync(phoneE164, opts =>
+        {
+            opts.ContentSid = contentSid;
+            opts.ContentVariables = variables;
+        });
     }
 
     public async Task<bool> SendMessageAsync(string phoneE164, string message)
+        => await SendAsync(phoneE164, opts => opts.Body = message);
+
+    private async Task<bool> SendAsync(string phoneE164, Action<CreateMessageOptions> configure)
     {
-        var accessToken   = _config["WhatsApp:AccessToken"]   ?? throw new InvalidOperationException("WhatsApp:AccessToken no configurado");
-        var phoneNumberId = _config["WhatsApp:PhoneNumberId"] ?? throw new InvalidOperationException("WhatsApp:PhoneNumberId no configurado");
-        var apiVersion    = _config["WhatsApp:ApiVersion"]    ?? "v25.0";
-
-        var url = $"https://graph.facebook.com/{apiVersion}/{phoneNumberId}/messages";
-
-        // Mensaje de texto libre — sin templates
-        var payload = new
+        if (!_ready)
         {
-            messaging_product = "whatsapp",
-            to   = phoneE164,
-            type = "text",
-            text = new { body = message }
-        };
+            _logger.LogWarning("WhatsApp not sent to {Phone} — Twilio is not configured", phoneE164);
+            return false;
+        }
 
-        var json   = JsonSerializer.Serialize(payload);
-        var client = _httpFactory.CreateClient("WhatsApp");
-        client.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", accessToken);
+        var fromNumber = _config["Twilio:WhatsAppNumber"];
+        if (string.IsNullOrEmpty(fromNumber))
+        {
+            _logger.LogError("Twilio:WhatsAppNumber no configurado");
+            return false;
+        }
 
-        var response = await client.PostAsync(
-            url,
-            new StringContent(json, Encoding.UTF8, "application/json"));
+        try
+        {
+            var to = phoneE164.StartsWith("whatsapp:")
+                ? phoneE164
+                : $"whatsapp:{(phoneE164.StartsWith("+") ? phoneE164 : $"+{phoneE164}")}";
 
-        return response.IsSuccessStatusCode;
+            var options = new CreateMessageOptions(new Twilio.Types.PhoneNumber(to))
+            {
+                From = new Twilio.Types.PhoneNumber(fromNumber)
+            };
+            configure(options);
+
+            var message = await MessageResource.CreateAsync(options);
+            _logger.LogInformation("WhatsApp enviado exitosamente. SID: {MessageId}, To: {ToNumber}", message.Sid, phoneE164);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error enviando WhatsApp a {Phone}", phoneE164);
+            return false;
+        }
     }
 }
