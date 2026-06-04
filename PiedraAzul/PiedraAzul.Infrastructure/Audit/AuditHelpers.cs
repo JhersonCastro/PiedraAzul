@@ -10,7 +10,7 @@ internal static class AuditActor
     public static (string? UserId, string? Name, string? Roles, string? Ip) Resolve(IHttpContextAccessor accessor)
     {
         var ctx = accessor.HttpContext;
-        var ip = ctx?.Connection?.RemoteIpAddress?.ToString();
+        var ip = GetClientIp(ctx);
 
         var user = ctx?.User;
         if (user?.Identity?.IsAuthenticated != true)
@@ -20,6 +20,28 @@ internal static class AuditActor
         var name = user.FindFirstValue(ClaimTypes.Name) ?? user.Identity?.Name;
         var roles = string.Join(",", user.FindAll(ClaimTypes.Role).Select(c => c.Value));
         return (userId, name, string.IsNullOrEmpty(roles) ? null : roles, ip);
+    }
+
+    /// <summary>
+    /// IP del cliente: respeta X-Forwarded-For (proxy/producción) y normaliza el loopback
+    /// IPv6 (::1) y las IPv4 mapeadas a IPv6 a su forma IPv4 legible.
+    /// </summary>
+    private static string? GetClientIp(HttpContext? ctx)
+    {
+        if (ctx is null) return null;
+
+        var forwarded = ctx.Request?.Headers["X-Forwarded-For"].FirstOrDefault();
+        if (!string.IsNullOrWhiteSpace(forwarded))
+            return forwarded.Split(',')[0].Trim();
+
+        var addr = ctx.Connection?.RemoteIpAddress;
+        if (addr is null) return null;
+
+        if (addr.IsIPv4MappedToIPv6)
+            addr = addr.MapToIPv4();
+
+        var s = addr.ToString();
+        return s == "::1" ? "127.0.0.1" : s;
     }
 }
 

@@ -14,5 +14,10 @@ public interface IAuditService
         string? subjectIdentification = null,
         string? subjectName = null,
         string? subjectPhone = null,
+        // Override del actor cuando se conoce y la petición no está autenticada
+        // (ej. Login: quien ejecuta la acción es el propio usuario).
+        string? actorUserId = null,
+        string? actorName = null,
+        string? actorRoles = null,
         CancellationToken cancellationToken = default);
 }

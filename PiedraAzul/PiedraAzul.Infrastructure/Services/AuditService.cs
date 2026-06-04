@@ -17,18 +17,21 @@ public class AuditService(AppDbContext context, IHttpContextAccessor httpContext
         string? subjectIdentification = null,
         string? subjectName = null,
         string? subjectPhone = null,
+        string? actorUserId = null,
+        string? actorName = null,
+        string? actorRoles = null,
         CancellationToken cancellationToken = default)
     {
-        var (actorId, actorName, actorRoles, ip) = AuditActor.Resolve(httpContextAccessor);
+        var (resolvedId, resolvedName, resolvedRoles, ip) = AuditActor.Resolve(httpContextAccessor);
 
         var entry = AuditLog.Create(
             entityType: entityType,
             entityId: entityId,
             action: action,
             source: "Business",
-            actorUserId: actorId,
-            actorName: actorName,
-            actorRoles: actorRoles,
+            actorUserId: actorUserId ?? resolvedId,
+            actorName: actorName ?? resolvedName,
+            actorRoles: actorRoles ?? resolvedRoles,
             ipAddress: ip,
             subjectIdentification: subjectIdentification,
             subjectName: subjectName,

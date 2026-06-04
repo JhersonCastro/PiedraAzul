@@ -104,7 +104,11 @@ public partial class Mutation
             data: new { user.Email, roles = result.Roles },
             subjectIdentification: user.IdentificationNumber,
             subjectName: user.Name,
-            subjectPhone: user.PhoneNumber);
+            subjectPhone: user.PhoneNumber,
+            // En login la petición aún no está autenticada: el actor es el propio usuario.
+            actorUserId: user.Id,
+            actorName: user.Name,
+            actorRoles: string.Join(",", result.Roles));
 
         return new LoginResultType
         {
