@@ -68,7 +68,8 @@ public partial class Mutation
     public async Task<bool> SendGuestOtpByHashAsync(
         string hash,
         string channel,
-        [Service] IGuestOtpService guestOtp)
+        [Service] IGuestOtpService guestOtp,
+        [Service] IAuditService audit)
     {
         if (string.IsNullOrWhiteSpace(hash))
             throw new GraphQLException("El hash es requerido.");
@@ -78,6 +79,7 @@ public partial class Mutation
         try
         {
             await guestOtp.SendOtpByHashAsync(hash, otpChannel);
+            await audit.LogAsync("GuestVerificationSession", hash, "OtpSent", new { channel });
             return true;
         }
         catch (InvalidOperationException ex)
@@ -100,7 +102,8 @@ public partial class Mutation
         string? name,
         string? phone,
         string? email,
-        [Service] IGuestOtpService guestOtp)
+        [Service] IGuestOtpService guestOtp,
+        [Service] IAuditService audit)
     {
         if (string.IsNullOrWhiteSpace(hash) || string.IsNullOrWhiteSpace(code))
             throw new GraphQLException("hash y code son requeridos.");
@@ -112,6 +115,16 @@ public partial class Mutation
                 return null;
 
             var d = result.Data;
+
+            await audit.LogAsync(
+                entityType: "GuestVerificationSession",
+                entityId: hash,
+                action: "OtpVerified",
+                data: new { d.SessionType },
+                subjectIdentification: d.Id,
+                subjectName: d.Name,
+                subjectPhone: d.Phone);
+
             return new GuestDataType
             {
                 Id = d.Id,
@@ -137,7 +150,8 @@ public partial class Mutation
         string code,
         [Service] IHttpContextAccessor httpContextAccessor,
         [Service] UserManager<ApplicationUser> userManager,
-        [Service] IGuestOtpService guestOtp)
+        [Service] IGuestOtpService guestOtp,
+        [Service] IAuditService audit)
     {
         if (string.IsNullOrWhiteSpace(hash) || string.IsNullOrWhiteSpace(code))
             throw new GraphQLException("hash y code son requeridos.");
@@ -153,6 +167,16 @@ public partial class Mutation
 
         var result = await guestOtp.MergeGuestAppointmentsAsync(
             hash, code, user.Id, user.IdentificationNumber);
+
+        if (result.Success)
+            await audit.LogAsync(
+                entityType: "ApplicationUser",
+                entityId: user.Id,
+                action: "GuestMerged",
+                data: new { result.MergedCount },
+                subjectIdentification: user.IdentificationNumber,
+                subjectName: user.Name,
+                subjectPhone: user.PhoneNumber);
 
         return new MergeGuestResultType
         {

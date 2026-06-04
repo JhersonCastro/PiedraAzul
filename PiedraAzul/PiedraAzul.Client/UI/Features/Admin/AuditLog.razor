@@ -1,0 +1,293 @@
+@using System.Globalization
+@using PiedraAzul.Client.Models.Admin
+@using PiedraAzul.Client.Services.AdminServices
+@inject AuditLogService AuditSvc
+
+<div class="admin-page">
+    <div class="admin-inner">
+
+        <!-- Header -->
+        <div class="portal-section-header mb-6">
+            <div>
+                <h1 class="admin-heading">Auditoría</h1>
+                <p class="admin-sub">
+                    Registro de todas las acciones del sistema: quién hizo qué, cuándo y sobre qué.
+                </p>
+            </div>
+        </div>
+
+        <!-- Filtros -->
+        <div class="mb-4 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+            <div class="lg:col-span-2">
+                <label class="label-sm">Búsqueda rápida</label>
+                <input type="text" value="@_filter.SearchText" @oninput="OnSearchInput"
+                       class="input-slate"
+                       placeholder="Cédula, nombre, teléfono, actor, entidad o acción..." />
+            </div>
+
+            <div>
+                <label class="label-sm">Entidad</label>
+                <select @bind="_filter.EntityType" @bind:after="ApplyFilters" class="input-slate-select">
+                    <option value="">Todas</option>
+                    @foreach (var et in _options.EntityTypes)
+                    {
+                        <option value="@et">@et</option>
+                    }
+                </select>
+            </div>
+
+            <div>
+                <label class="label-sm">Acción</label>
+                <select @bind="_filter.Action" @bind:after="ApplyFilters" class="input-slate-select">
+                    <option value="">Todas</option>
+                    @foreach (var ac in _options.Actions)
+                    {
+                        <option value="@ac">@ac</option>
+                    }
+                </select>
+            </div>
+
+            <div>
+                <label class="label-sm">Origen</label>
+                <select @bind="_filter.Source" @bind:after="ApplyFilters" class="input-slate-select">
+                    <option value="">Todos</option>
+                    <option value="Interceptor">Automático</option>
+                    <option value="Business">Negocio</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="label-sm">Desde</label>
+                <input type="date" @bind="_dateFrom" @bind:after="ApplyFilters" class="input-slate" />
+            </div>
+
+            <div>
+                <label class="label-sm">Hasta</label>
+                <input type="date" @bind="_dateTo" @bind:after="ApplyFilters" class="input-slate" />
+            </div>
+
+            <div class="flex items-end">
+                <button @onclick="ClearFilters" class="btn-cancel w-full">Limpiar filtros</button>
+            </div>
+        </div>
+
+        @if (_loading)
+        {
+            <div class="flex justify-center py-16">
+                <div class="spinner"></div>
+            </div>
+        }
+        else if (_list.Items.Count == 0)
+        {
+            <div class="rounded-2xl border border-slate-200 bg-white p-10 text-center">
+                <p class="text-[15px] font-bold text-[#0F172A]">Sin registros</p>
+                <p class="mt-1 text-[13px] text-[#94A3B8]">No hay eventos que coincidan con los filtros.</p>
+            </div>
+        }
+        else
+        {
+            <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                <table class="min-w-full text-sm">
+                    <thead class="bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
+                        <tr>
+                            <th class="px-4 py-3">Fecha</th>
+                            <th class="px-4 py-3">Entidad</th>
+                            <th class="px-4 py-3">Acción</th>
+                            <th class="px-4 py-3">Actor</th>
+                            <th class="px-4 py-3">Sujeto</th>
+                            <th class="px-4 py-3"></th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        @foreach (var log in _list.Items)
+                        {
+                            <tr class="hover:bg-slate-50">
+                                <td class="px-4 py-3 whitespace-nowrap text-slate-600">
+                                    @log.Timestamp.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss", CultureInfo.InvariantCulture)
+                                </td>
+                                <td class="px-4 py-3">
+                                    <span class="font-semibold text-slate-800">@log.EntityType</span>
+                                    @if (!string.IsNullOrEmpty(log.EntityId))
+                                    {
+                                        <span class="block text-xs text-slate-400">@Truncate(log.EntityId, 24)</span>
+                                    }
+                                </td>
+                                <td class="px-4 py-3">
+                                    <span class="rounded-full px-2 py-0.5 text-xs font-semibold @ActionClass(log.Action)">
+                                        @log.Action
+                                    </span>
+                                    @if (log.Source == "Business")
+                                    {
+                                        <span class="ml-1 text-[10px] text-teal-600">●</span>
+                                    }
+                                </td>
+                                <td class="px-4 py-3">
+                                    <span class="text-slate-800">@(log.ActorName ?? "Sistema / Invitado")</span>
+                                    @if (!string.IsNullOrEmpty(log.ActorRoles))
+                                    {
+                                        <span class="block text-xs text-slate-400">@log.ActorRoles</span>
+                                    }
+                                </td>
+                                <td class="px-4 py-3">
+                                    @if (!string.IsNullOrEmpty(log.SubjectName) || !string.IsNullOrEmpty(log.SubjectIdentification))
+                                    {
+                                        <span class="text-slate-800">@log.SubjectName</span>
+                                        <span class="block text-xs text-slate-400">
+                                            @log.SubjectIdentification @(string.IsNullOrEmpty(log.SubjectPhone) ? "" : "· " + log.SubjectPhone)
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-slate-300">—</span>
+                                    }
+                                </td>
+                                <td class="px-4 py-3 text-right">
+                                    @if (!string.IsNullOrEmpty(log.Data))
+                                    {
+                                        <button @onclick="() => ToggleExpand(log.Id)"
+                                                class="text-xs font-semibold text-teal-600 hover:text-teal-800">
+                                            @(_expandedId == log.Id ? "Ocultar" : "Ver datos")
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                            @if (_expandedId == log.Id && !string.IsNullOrEmpty(log.Data))
+                            {
+                                <tr class="bg-slate-50">
+                                    <td colspan="6" class="px-4 py-3">
+                                        <pre class="max-h-72 overflow-auto whitespace-pre-wrap break-all rounded-lg bg-slate-900 p-3 text-xs text-slate-100">@FormatJson(log.Data)</pre>
+                                        @if (!string.IsNullOrEmpty(log.IpAddress))
+                                        {
+                                            <p class="mt-2 text-xs text-slate-500">IP: @log.IpAddress</p>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Paginación -->
+            <div class="mt-4 flex items-center justify-between text-sm text-slate-600">
+                <span>
+                    @_list.TotalCount registro(s) · Página @_list.PageNumber de @Math.Max(1, _list.TotalPages)
+                </span>
+                <div class="flex gap-2">
+                    <button @onclick="PrevPage" disabled="@(_list.PageNumber <= 1)"
+                            class="btn-cancel disabled:opacity-40">Anterior</button>
+                    <button @onclick="NextPage" disabled="@(_list.PageNumber >= _list.TotalPages)"
+                            class="btn-cancel disabled:opacity-40">Siguiente</button>
+                </div>
+            </div>
+        }
+
+    </div>
+</div>
+
+@code {
+    private AuditFilterModel _filter = new();
+    private AuditLogListGQL _list = new();
+    private AuditFilterOptionsGQL _options = new();
+    private bool _loading = true;
+    private Guid? _expandedId;
+
+    private DateTime? _dateFrom;
+    private DateTime? _dateTo;
+
+    private CancellationTokenSource? _searchCts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var opts = await AuditSvc.GetFilterOptionsAsync();
+        if (opts.IsSuccess && opts.Value is not null) _options = opts.Value;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        StateHasChanged();
+
+        _filter.DateFrom = _dateFrom;
+        _filter.DateTo = _dateTo?.AddDays(1).AddSeconds(-1); // incluir todo el día "hasta"
+
+        var result = await AuditSvc.GetAuditLogsAsync(_filter);
+        if (result.IsSuccess && result.Value is not null)
+            _list = result.Value;
+
+        _loading = false;
+        StateHasChanged();
+    }
+
+    private async Task OnSearchInput(ChangeEventArgs e)
+    {
+        _filter.SearchText = e.Value?.ToString();
+        _filter.PageNumber = 1;
+
+        _searchCts?.Cancel();
+        _searchCts = new CancellationTokenSource();
+        try
+        {
+            await Task.Delay(350, _searchCts.Token);
+            await LoadAsync();
+        }
+        catch (TaskCanceledException) { }
+    }
+
+    private async Task ApplyFilters()
+    {
+        _filter.PageNumber = 1;
+        await LoadAsync();
+    }
+
+    private async Task ClearFilters()
+    {
+        _filter = new AuditFilterModel();
+        _dateFrom = null;
+        _dateTo = null;
+        await LoadAsync();
+    }
+
+    private void ToggleExpand(Guid id) => _expandedId = _expandedId == id ? null : id;
+
+    private async Task PrevPage()
+    {
+        if (_filter.PageNumber <= 1) return;
+        _filter.PageNumber--;
+        await LoadAsync();
+    }
+
+    private async Task NextPage()
+    {
+        if (_filter.PageNumber >= _list.TotalPages) return;
+        _filter.PageNumber++;
+        await LoadAsync();
+    }
+
+    private static string Truncate(string s, int max) => s.Length <= max ? s : s[..max] + "…";
+
+    private static string ActionClass(string action) => action switch
+    {
+        "Created" => "bg-emerald-100 text-emerald-700",
+        "Deleted" => "bg-red-100 text-red-700",
+        "Updated" => "bg-amber-100 text-amber-700",
+        "Login" => "bg-blue-100 text-blue-700",
+        "GuestMerged" => "bg-purple-100 text-purple-700",
+        _ => "bg-slate-100 text-slate-600"
+    };
+
+    private static string FormatJson(string raw)
+    {
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(raw);
+            return System.Text.Json.JsonSerializer.Serialize(doc.RootElement,
+                new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+        }
+        catch
+        {
+            return raw;
+        }
+    }
+}

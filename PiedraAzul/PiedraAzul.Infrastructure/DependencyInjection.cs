@@ -27,9 +27,14 @@ public static class DependencyInjection
 
         var connectionString = configuration.GetConnectionString("DefaultConnection");
 
+        // Auditoría — interceptor que captura todo cambio en BD.
+        services.AddHttpContextAccessor();
+        services.AddSingleton<Audit.AuditSaveChangesInterceptor>();
+
         // DbContext (Scoped - para uso general)
-        services.AddDbContext<AppDbContext>(options =>
-            options.UseNpgsql(connectionString));
+        services.AddDbContext<AppDbContext>((sp, options) =>
+            options.UseNpgsql(connectionString)
+                   .AddInterceptors(sp.GetRequiredService<Audit.AuditSaveChangesInterceptor>()));
 
         // 🔐 Data Protection - persistir keys en PostgreSQL para sobrevivir deploys
         services.AddSingleton<PostgresXmlRepository>();
@@ -122,6 +127,9 @@ public static class DependencyInjection
 
         // Guest OTP Service
         services.AddScoped<IGuestOtpService, GuestOtpService>();
+
+        // Audit Service (negocio)
+        services.AddScoped<IAuditService, AuditService>();
 
         return services;
     }

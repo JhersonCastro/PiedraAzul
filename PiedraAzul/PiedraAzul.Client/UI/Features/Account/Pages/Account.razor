@@ -247,6 +247,7 @@ else
                             @NavItem("admin-usuarios", "Gestión de usuarios", "Administración", "nav-admin-usuarios")
                             @NavItem("admin-agenda", "Agenda médica", "Administración", "nav-admin-agenda")
                             @NavItem("admin-horario", "Configurar horarios", "Administración")
+                            @NavItem("admin-auditoria", "Auditoría", "Administración")
                         }
                         <div class="h-2"></div>
                     }
@@ -319,6 +320,7 @@ else
                         <div id="mobile-section-admin-usuarios"><UserManagement /></div>
                         <div id="mobile-section-admin-agenda"><AdminAgenda /></div>
                         <div id="mobile-section-admin-horario"><AdminScheduleConfig /></div>
+                        <div id="mobile-section-admin-auditoria"><AuditLog /></div>
                     }
                     else if (_mobileTab == "servicios")
                     {
@@ -364,6 +366,9 @@ else
                             break;
                         case "admin-horario":
                             <AdminScheduleConfig />
+                            break;
+                        case "admin-auditoria":
+                            <AuditLog />
                             break;
                         case "exportar-citas":
                             <AppointmentExport OnNavigateTo="SetTab" />
@@ -558,6 +563,7 @@ else
             ("mobile-section-admin-usuarios", "Usuarios"),
             ("mobile-section-admin-agenda",   "Agenda"),
             ("mobile-section-admin-horario",  "Horarios"),
+            ("mobile-section-admin-auditoria","Auditoría"),
         ],
         ["servicios"] =
         [
