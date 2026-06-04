@@ -3,6 +3,8 @@
 @using PiedraAzul.Client.Models.UserProfiles
 @using PiedraAzul.Client.Services.AdminServices
 @using PiedraAzul.Client.Services.GraphQLServices
+@using PiedraAzul.Contracts.Enums
+@using PiedraAzul.Contracts.Validation
 
 @inject PatientSearchService PatientService
 @inject UserManagementService UserService
@@ -117,6 +119,24 @@
                                    placeholder="Ej: María García" />
                         </div>
 
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-1.5">Tipo de documento *</label>
+                                <select @bind="_newDocumentType" class="input-slate-select">
+                                    <option value="CC">Cédula de ciudadanía</option>
+                                    <option value="TI">Tarjeta de identidad</option>
+                                    <option value="CE">Cédula de extranjería</option>
+                                    <option value="PA">Pasaporte</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-1.5">Número de documento *</label>
+                                <input type="text" @bind="_newIdentification"
+                                       class="input-slate"
+                                       placeholder="Ej: 1150064123" />
+                            </div>
+                        </div>
+
                         <div>
                             <label class="block text-sm font-semibold text-slate-700 mb-1.5">Correo electrónico *</label>
                             <input type="email" @bind="_newEmail"
@@ -124,11 +144,18 @@
                                    placeholder="correo@ejemplo.com" />
                         </div>
 
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-700 mb-1.5">Teléfono</label>
-                            <input type="text" @bind="_newPhone"
-                                   class="input-slate"
-                                   placeholder="300 123 4567" />
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-1.5">Celular *</label>
+                                <input type="text" @bind="_newPhone"
+                                       class="input-slate"
+                                       placeholder="Ej: 300 123 4567" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-slate-700 mb-1.5">Fecha de nacimiento *</label>
+                                <input type="date" @bind="_newBirthDate"
+                                       class="input-slate" />
+                            </div>
                         </div>
 
                     </div>
@@ -228,6 +255,9 @@
     private string _newName = "";
     private string _newEmail = "";
     private string _newPhone = "";
+    private string _newDocumentType = "CC";
+    private string _newIdentification = "";
+    private DateTime? _newBirthDate;
     private bool _saving;
     private string? _createError;
 
@@ -252,6 +282,9 @@
         _searching = false;
         _searchError = null;
         _newName = _newEmail = _newPhone = "";
+        _newDocumentType = "CC";
+        _newIdentification = "";
+        _newBirthDate = null;
         _saving = false;
         _createError = null;
         _tempPassword = null;
@@ -311,6 +344,9 @@
     private void GoToCreate()
     {
         _newName = _newEmail = _newPhone = "";
+        _newDocumentType = "CC";
+        _newIdentification = "";
+        _newBirthDate = null;
         _createError = null;
         _view = "create";
     }
@@ -326,8 +362,21 @@
         _createError = null;
 
         if (string.IsNullOrWhiteSpace(_newName)) { _createError = "El nombre es requerido"; return; }
-        if (string.IsNullOrWhiteSpace(_newEmail)) { _createError = "El correo es requerido"; return; }
-        if (!_newEmail.Contains('@')) { _createError = "Correo inválido"; return; }
+        if (string.IsNullOrWhiteSpace(_newEmail) || !_newEmail.Contains('@') || !_newEmail.Contains('.'))
+        { _createError = "Correo inválido"; return; }
+
+        if (string.IsNullOrWhiteSpace(_newIdentification)) { _createError = "La cédula / documento es requerido"; return; }
+
+        var docType = Enum.TryParse<DocumentType>(_newDocumentType, out var dt) ? dt : DocumentType.CC;
+        if (!ColombianValidation.IsValidDocumentNumber(docType, _newIdentification))
+        { _createError = ColombianValidation.DocumentNumberError(docType); return; }
+
+        if (!ColombianValidation.IsValidMobile(_newPhone))
+        { _createError = "Ingresa un celular colombiano válido (10 dígitos, empieza por 3)."; return; }
+
+        if (_newBirthDate is null) { _createError = "La fecha de nacimiento es requerida"; return; }
+        if (!ColombianValidation.IsAtLeastAge(_newBirthDate, ColombianValidation.MinRegistrationAge))
+        { _createError = $"El paciente debe tener al menos {ColombianValidation.MinRegistrationAge} años"; return; }
 
         _saving = true;
 
@@ -338,6 +387,9 @@
                 FullName = _newName,
                 Email = _newEmail,
                 Phone = _newPhone,
+                IdentificationNumber = _newIdentification,
+                DocumentType = _newDocumentType,
+                BirthDate = DateTime.SpecifyKind(_newBirthDate.Value, DateTimeKind.Utc),
                 Role = "Patient",
                 IsActive = true
             });
@@ -368,7 +420,7 @@
             Id = _createdUserId,
             PatientName = _createdUserName ?? _newName,
             PatientPhone = _newPhone,
-            PatientIdentification = "",
+            PatientIdentification = _newIdentification,
             Type = PatientTypeClient.Registered
         };
         OnPatientSelected.InvokeAsync(patient);
