@@ -78,7 +78,7 @@
                 ← Volver
             </button>
             <h2 style="font-size:1.4rem;font-weight:800;color:#0F172A;margin:0">
-                Sus Citas Próximas
+                @(Page._inGuestContext ? "Sus Citas Como Invitado" : "Sus Citas Próximas")
             </h2>
         </div>
 
@@ -87,6 +87,25 @@
             <div style="background:#FEF2F2;border:1.5px solid #FECACA;border-radius:12px;
                         padding:1rem;margin-bottom:1rem;color:#B91C1C;font-weight:600;font-size:0.95rem">
                 ⚠ @Page._error
+            </div>
+        }
+
+        @* Banner: registrado con citas bajo una cuenta invitada (misma cédula) *@
+        @if (!Page._inGuestContext && !Page._loadingAppointments && (Page._searchResult?.GuestAppointmentCount ?? 0) > 0)
+        {
+            <div style="background:#FFFBEB;border:2px solid #FDE68A;border-radius:14px;
+                        padding:1.1rem 1.25rem;margin-bottom:1rem;display:flex;flex-direction:column;gap:0.75rem">
+                <p style="margin:0;color:#92400E;font-size:1rem;font-weight:600">
+                    ¿No encuentra su cita? Tiene
+                    <strong>@Page._searchResult!.GuestAppointmentCount @(Page._searchResult.GuestAppointmentCount == 1 ? "cita" : "citas")</strong>
+                    a nombre de una cuenta invitada con su misma cédula.
+                </p>
+                <button @onclick="EventCallback.Factory.Create(this, Page.OnVerifyGuestAppointments)"
+                        style="background:#D97706;color:white;border:none;border-radius:12px;
+                               padding:0.7rem 1.25rem;font-size:0.95rem;font-weight:800;
+                               cursor:pointer;min-height:44px;align-self:flex-start">
+                    Verificar y ver
+                </button>
             </div>
         }
 
@@ -158,12 +177,13 @@
                           OnRetry="EventCallback.Factory.Create(this, () => Page.OnRetrySearch())"
                           OnClose="EventCallback.Factory.Create(this, Page.OnVerificationModalClose)" />
 
-<ChannelValidationModal IsOpen="@Page._showChannelModal"
+<ChannelValidationModal @key="@Page._verificationHash"
+                        IsOpen="@Page._showChannelModal"
                         IsLoading="@Page._channelLoading"
-                        HasPhone="@(Page._searchResult?.HasPhone ?? false)"
-                        HasEmail="@(Page._searchResult?.HasEmail ?? false)"
-                        MaskedPhone="@Page._searchResult?.MaskedPhone"
-                        MaskedEmail="@Page._searchResult?.MaskedEmail"
+                        HasPhone="@Page._activeHasPhone"
+                        HasEmail="@Page._activeHasEmail"
+                        MaskedPhone="@Page._activeMaskedPhone"
+                        MaskedEmail="@Page._activeMaskedEmail"
                         OnSendOtp="Page.SendOtpByHashAsync"
                         OnVerifyOtp="Page.VerifyOtpByHashAsync"
                         OnConfirmData="Page.OnChannelConfirm"

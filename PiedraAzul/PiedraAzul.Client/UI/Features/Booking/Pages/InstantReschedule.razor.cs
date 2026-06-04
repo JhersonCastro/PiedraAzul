@@ -28,9 +28,17 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
         internal string? _searchError;
         internal string? _verificationHash;
 
-        // Channel OTP modal
+        // Channel OTP modal — canal activo (puede ser el del registrado o el del invitado)
         internal bool _showChannelModal;
         internal bool _channelLoading;
+        internal bool _activeHasPhone;
+        internal bool _activeHasEmail;
+        internal string? _activeMaskedPhone;
+        internal string? _activeMaskedEmail;
+
+        // Contexto invitado: true cuando un registrado verifica el 2º OTP para ver
+        // y reagendar las citas de su cuenta invitada (misma cédula).
+        internal bool _inGuestContext;
 
         // Appointments
         internal bool _loadingAppointments;
@@ -68,6 +76,7 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
             _searchError = null;
             _searchResult = null;
             _searchResultType = null;
+            _inGuestContext = false;
             NotifyState();
 
             await DoSearchAsync(_identification);
@@ -119,6 +128,31 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
         internal void OnGuestContinue()
         {
             _showVerificationModal = false;
+            // El OTP se envía al canal que devolvió el lookup (registrado o guest puro).
+            _activeHasPhone = _searchResult?.HasPhone ?? false;
+            _activeHasEmail = _searchResult?.HasEmail ?? false;
+            _activeMaskedPhone = _searchResult?.MaskedPhone;
+            _activeMaskedEmail = _searchResult?.MaskedEmail;
+            _inGuestContext = false;
+            _showChannelModal = true;
+            NotifyState();
+        }
+
+        /// <summary>
+        /// Banner (solo registrados con citas de invitado): cambia el contexto a la cuenta
+        /// invitada — reapunta el hash y los canales al del invitado — y abre el 2º OTP.
+        /// </summary>
+        internal void OnVerifyGuestAppointments()
+        {
+            if (string.IsNullOrEmpty(_searchResult?.GuestVerificationHash)) return;
+
+            _verificationHash = _searchResult.GuestVerificationHash;
+            _activeHasPhone = _searchResult.GuestHasPhone;
+            _activeHasEmail = _searchResult.GuestHasEmail;
+            _activeMaskedPhone = _searchResult.GuestMaskedPhone;
+            _activeMaskedEmail = _searchResult.GuestMaskedEmail;
+            _inGuestContext = true;
+            _error = null;
             _showChannelModal = true;
             NotifyState();
         }
@@ -275,6 +309,7 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
             _searchResult = null;
             _appointments = [];
             _error = null;
+            _inGuestContext = false;
             NotifyState();
         }
     }

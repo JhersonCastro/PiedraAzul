@@ -65,6 +65,13 @@ public partial class Query
                 registeredUser.Email,
                 expirationMinutes: 0);
 
+            // ¿Existe además una cuenta invitada con la misma cédula y citas? Si sí, la
+            // exponemos para ofrecer (con un 2º OTP al canal del invitado) el acceso a
+            // esas citas sin necesidad de iniciar sesión.
+            var mergeable = await guestOtpService.GetMergeableGuestAsync(id);
+            var mergeableHasPhone = mergeable is not null && !string.IsNullOrEmpty(mergeable.Phone);
+            var mergeableHasEmail = mergeable is not null && !string.IsNullOrEmpty(mergeable.Email);
+
             return new GuestLookupResultType
             {
                 VerificationHash = userHash,
@@ -72,7 +79,13 @@ public partial class Query
                 HasEmail = hasEmail,
                 MaskedPhone = hasPhone ? MaskPhone(registeredUser.PhoneNumber!) : null,
                 MaskedEmail = hasEmail ? MaskEmail(registeredUser.Email!) : null,
-                Type = PatientTypeEnum.Registered
+                Type = PatientTypeEnum.Registered,
+                GuestAppointmentCount = mergeable?.AppointmentCount ?? 0,
+                GuestVerificationHash = mergeable?.VerificationHash,
+                GuestHasPhone = mergeableHasPhone,
+                GuestHasEmail = mergeableHasEmail,
+                GuestMaskedPhone = mergeableHasPhone ? MaskPhoneShort(mergeable!.Phone!) : null,
+                GuestMaskedEmail = mergeableHasEmail ? MaskEmail(mergeable!.Email!) : null
             };
         }
 

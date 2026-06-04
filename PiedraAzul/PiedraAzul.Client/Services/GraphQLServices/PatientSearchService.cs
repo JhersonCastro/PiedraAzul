@@ -40,6 +40,8 @@ public class PatientSearchService(GraphQLHttpClient graphQL)
                 query LookupGuest($identification: String!) {
                     lookupGuestByIdentification(identification: $identification) {
                         verificationHash hasPhone hasEmail maskedPhone maskedEmail type
+                        guestAppointmentCount guestVerificationHash
+                        guestHasPhone guestHasEmail guestMaskedPhone guestMaskedEmail
                     }
                 }
                 """;

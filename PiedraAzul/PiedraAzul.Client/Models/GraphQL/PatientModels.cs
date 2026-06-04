@@ -21,6 +21,14 @@ public class GuestLookupResultGQL
     public string? MaskedPhone { get; set; }
     public string? MaskedEmail { get; set; }
     public string Type { get; set; } = "";
+
+    // Solo para Type=REGISTERED: cuenta invitada con la misma cédula y citas (2º OTP).
+    public int GuestAppointmentCount { get; set; }
+    public string? GuestVerificationHash { get; set; }
+    public bool GuestHasPhone { get; set; }
+    public bool GuestHasEmail { get; set; }
+    public string? GuestMaskedPhone { get; set; }
+    public string? GuestMaskedEmail { get; set; }
 }
 
 /// <summary>Paciente visto por un doctor (con fecha de última visita).</summary>
