@@ -1,4 +1,4 @@
-﻿using Mediator;
+using Mediator;
 using PiedraAzul.Application.Common.Models.Doctor;
 using PiedraAzul.Domain.Entities.Operations;
 using PiedraAzul.Domain.Repositories;
@@ -11,10 +11,11 @@ public sealed class GetDoctorDaySlotsHandler
     private readonly IDoctorRepository _doctorRepository;
     private readonly IDoctorAvailabilitySlotRepository _slotRepository;
     private readonly IAppointmentRepository _appointmentRepository;
+
     public GetDoctorDaySlotsHandler(
-    IDoctorRepository doctorRepository,
-    IDoctorAvailabilitySlotRepository slotRepository,
-    IAppointmentRepository appointmentRepository)
+        IDoctorRepository doctorRepository,
+        IDoctorAvailabilitySlotRepository slotRepository,
+        IAppointmentRepository appointmentRepository)
     {
         _doctorRepository = doctorRepository;
         _slotRepository = slotRepository;
@@ -22,8 +23,8 @@ public sealed class GetDoctorDaySlotsHandler
     }
 
     public async ValueTask<IReadOnlyList<DoctorSlotAvailabilityDto>> Handle(
-    GetDoctorDaySlotsQuery request,
-    CancellationToken cancellationToken)
+        GetDoctorDaySlotsQuery request,
+        CancellationToken cancellationToken)
     {
         var doctorExists = await _doctorRepository
             .ExistsAsync(request.DoctorId, cancellationToken);
@@ -40,11 +41,7 @@ public sealed class GetDoctorDaySlotsHandler
             .ToList();
 
         // 2. Traer citas que ocupan el slot.
-        // Active    → pendiente, slot tomado.
-        // Completed → cita atendida, slot tomado (no se puede reusar).
-        // NoShow    → paciente no llegó, slot igualmente ya fue asignado.
-        // Cancelled → slot liberado, se puede volver a reservar.
-        // Rescheduled → soft-delete, ya no cuenta.
+        // Active/Completed/NoShow → slot tomado. Cancelled → liberado. Rescheduled → soft-delete.
         var appointments = await _appointmentRepository
             .ListByDoctorAsync(request.DoctorId, request.Date, cancellationToken);
 
@@ -53,7 +50,7 @@ public sealed class GetDoctorDaySlotsHandler
             .Select(a => a.DoctorAvailabilitySlotId)
             .ToHashSet();
 
-        // 3. MAPEO A DTO (aquí está la clave)
+        // 3. Mapeo a DTO
         return daySlots
             .Select(slot => new DoctorSlotAvailabilityDto(
                 slot.Id,

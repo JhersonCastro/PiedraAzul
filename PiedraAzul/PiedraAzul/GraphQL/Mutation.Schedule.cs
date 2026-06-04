@@ -1,4 +1,6 @@
 ﻿using HotChocolate;
+using PiedraAzul.Application.Common.Caching;
+using PiedraAzul.Application.Common.Interfaces;
 using PiedraAzul.GraphQL.Inputs;
 using PiedraAzul.Domain.Entities.Profiles.Doctor;
 using PiedraAzul.Domain.Repositories;
@@ -11,7 +13,8 @@ public partial class Mutation
         ScheduleConfigInput input,
         [Service] ISystemConfigRepository systemConfigRepository,
         [Service] IDoctorAvailabilitySlotRepository slotRepository,
-        [Service] IUnitOfWork unitOfWork)
+        [Service] IUnitOfWork unitOfWork,
+        [Service] ICacheService cache)
     {
         if (input is null)
             throw new GraphQLException("La configuración es requerida");
@@ -77,6 +80,9 @@ public partial class Mutation
 
             return true;
         });
+
+        // Cambió el horario del doctor → invalidar todos sus días y slots cacheados.
+        cache.RemoveByTag(CacheKeys.TagDoctor(input.DoctorId));
 
         return true;
     }
