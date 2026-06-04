@@ -200,7 +200,9 @@
                                 @onclick="HandleConfirmData"
                                 disabled="@(IsLoading || string.IsNullOrWhiteSpace(_editName) || string.IsNullOrWhiteSpace(_editPhone))"
                                 class="btn-action">
-                            @(_isRegisteredUser ? "Continuar" : "Confirmar y continuar")
+                            @(IsLoading
+                                ? "Cargando..."
+                                : (_isRegisteredUser ? "Continuar" : "Confirmar y continuar"))
                         </button>
                     </div>
                 }

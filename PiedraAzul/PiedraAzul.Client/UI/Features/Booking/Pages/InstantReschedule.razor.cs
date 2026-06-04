@@ -226,9 +226,14 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
             _channelLoading = false;
             _showChannelModal = false;
 
-            await LoadGuestAppointmentsAsync();
+            // Mostrar de inmediato el stage de citas con su spinner, para que no quede
+            // un vacío sin feedback entre el cierre del modal y la carga de citas.
             _stage = Stage.Appointments;
+            _loadingAppointments = true;
+            _appointments = [];
             NotifyState();
+
+            await LoadGuestAppointmentsAsync();
         }
 
         internal void OnChannelModalClose()
