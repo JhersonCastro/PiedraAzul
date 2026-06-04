@@ -3,6 +3,8 @@ using Mediator;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using PiedraAzul.Application.Common.Caching;
+using PiedraAzul.Application.Common.Interfaces;
 using PiedraAzul.Application.Features.Doctors.Queries.GetDoctorAvailableDays;
 using PiedraAzul.Application.Features.Doctors.Queries.GetDoctorByUserId;
 using PiedraAzul.Application.Features.Doctors.Queries.GetDoctorDaySlots;
@@ -27,20 +29,31 @@ public partial class Query
     public async Task<List<DoctorType>> GetDoctorsByTypeAsync(
         DoctorSpecialty doctorType,
         bool onlyAvailable,
-        [Service] IMediator mediator)
+        [Service] IMediator mediator,
+        [Service] ICacheService cache)
     {
-        var doctors = await mediator.Send(
-            new GetDoctorsBySpecialtyQuery((Domain.Entities.Shared.Enums.DoctorType)doctorType, onlyAvailable));
+        var doctors = await cache.GetOrCreateAsync(
+            CacheKeys.DoctorsBySpecialty((int)doctorType, onlyAvailable),
+            _ => mediator.Send(
+                new GetDoctorsBySpecialtyQuery((Domain.Entities.Shared.Enums.DoctorType)doctorType, onlyAvailable)).AsTask(),
+            TimeSpan.FromMinutes(10),
+            new[] { CacheKeys.TagSpecialty((int)doctorType) });
+
         return doctors.Select(DoctorType.FromDto).ToList();
     }
 
     public async Task<List<SlotType>> GetDoctorSlotsAsync(
         string doctorId,
         DateTime date,
-        [Service] IMediator mediator)
+        [Service] IMediator mediator,
+        [Service] ICacheService cache)
     {
         var day = DateOnly.FromDateTime(date);
-        var slots = await mediator.Send(new GetDoctorDaySlotsQuery(doctorId, day));
+        var slots = await cache.GetOrCreateAsync(
+            CacheKeys.DoctorDaySlots(doctorId, day),
+            _ => mediator.Send(new GetDoctorDaySlotsQuery(doctorId, day)).AsTask(),
+            TimeSpan.FromSeconds(90),
+            new[] { CacheKeys.TagDoctor(doctorId) });
 
         return slots.Select(s => new SlotType
         {
@@ -54,10 +67,15 @@ public partial class Query
     public async Task<List<SlotType>> GetAvailableSlotsAsync(
         string doctorId,
         DateTime date,
-        [Service] IMediator mediator)
+        [Service] IMediator mediator,
+        [Service] ICacheService cache)
     {
-        var result = await mediator.Send(
-            new GetDoctorDaySlotsQuery(doctorId, DateOnly.FromDateTime(date)));
+        var day = DateOnly.FromDateTime(date);
+        var result = await cache.GetOrCreateAsync(
+            CacheKeys.DoctorDaySlots(doctorId, day),
+            _ => mediator.Send(new GetDoctorDaySlotsQuery(doctorId, day)).AsTask(),
+            TimeSpan.FromSeconds(90),
+            new[] { CacheKeys.TagDoctor(doctorId) });
 
         return result.Select(s => new SlotType
         {
@@ -76,11 +94,15 @@ public partial class Query
         string doctorId,
         DateTime startDate,
         int numberOfDays,
-        [Service] IMediator mediator)
+        [Service] IMediator mediator,
+        [Service] ICacheService cache)
     {
         var start = DateOnly.FromDateTime(startDate);
-        var days = await mediator.Send(
-            new GetDoctorAvailableDaysQuery(doctorId, start, numberOfDays));
+        var days = await cache.GetOrCreateAsync(
+            CacheKeys.DoctorAvailableDays(doctorId, start, numberOfDays),
+            _ => mediator.Send(new GetDoctorAvailableDaysQuery(doctorId, start, numberOfDays)).AsTask(),
+            TimeSpan.FromMinutes(2),
+            new[] { CacheKeys.TagDoctorDays(doctorId), CacheKeys.TagDoctor(doctorId) });
 
         // Return as UTC DateTime so the client deserializes correctly
         return days.Select(d => d.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc)).ToList();

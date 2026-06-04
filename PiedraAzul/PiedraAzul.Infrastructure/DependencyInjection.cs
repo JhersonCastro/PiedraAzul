@@ -89,6 +89,8 @@ public static class DependencyInjection
         // Caching
         services.AddMemoryCache();
         services.AddSingleton<ISlotCache, SlotCache>();
+        // Cache de lectura (cache-aside con invalidación por tags). Singleton: los tags se comparten.
+        services.AddSingleton<ICacheService, Caching.MemoryCacheService>();
 
         // Fido2 / Passkeys
         services.AddSingleton<IFido2>(_ =>

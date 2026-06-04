@@ -1,5 +1,7 @@
 using HotChocolate;
 using HotChocolate.Authorization;
+using PiedraAzul.Application.Common.Caching;
+using PiedraAzul.Application.Common.Interfaces;
 using PiedraAzul.Domain.Repositories;
 using PiedraAzul.GraphQL.Types;
 using PiedraAzul.Infrastructure.Persistence;
@@ -13,7 +15,8 @@ public partial class Mutation
     public async Task<DoctorAvailabilityType> ToggleMyAvailabilityAsync(
         ClaimsPrincipal claimsPrincipal,
         [Service] IDoctorRepository doctorRepository,
-        [Service] AppDbContext dbContext)
+        [Service] AppDbContext dbContext,
+        [Service] ICacheService cache)
     {
         var userId = claimsPrincipal.FindFirstValue(ClaimTypes.NameIdentifier)
             ?? throw new GraphQLException("No autenticado");
@@ -25,6 +28,9 @@ public partial class Mutation
 
         await doctorRepository.UpdateAsync(doctor);
         await dbContext.SaveChangesAsync();
+
+        // Cambió quién aparece en la lista de su especialidad (filtrada por disponibilidad).
+        cache.RemoveByTag(CacheKeys.TagSpecialty((int)doctor.Specialty));
 
         return new DoctorAvailabilityType { DoctorId = doctor.Id, IsAvailable = doctor.IsAvailable };
     }

@@ -3,6 +3,7 @@ using HotChocolate.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using PiedraAzul.Application.Common.Caching;
 using PiedraAzul.Application.Common.Interfaces;
 using PiedraAzul.Contracts.Validation;
 using PiedraAzul.Domain.Entities.Profiles.Doctor;
@@ -25,6 +26,7 @@ public partial class Mutation
         [Service] IPatientRepository patientRepository,
         [Service] IUnitOfWork unitOfWork,
         [Service] IEmailService emailService,
+        [Service] ICacheService cache,
         [Service] ILogger<Mutation> logger)
     {
         if (string.IsNullOrWhiteSpace(input.FullName))
@@ -93,6 +95,9 @@ public partial class Mutation
                 await doctorRepository.AddAsync(doctor, ct);
                 return true;
             });
+
+            // Nuevo doctor → invalidar la lista de su especialidad.
+            cache.RemoveByTag(CacheKeys.TagSpecialty((int)specialty));
         }
         else if (input.Role == "Patient")
         {
@@ -142,7 +147,8 @@ public partial class Mutation
         UpdateUserInput input,
         [Service] UserManager<ApplicationUser> userManager,
         [Service] IDoctorRepository doctorRepository,
-        [Service] IUnitOfWork unitOfWork)
+        [Service] IUnitOfWork unitOfWork,
+        [Service] ICacheService cache)
     {
         var user = await userManager.FindByIdAsync(input.UserId)
             ?? throw new GraphQLException("Usuario no encontrado");
@@ -223,16 +229,23 @@ public partial class Mutation
             var doctor = await doctorRepository.GetByIdAsync(user.Id);
             if (doctor is not null)
             {
+                var oldSpecialty = doctor.Specialty;
+                var newSpecialty = (Domain.Entities.Shared.Enums.DoctorType)input.DoctorType.Value;
+
                 await unitOfWork.ExecuteAsync(async ct =>
                 {
                     var newDoctor = new Doctor(
                         user.Id,
-                        (Domain.Entities.Shared.Enums.DoctorType)input.DoctorType.Value,
+                        newSpecialty,
                         doctor.LicenseNumber,
                         doctor.Notes ?? "");
                     await doctorRepository.UpdateAsync(newDoctor, ct);
                     return true;
                 });
+
+                // Cambió de especialidad → invalidar ambas listas.
+                cache.RemoveByTag(CacheKeys.TagSpecialty((int)oldSpecialty));
+                cache.RemoveByTag(CacheKeys.TagSpecialty((int)newSpecialty));
             }
         }
 

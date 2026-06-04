@@ -39,7 +39,6 @@ public sealed class GetDoctorAvailableDaysHandler
 
         var endDate = request.StartDate.AddDays(request.NumberOfDays - 1);
 
-        // Keep only Active appointments within the requested range
         var occupiedSlotsByDate = allAppointments
             .Where(a =>
                 a.Status == AppointmentStatus.Active &&
@@ -50,7 +49,6 @@ public sealed class GetDoctorAvailableDaysHandler
                 g => g.Key,
                 g => g.Select(a => a.DoctorAvailabilitySlotId).ToHashSet());
 
-        // Group slots by DayOfWeek for O(1) lookup
         var slotsByDay = slots
             .GroupBy(s => s.DayOfWeek)
             .ToDictionary(g => g.Key, g => g.ToList());
@@ -62,11 +60,10 @@ public sealed class GetDoctorAvailableDaysHandler
             var date = request.StartDate.AddDays(i);
 
             if (!slotsByDay.TryGetValue(date.DayOfWeek, out var daySlots))
-                continue; // No slots configured for this weekday
+                continue;
 
             occupiedSlotsByDate.TryGetValue(date, out var occupiedSlotIds);
 
-            // Day is available if at least one slot has no appointment
             var hasAvailableSlot = daySlots.Any(s =>
                 occupiedSlotIds is null || !occupiedSlotIds.Contains(s.Id));
 
