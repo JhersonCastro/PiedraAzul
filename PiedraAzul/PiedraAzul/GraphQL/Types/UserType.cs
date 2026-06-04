@@ -1,3 +1,5 @@
+using PiedraAzul.Contracts.Enums;
+
 namespace PiedraAzul.GraphQL.Types;
 
 public class UserType
@@ -6,6 +8,10 @@ public class UserType
     public string Name { get; set; } = "";
     public string Email { get; set; } = "";
     public string Phone { get; set; } = "";
+    public string IdentificationNumber { get; set; } = "";
+    public DocumentType DocumentType { get; set; } = DocumentType.CC;
+    public GenderType Gender { get; set; } = GenderType.NonSpecified;
+    public DateTime? BirthDate { get; set; }
     public string AvatarUrl { get; set; } = "default.png";
     public List<string> Roles { get; set; } = new();
     public DoctorSpecialty? DoctorType { get; set; }

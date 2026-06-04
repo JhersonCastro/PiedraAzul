@@ -1,5 +1,7 @@
 @using PiedraAzul.Client.Models.Admin
 @using PiedraAzul.Client.Models.GraphQL
+@using PiedraAzul.Contracts.Enums
+@using PiedraAzul.Contracts.Validation
 
 @if (IsOpen)
 {
@@ -42,6 +44,25 @@
                            placeholder="Ej: María García" />
                 </div>
 
+                <!-- Documento -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="label-sm">Tipo de documento *</label>
+                        <select @bind="_documentType" class="input-slate-select">
+                            <option value="CC">Cédula de ciudadanía</option>
+                            <option value="TI">Tarjeta de identidad</option>
+                            <option value="CE">Cédula de extranjería</option>
+                            <option value="PA">Pasaporte</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="label-sm">Número de documento *</label>
+                        <input type="text" @bind="_identification"
+                               class="input-slate"
+                               placeholder="Ej: 1150064123" />
+                    </div>
+                </div>
+
                 <!-- Email -->
                 <div>
                     <label class="label-sm">Correo electrónico *</label>
@@ -52,10 +73,28 @@
 
                 <!-- Teléfono -->
                 <div>
-                    <label class="label-sm">Teléfono</label>
+                    <label class="label-sm">Celular *</label>
                     <input type="text" @bind="_phone"
                            class="input-slate"
-                           placeholder="300 123 4567" />
+                           placeholder="Celular colombiano, ej: 300 123 4567" />
+                </div>
+
+                <!-- Fecha nacimiento + Género -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="label-sm">Fecha de nacimiento *</label>
+                        <input type="date" @bind="_birthDate"
+                               class="input-slate" />
+                    </div>
+                    <div>
+                        <label class="label-sm">Género</label>
+                        <select @bind="_gender" class="input-slate-select">
+                            <option value="NON_SPECIFIED">Prefiero no decir</option>
+                            <option value="MALE">Hombre</option>
+                            <option value="FEMALE">Mujer</option>
+                            <option value="OTHER">Otro</option>
+                        </select>
+                    </div>
                 </div>
 
                 <!-- Rol -->
@@ -132,6 +171,10 @@
     private string _fullName = "";
     private string _email = "";
     private string _phone = "";
+    private string _identification = "";
+    private string _documentType = "CC";
+    private string _gender = "NON_SPECIFIED";
+    private DateTime? _birthDate;
     private string _role = "Patient";
     private string _doctorType = "NaturalMedicine";
     private bool _isActive = true;
@@ -146,22 +189,30 @@
 
             if (IsEditMode && SelectedUser is not null)
             {
-                _fullName   = SelectedUser.Name;
-                _email      = SelectedUser.Email;
-                _phone      = SelectedUser.Phone;
-                _role       = SelectedUser.PrimaryRole;
-                _doctorType = SelectedUser.DoctorType ?? "NATURAL_MEDICINE";
-                _isActive   = SelectedUser.IsActive;
+                _fullName       = SelectedUser.Name;
+                _email          = SelectedUser.Email;
+                _phone          = SelectedUser.Phone;
+                _identification = SelectedUser.IdentificationNumber;
+                _documentType   = string.IsNullOrEmpty(SelectedUser.DocumentType) ? "CC" : SelectedUser.DocumentType;
+                _gender         = string.IsNullOrEmpty(SelectedUser.Gender) ? "NON_SPECIFIED" : SelectedUser.Gender;
+                _birthDate      = SelectedUser.BirthDate;
+                _role           = SelectedUser.PrimaryRole;
+                _doctorType     = SelectedUser.DoctorType ?? "NATURAL_MEDICINE";
+                _isActive       = SelectedUser.IsActive;
             }
             else
             {
-                _fullName   = "";
-                _email      = "";
-                _phone      = "";
-                _role       = "Patient";
-                _doctorType = "NATURAL_MEDICINE";
-                _isActive   = true;
-                _saving     = false;
+                _fullName       = "";
+                _email          = "";
+                _phone          = "";
+                _identification = "";
+                _documentType   = "CC";
+                _gender         = "NON_SPECIFIED";
+                _birthDate      = null;
+                _role           = "Patient";
+                _doctorType     = "NATURAL_MEDICINE";
+                _isActive       = true;
+                _saving         = false;
             }
         }
     }
@@ -173,8 +224,23 @@
         _errorMsg = null;
 
         if (string.IsNullOrWhiteSpace(_fullName))  { _errorMsg = "El nombre es requerido"; return; }
-        if (string.IsNullOrWhiteSpace(_email))     { _errorMsg = "El correo es requerido"; return; }
-        if (!_email.Contains('@'))                  { _errorMsg = "Correo inválido"; return; }
+        if (string.IsNullOrWhiteSpace(_email) || !_email.Contains('@') || !_email.Contains('.'))
+        { _errorMsg = "Correo inválido"; return; }
+
+        if (string.IsNullOrWhiteSpace(_identification)) { _errorMsg = "La cédula / documento es requerido"; return; }
+
+        var docType = Enum.TryParse<DocumentType>(_documentType, out var dt) ? dt : DocumentType.CC;
+        if (!ColombianValidation.IsValidDocumentNumber(docType, _identification))
+        { _errorMsg = ColombianValidation.DocumentNumberError(docType); return; }
+
+        if (!ColombianValidation.IsValidMobile(_phone))
+        { _errorMsg = "Ingresa un celular colombiano válido (10 dígitos, empieza por 3)."; return; }
+
+        if (_birthDate is null) { _errorMsg = "La fecha de nacimiento es requerida"; return; }
+        if (!ColombianValidation.IsAtLeastAge(_birthDate, ColombianValidation.MinRegistrationAge))
+        { _errorMsg = $"El usuario debe tener al menos {ColombianValidation.MinRegistrationAge} años"; return; }
+
+        var birthUtc = DateTime.SpecifyKind(_birthDate.Value, DateTimeKind.Utc);
 
         _saving = true;
 
@@ -184,12 +250,16 @@
             {
                 var edit = new UserEditModel
                 {
-                    UserId     = SelectedUser!.Id,
-                    FullName   = _fullName,
-                    Email      = _email,
-                    Phone      = _phone,
-                    Role       = _role,
-                    DoctorType = _role == "Doctor" ? _doctorType : null
+                    UserId               = SelectedUser!.Id,
+                    FullName             = _fullName,
+                    Email                = _email,
+                    Phone                = _phone,
+                    IdentificationNumber = _identification,
+                    DocumentType         = _documentType,
+                    Gender               = _gender,
+                    BirthDate            = birthUtc,
+                    Role                 = _role,
+                    DoctorType           = _role == "Doctor" ? _doctorType : null
                 };
                 await OnSave.InvokeAsync(edit);
             }
@@ -197,12 +267,16 @@
             {
                 var create = new UserCreateModel
                 {
-                    FullName   = _fullName,
-                    Email      = _email,
-                    Phone      = _phone,
-                    Role       = _role,
-                    DoctorType = _role == "Doctor" ? _doctorType : null,
-                    IsActive   = _isActive
+                    FullName             = _fullName,
+                    Email                = _email,
+                    Phone                = _phone,
+                    IdentificationNumber = _identification,
+                    DocumentType         = _documentType,
+                    Gender               = _gender,
+                    BirthDate            = birthUtc,
+                    Role                 = _role,
+                    DoctorType           = _role == "Doctor" ? _doctorType : null,
+                    IsActive             = _isActive
                 };
                 await OnSave.InvokeAsync(create);
             }

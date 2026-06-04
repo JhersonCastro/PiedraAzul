@@ -1,3 +1,4 @@
+using PiedraAzul.Contracts.Enums;
 using PiedraAzul.GraphQL.Types;
 
 namespace PiedraAzul.GraphQL.Inputs;
@@ -7,6 +8,10 @@ public class CreateUserInput
     public string FullName { get; set; } = "";
     public string Email { get; set; } = "";
     public string Phone { get; set; } = "";
+    public string IdentificationNumber { get; set; } = "";
+    public DocumentType DocumentType { get; set; } = DocumentType.CC;
+    public GenderType Gender { get; set; } = GenderType.NonSpecified;
+    public DateTime? BirthDate { get; set; }
     /// <summary>"Patient" | "Admin" | "Doctor"</summary>
     public string Role { get; set; } = "Patient";
     /// <summary>Solo requerido cuando Role = "Doctor"</summary>
@@ -20,6 +25,10 @@ public class UpdateUserInput
     public string? FullName { get; set; }
     public string? Email { get; set; }
     public string? Phone { get; set; }
+    public string? IdentificationNumber { get; set; }
+    public DocumentType? DocumentType { get; set; }
+    public GenderType? Gender { get; set; }
+    public DateTime? BirthDate { get; set; }
     public string? Role { get; set; }
     public DoctorSpecialty? DoctorType { get; set; }
 }

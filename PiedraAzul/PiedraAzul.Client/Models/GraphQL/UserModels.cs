@@ -6,6 +6,10 @@ public class AdminUserGQL
     public string Name { get; set; } = "";
     public string Email { get; set; } = "";
     public string Phone { get; set; } = "";
+    public string IdentificationNumber { get; set; } = "";
+    public string DocumentType { get; set; } = "CC";
+    public string Gender { get; set; } = "NON_SPECIFIED";
+    public DateTime? BirthDate { get; set; }
     public string AvatarUrl { get; set; } = "default.png";
     public List<string> Roles { get; set; } = new();
     public string? DoctorType { get; set; }

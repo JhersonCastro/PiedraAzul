@@ -18,8 +18,8 @@ public class UserManagementService(GraphQLHttpClient graphQL)
                 query GetUsers($filter: UserFilterInput!) {
                     users(filter: $filter) {
                         users {
-                            id name email phone avatarUrl roles
-                            doctorType isActive emailConfirmed createdAt
+                            id name email phone identificationNumber documentType gender birthDate
+                            avatarUrl roles doctorType isActive emailConfirmed createdAt
                         }
                         totalCount pageNumber pageSize totalPages
                     }
@@ -52,8 +52,8 @@ public class UserManagementService(GraphQLHttpClient graphQL)
             var mutation = """
                 mutation CreateUser($input: CreateUserInput!) {
                     createUser(input: $input) {
-                        id name email phone avatarUrl roles
-                        doctorType isActive emailConfirmed createdAt tempPassword
+                        id name email phone identificationNumber documentType gender birthDate
+                        avatarUrl roles doctorType isActive emailConfirmed createdAt tempPassword
                     }
                 }
                 """;
@@ -62,12 +62,16 @@ public class UserManagementService(GraphQLHttpClient graphQL)
             {
                 input = new
                 {
-                    fullName   = input.FullName,
-                    email      = input.Email,
-                    phone      = input.Phone,
-                    role       = input.Role,
-                    doctorType = input.DoctorType,
-                    isActive   = input.IsActive
+                    fullName             = input.FullName,
+                    email                = input.Email,
+                    phone                = input.Phone,
+                    identificationNumber = input.IdentificationNumber,
+                    documentType         = input.DocumentType,   // CC/TI/CE/PA
+                    gender               = input.Gender,          // MALE/FEMALE/OTHER/NON_SPECIFIED
+                    birthDate            = input.BirthDate,
+                    role                 = input.Role,
+                    doctorType           = input.DoctorType,
+                    isActive             = input.IsActive
                 }
             };
 
@@ -83,8 +87,8 @@ public class UserManagementService(GraphQLHttpClient graphQL)
             var mutation = """
                 mutation UpdateUser($input: UpdateUserInput!) {
                     updateUser(input: $input) {
-                        id name email phone avatarUrl roles
-                        doctorType isActive emailConfirmed createdAt
+                        id name email phone identificationNumber documentType gender birthDate
+                        avatarUrl roles doctorType isActive emailConfirmed createdAt
                     }
                 }
                 """;
@@ -93,12 +97,16 @@ public class UserManagementService(GraphQLHttpClient graphQL)
             {
                 input = new
                 {
-                    userId     = input.UserId,
-                    fullName   = input.FullName,
-                    email      = input.Email,
-                    phone      = input.Phone,
-                    role       = input.Role,
-                    doctorType = input.DoctorType
+                    userId               = input.UserId,
+                    fullName             = input.FullName,
+                    email                = input.Email,
+                    phone                = input.Phone,
+                    identificationNumber = input.IdentificationNumber,
+                    documentType         = input.DocumentType,
+                    gender               = input.Gender,
+                    birthDate            = input.BirthDate,
+                    role                 = input.Role,
+                    doctorType           = input.DoctorType
                 }
             };
 

@@ -1,8 +1,10 @@
 ﻿using HotChocolate;
 using HotChocolate.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using PiedraAzul.Application.Common.Interfaces;
+using PiedraAzul.Contracts.Validation;
 using PiedraAzul.Domain.Entities.Profiles.Doctor;
 using PiedraAzul.Domain.Entities.Profiles.Patients;
 using PiedraAzul.Domain.Repositories;
@@ -35,6 +37,26 @@ public partial class Mutation
         if (existing is not null)
             throw new GraphQLException("Este correo ya está registrado");
 
+        // ── Validación colombiana (servidor) ──────────────────────────────────
+        if (string.IsNullOrWhiteSpace(input.IdentificationNumber))
+            throw new GraphQLException("La cédula / documento es requerido");
+
+        if (!ColombianValidation.IsValidDocumentNumber(input.DocumentType, input.IdentificationNumber))
+            throw new GraphQLException(ColombianValidation.DocumentNumberError(input.DocumentType));
+
+        var normalizedPhone = ColombianValidation.NormalizeMobile(input.Phone);
+        if (normalizedPhone is null)
+            throw new GraphQLException("Ingresa un celular colombiano válido (10 dígitos, empieza por 3).");
+
+        if (!ColombianValidation.IsAtLeastAge(input.BirthDate, ColombianValidation.MinRegistrationAge))
+            throw new GraphQLException($"El usuario debe tener al menos {ColombianValidation.MinRegistrationAge} años.");
+
+        var identification = input.IdentificationNumber.Trim();
+        var dupId = await userManager.Users.FirstOrDefaultAsync(
+            u => u.IdentificationNumber == identification && !u.IsDeleted);
+        if (dupId is not null)
+            throw new GraphQLException("Ya existe un usuario con esta cédula / documento");
+
         var tempPassword = GenerateTempPassword();
 
         var user = new ApplicationUser
@@ -42,7 +64,11 @@ public partial class Mutation
             UserName = input.Email,
             Email = input.Email,
             Name = input.FullName,
-            PhoneNumber = input.Phone,
+            PhoneNumber = normalizedPhone,
+            IdentificationNumber = identification,
+            DocumentType = (Domain.Entities.Shared.Enums.DocumentType)(int)input.DocumentType,
+            Gender = (Domain.Entities.Shared.Enums.GenderType)(int)input.Gender,
+            BirthDate = input.BirthDate,
             EmailConfirmed = true,
         };
 
@@ -97,6 +123,10 @@ public partial class Mutation
             Name = user.Name,
             Email = user.Email ?? "",
             Phone = user.PhoneNumber ?? "",
+            IdentificationNumber = user.IdentificationNumber,
+            DocumentType = (PiedraAzul.Contracts.Enums.DocumentType)(int)user.DocumentType,
+            Gender = (PiedraAzul.Contracts.Enums.GenderType)(int)user.Gender,
+            BirthDate = user.BirthDate,
             AvatarUrl = user.AvatarUrl,
             Roles = [input.Role],
             DoctorType = input.Role == "Doctor" ? input.DoctorType : null,
@@ -136,7 +166,43 @@ public partial class Mutation
         }
 
         if (input.Phone is not null)
-            user.PhoneNumber = input.Phone;
+        {
+            var normalizedPhone = ColombianValidation.NormalizeMobile(input.Phone);
+            if (normalizedPhone is null)
+                throw new GraphQLException("Ingresa un celular colombiano válido (10 dígitos, empieza por 3).");
+            user.PhoneNumber = normalizedPhone;
+        }
+
+        if (input.DocumentType.HasValue)
+            user.DocumentType = (Domain.Entities.Shared.Enums.DocumentType)(int)input.DocumentType.Value;
+
+        if (!string.IsNullOrWhiteSpace(input.IdentificationNumber))
+        {
+            var identification = input.IdentificationNumber.Trim();
+            var docType = input.DocumentType ?? (Contracts.Enums.DocumentType)(int)user.DocumentType;
+
+            if (!ColombianValidation.IsValidDocumentNumber(docType, identification))
+                throw new GraphQLException(ColombianValidation.DocumentNumberError(docType));
+
+            if (identification != user.IdentificationNumber)
+            {
+                var dupId = await userManager.Users.FirstOrDefaultAsync(
+                    u => u.IdentificationNumber == identification && !u.IsDeleted);
+                if (dupId is not null && dupId.Id != user.Id)
+                    throw new GraphQLException("Ya existe un usuario con esta cédula / documento");
+            }
+            user.IdentificationNumber = identification;
+        }
+
+        if (input.Gender.HasValue)
+            user.Gender = (Domain.Entities.Shared.Enums.GenderType)(int)input.Gender.Value;
+
+        if (input.BirthDate.HasValue)
+        {
+            if (!ColombianValidation.IsAtLeastAge(input.BirthDate, ColombianValidation.MinRegistrationAge))
+                throw new GraphQLException($"El usuario debe tener al menos {ColombianValidation.MinRegistrationAge} años.");
+            user.BirthDate = input.BirthDate;
+        }
 
         var updateResult = await userManager.UpdateAsync(user);
         if (!updateResult.Succeeded)
@@ -188,6 +254,10 @@ public partial class Mutation
             Name = user.Name,
             Email = user.Email ?? "",
             Phone = user.PhoneNumber ?? "",
+            IdentificationNumber = user.IdentificationNumber,
+            DocumentType = (PiedraAzul.Contracts.Enums.DocumentType)(int)user.DocumentType,
+            Gender = (PiedraAzul.Contracts.Enums.GenderType)(int)user.Gender,
+            BirthDate = user.BirthDate,
             AvatarUrl = user.AvatarUrl,
             Roles = roles,
             DoctorType = doctorSpecialty,
