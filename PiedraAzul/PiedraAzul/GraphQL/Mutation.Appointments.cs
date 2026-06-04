@@ -3,6 +3,7 @@ using HotChocolate.Authorization;
 using Mediator;
 using Microsoft.AspNetCore.Http;
 using PiedraAzul.Application.Common.Models.Patients;
+using PiedraAzul.Contracts.Validation;
 using PiedraAzul.Application.Features.Appointments.CancelAppointment;
 using PiedraAzul.Application.Features.Appointments.CreateAppointment;
 using PiedraAzul.Application.Features.Appointments.RescheduleAppointment;
@@ -48,7 +49,8 @@ public partial class Mutation
                 Name = input.Guest.Name,
                 Phone = input.Guest.Phone,
                 ExtraInfo = input.Guest.ExtraInfo,
-                Email = input.Guest.Email
+                Email = input.Guest.Email,
+                DocumentType = (PiedraAzul.Domain.Entities.Shared.Enums.DocumentType)(int)input.Guest.DocumentType
             };
         }
 
@@ -84,13 +86,22 @@ public partial class Mutation
 
         var date = DateOnly.FromDateTime(input.Date);
 
+        // Validación colombiana (servidor) para el booking público de invitados.
+        var normalizedPhone = ColombianValidation.NormalizeMobile(input.Guest.Phone);
+        if (normalizedPhone is null)
+            throw new GraphQLException("Ingresa un celular colombiano válido (10 dígitos, empieza por 3).");
+
+        if (!ColombianValidation.IsValidDocumentNumber(input.Guest.DocumentType, input.Guest.Identification))
+            throw new GraphQLException(ColombianValidation.DocumentNumberError(input.Guest.DocumentType));
+
         var patientGuest = new GuestPatientRequest
         {
-            Identification = input.Guest.Identification,
+            Identification = input.Guest.Identification.Trim(),
             Name = input.Guest.Name,
-            Phone = input.Guest.Phone,
+            Phone = normalizedPhone,
             ExtraInfo = input.Guest.ExtraInfo,
-            Email = input.Guest.Email
+            Email = input.Guest.Email,
+            DocumentType = (PiedraAzul.Domain.Entities.Shared.Enums.DocumentType)(int)input.Guest.DocumentType
         };
 
         var appointment = await mediator.Send(

@@ -9,14 +9,16 @@ public static class CreateContracts
         string patientPhone,
         string patientIdentification,
         string extraInfo,
-        string? email = null)
+        string? email = null,
+        string documentType = "CC")
     {
         return new GuestPatientGqlInput(
             Identification: patientIdentification,
             Name: patientName,
             Phone: patientPhone,
             ExtraInfo: extraInfo,
-            Email: email
+            Email: email,
+            DocumentType: documentType
         );
     }
 }

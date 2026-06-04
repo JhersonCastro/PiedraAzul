@@ -1,5 +1,7 @@
 using PiedraAzul.Client.Models.GraphQL;
 using PiedraAzul.Client.Models.UserProfiles;
+using PiedraAzul.Contracts.Enums;
+using PiedraAzul.Contracts.Validation;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
@@ -8,8 +10,11 @@ namespace PiedraAzul.Client.Models.Booking
     public class BookingModel
     {
         // ── Identificación ───────────────────────────────────────────
-        [Required]
-        [MinLength(5, ErrorMessage = "El ID debe tener al menos 5 caracteres")]
+        [Required(ErrorMessage = "Selecciona el tipo de documento")]
+        public DocumentType PatientDocumentType { get; set; } = DocumentType.CC;
+
+        [Required(ErrorMessage = "El número de documento es obligatorio")]
+        [DocumentNumber(nameof(PatientDocumentType))]
         public string? PatientIdentification { get; set; }
 
         [Required(ErrorMessage = "El nombre es obligatorio")]
@@ -17,7 +22,7 @@ namespace PiedraAzul.Client.Models.Booking
         public string? PatientName { get; set; }
 
         [Required(ErrorMessage = "El teléfono es obligatorio")]
-        [Phone(ErrorMessage = "Teléfono inválido")]
+        [ColombianMobile]
         public string? PatientPhone { get; set; }
 
         public string? PatientAddress { get; set; }

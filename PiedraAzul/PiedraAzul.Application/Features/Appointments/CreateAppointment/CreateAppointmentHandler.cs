@@ -97,7 +97,8 @@ public class CreateAppointmentHandler
                             guestRequest.Name,
                             guestRequest.Phone,
                             guestRequest.ExtraInfo,
-                            guestRequest.Email
+                            guestRequest.Email,
+                            guestRequest.DocumentType
                         ),
                         ct
                     );

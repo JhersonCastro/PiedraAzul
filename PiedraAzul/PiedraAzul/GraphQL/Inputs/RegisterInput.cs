@@ -1,4 +1,6 @@
+using System;
 using System.ComponentModel.DataAnnotations;
+using PiedraAzul.Contracts.Enums;
 
 namespace PiedraAzul.GraphQL.Inputs;
 
@@ -16,12 +18,16 @@ public record RegisterInput(
     string Name,
 
     [Required(ErrorMessage = "El teléfono es requerido")]
-    [RegularExpression(@"^\+?[\d\s\-\(\)]{7,}$", ErrorMessage = "El formato del teléfono no es válido")]
     string Phone,
 
     [Required(ErrorMessage = "La identificación es requerida")]
-    [StringLength(20, MinimumLength = 5, ErrorMessage = "La identificación debe tener entre 5 y 20 caracteres")]
     string IdentificationNumber,
+
+    DocumentType DocumentType,
+
+    GenderType Gender,
+
+    DateTime? BirthDate,
 
     [Required(ErrorMessage = "Al menos un rol es requerido")]
     List<string> Roles

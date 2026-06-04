@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Caching.Memory;
 using PiedraAzul.Application.Common.Interfaces;
 using PiedraAzul.Application.Common.Models.Auth;
+using PiedraAzul.Contracts.Validation;
 using PiedraAzul.Application.Features.Auth.Commands.Login;
 using PiedraAzul.Application.Features.Auth.Commands.MFA;
 using PiedraAzul.Application.Features.Auth.Commands.PasswordReset;
@@ -31,6 +32,7 @@ public partial class Mutation
         [Service] IMFATokenService mfaTokenService,
         [Service] IMemoryCache cache,
         [Service] ILoginTokenService loginTokenService,
+        [Service] IAuditService audit,
         [Service] ILogger<Mutation> logger)
     {
         // Check for account lockout before attempting login
@@ -95,6 +97,15 @@ public partial class Mutation
 
         logger.LogInformation("Successful login for user: {UserId} ({Email})", user.Id, user.Email);
 
+        await audit.LogAsync(
+            entityType: "ApplicationUser",
+            entityId: user.Id,
+            action: "Login",
+            data: new { user.Email, roles = result.Roles },
+            subjectIdentification: user.IdentificationNumber,
+            subjectName: user.Name,
+            subjectPhone: user.PhoneNumber);
+
         return new LoginResultType
         {
             User = new UserType
@@ -119,8 +130,26 @@ public partial class Mutation
     {
         logger.LogInformation("Registration attempt for email: {Email}", input.Email);
 
+        // ── Validación colombiana (servidor) ──────────────────────────────────
+        var normalizedPhone = ColombianValidation.NormalizeMobile(input.Phone);
+        if (normalizedPhone is null)
+            throw new GraphQLException("Ingresa un celular colombiano válido (10 dígitos, empieza por 3).");
+
+        if (!ColombianValidation.IsValidDocumentNumber(input.DocumentType, input.IdentificationNumber))
+            throw new GraphQLException(ColombianValidation.DocumentNumberError(input.DocumentType));
+
+        if (!ColombianValidation.IsAtLeastAge(input.BirthDate, ColombianValidation.MinRegistrationAge))
+            throw new GraphQLException($"Debes tener al menos {ColombianValidation.MinRegistrationAge} años para registrarte.");
+
         var result = await mediator.Send(new RegisterCommand(
-            new RegisterUserDto(input.Email, input.Name, input.Phone, input.IdentificationNumber),
+            new RegisterUserDto(
+                input.Email,
+                input.Name,
+                normalizedPhone,
+                input.IdentificationNumber.Trim(),
+                (PiedraAzul.Domain.Entities.Shared.Enums.DocumentType)(int)input.DocumentType,
+                (PiedraAzul.Domain.Entities.Shared.Enums.GenderType)(int)input.Gender,
+                input.BirthDate),
             input.Password,
             input.Roles
         ));

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using PiedraAzul.Domain.Entities.Shared.Enums;
 
 namespace PiedraAzul.Domain.Entities.Profiles.Patients
 {
@@ -9,6 +10,7 @@ namespace PiedraAzul.Domain.Entities.Profiles.Patients
         public string Phone { get; private set; } = "";
         public string ExtraInfo { get; private set; } = "";
         public string? Email { get; private set; }
+        public DocumentType DocumentType { get; private set; } = DocumentType.CC;
 
         /// <summary>
         /// Si no es null, este guest fue absorbido (merge) por el usuario registrado
@@ -23,13 +25,14 @@ namespace PiedraAzul.Domain.Entities.Profiles.Patients
 
         private GuestPatient() { }
 
-        public GuestPatient(string id, string name, string phone, string extraInfo, string? email = null)
+        public GuestPatient(string id, string name, string phone, string extraInfo, string? email = null, DocumentType documentType = DocumentType.CC)
         {
             Id = id;
             Name = name;
             Phone = phone;
             ExtraInfo = extraInfo;
             Email = email;
+            DocumentType = documentType;
         }
 
         public void UpdateInfo(string name, string phone, string? email)

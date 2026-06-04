@@ -401,7 +401,8 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
 
             var result = await AppointmentService.BookGuestAppointmentAsync(new CreateAppointmentGqlInput(
                 Guest: CreateContracts.CreateGuestPatientInput(
-                    Model.PatientName!, Model.PatientPhone!, Model.PatientIdentification!, extraInfo, Model.PatientEmail),
+                    Model.PatientName!, Model.PatientPhone!, Model.PatientIdentification!, extraInfo, Model.PatientEmail,
+                    Model.PatientDocumentType.ToString()),
                 PatientUserId: null,
                 DoctorId: Model.DoctorId,
                 DoctorAvailabilitySlotId: Model.SlotId,

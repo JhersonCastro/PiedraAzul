@@ -17,7 +17,8 @@ public record GuestPatientGqlInput(
     string Name,
     string? Phone,
     string? ExtraInfo,
-    string? Email = null
+    string? Email = null,
+    string DocumentType = "CC"   // nombre del enum GraphQL: CC/TI/CE/PA
 );
 
 public class GraphQLAppointmentService(GraphQLHttpClient client)

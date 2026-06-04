@@ -1,3 +1,5 @@
+using PiedraAzul.Contracts.Enums;
+
 namespace PiedraAzul.GraphQL.Inputs;
 
 public record GuestPatientInput(
@@ -5,7 +7,8 @@ public record GuestPatientInput(
     string Name,
     string? Phone,
     string? ExtraInfo,
-    string? Email = null
+    string? Email = null,
+    DocumentType DocumentType = DocumentType.CC
 );
 
 public record CreateAppointmentInput(

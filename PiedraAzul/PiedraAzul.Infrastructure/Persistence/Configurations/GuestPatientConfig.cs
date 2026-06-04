@@ -18,6 +18,9 @@ namespace PiedraAzul.Infrastructure.Persistence.Configurations
             builder.Property(x => x.Email)
                 .HasMaxLength(200);
 
+            builder.Property(x => x.DocumentType)
+                .HasConversion<int>();
+
             // Merge guest → cuenta registrada (auditoría + evita re-merge)
             builder.Property(x => x.MergedToUserId)
                 .HasMaxLength(450);

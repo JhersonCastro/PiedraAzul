@@ -33,6 +33,11 @@ public class AuthenticationService(GraphQLHttpClient graphQL, NavigationManager 
                         name = registerModel.FullName ?? "",
                         phone = registerModel.Phone ?? "",
                         identificationNumber = registerModel.Document ?? "",
+                        documentType = registerModel.DocumentType.ToString(),        // CC/TI/CE/PA
+                        gender = registerModel.Gender.ToString().ToUpperInvariant(), // MALE/FEMALE/OTHER
+                        birthDate = registerModel.BirthDate.HasValue
+                            ? DateTime.SpecifyKind(registerModel.BirthDate.Value, DateTimeKind.Utc)
+                            : (DateTime?)null,
                         roles = new[] { role }
                     }
                 },

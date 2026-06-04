@@ -67,6 +67,9 @@ public class IdentityService(
             Email = dto.Email,
             PhoneNumber = dto.PhoneNumber,
             IdentificationNumber = dto.IdentificationNumber,
+            DocumentType = dto.DocumentType,
+            Gender = dto.Gender,
+            BirthDate = dto.BirthDate,
             UserName = dto.IdentificationNumber ?? dto.Email,
             Name = dto.Name,
             AvatarUrl = "default.png"

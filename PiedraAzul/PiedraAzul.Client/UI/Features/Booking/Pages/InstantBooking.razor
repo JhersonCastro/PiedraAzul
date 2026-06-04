@@ -3,6 +3,7 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using PiedraAzul.Client.Models
 @using PiedraAzul.Client.Models.Booking
+@using PiedraAzul.Contracts.Enums
 @using PiedraAzul.Client.Models.UserProfiles
 @using PiedraAzul.Client.Services.AuthServices
 @using PiedraAzul.Client.Services.GraphQLServices
@@ -45,7 +46,7 @@ else
                 <!-- STEP 1: Identificación -->
                 <Step TModel="BookingModel"
                       Title="Identificación"
-                      Fields="@(new[] { nameof(Model.PatientIdentification) })">
+                      Fields="@(new[] { nameof(Model.PatientDocumentType), nameof(Model.PatientIdentification) })">
 
                     <div class="mb-6 flex flex-col items-center text-center">
                         <h2 class="text-2xl font-bold">
@@ -59,11 +60,22 @@ else
                     <div class="flex w-full flex-col gap-5 rounded border-2 border-gray-200 p-5">
 
                         <div class="flex flex-col">
+                            <label class="text-lg font-semibold">Tipo de documento</label>
+                            <InputSelect class="input-booking" @bind-Value="Model.PatientDocumentType">
+                                <option value="@DocumentType.CC">Cédula de ciudadanía</option>
+                                <option value="@DocumentType.TI">Tarjeta de identidad</option>
+                                <option value="@DocumentType.CE">Cédula de extranjería</option>
+                                <option value="@DocumentType.PA">Pasaporte</option>
+                            </InputSelect>
+                            <ValidationMessage For="@(() => Model.PatientDocumentType)" class="form-error" />
+                        </div>
+
+                        <div class="flex flex-col">
                             <div class="flex items-center gap-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24" fill="#257D8D">
                                     <path d="M367-527q-47-47-47-113t47-113q47-47 113-47t113 47q47 47 47 113t-47 113q-47 47-113 47t-113-47ZM160-160v-112q0-34 17.5-62.5T224-378q62-31 126-46.5T480-440q66 0 130 15.5T736-378q29 15 46.5 43.5T800-272v112H160Z" />
                                 </svg>
-                                <label class="text-lg font-semibold">Número de identificación</label>
+                                <label class="text-lg font-semibold">Número de documento</label>
                             </div>
 
                             <InputText class="input-booking"

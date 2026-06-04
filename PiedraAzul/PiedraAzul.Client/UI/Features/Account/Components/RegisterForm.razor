@@ -17,7 +17,7 @@
             <!-- STEP 1 -->
             <Step TModel="RegisterModel"
                   Title="Datos personales"
-                  Fields="@(new[] { nameof(registerModel.Document), nameof(registerModel.FullName), nameof(registerModel.Phone), nameof(registerModel.Gender) })">
+                  Fields="@(new[] { nameof(registerModel.DocumentType), nameof(registerModel.Document), nameof(registerModel.FullName), nameof(registerModel.Phone), nameof(registerModel.Gender), nameof(registerModel.BirthDate) })">
 
                 <h2 class="form-heading">Datos personales</h2>
                 <p class="form-heading-sub">
@@ -26,13 +26,33 @@
 
                 <div class="form-grid">
 
+                    <!-- Tipo de documento -->
+                    <div>
+                        <label class="label-lg">
+                            Tipo de documento
+                        </label>
+                        <p class="form-hint">
+                            Seleccione el tipo de documento
+                        </p>
+
+                        <InputSelect @bind-Value="registerModel.DocumentType"
+                                     class="input-lg">
+                            <option value="@DocumentType.CC">Cédula de ciudadanía</option>
+                            <option value="@DocumentType.TI">Tarjeta de identidad</option>
+                            <option value="@DocumentType.CE">Cédula de extranjería</option>
+                            <option value="@DocumentType.PA">Pasaporte</option>
+                        </InputSelect>
+
+                        <ValidationMessage For="@(() => registerModel.DocumentType)" class="form-error" />
+                    </div>
+
                     <!-- Documento -->
                     <div>
                         <label class="label-lg">
                             Número de documento
                         </label>
                         <p class="form-hint">
-                            Ejemplo: cédula de ciudadanía
+                            @DocumentHint(registerModel.DocumentType)
                         </p>
 
                         <InputText @bind-Value="registerModel.Document"
@@ -61,10 +81,10 @@
                     <!-- Teléfono -->
                     <div>
                         <label class="label-lg">
-                            Número de teléfono
+                            Número de celular
                         </label>
                         <p class="form-hint">
-                            Para contactarlo sobre su cita
+                            Celular colombiano (10 dígitos, empieza por 3)
                         </p>
 
                         <InputText @bind-Value="registerModel.Phone"
@@ -96,6 +116,21 @@
                         <ValidationMessage For="@(() => registerModel.Gender)" class="form-error" />
                     </div>
 
+                    <!-- Fecha de nacimiento -->
+                    <div>
+                        <label class="label-lg">
+                            Fecha de nacimiento
+                        </label>
+                        <p class="form-hint">
+                            Debe ser mayor de 13 años
+                        </p>
+
+                        <InputDate @bind-Value="registerModel.BirthDate"
+                                   class="input-lg" />
+
+                        <ValidationMessage For="@(() => registerModel.BirthDate)" class="form-error" />
+                    </div>
+
                 </div>
 
             </Step>
@@ -111,19 +146,6 @@
                 </p>
 
                 <div class="form-grid">
-
-                    <!-- Fecha -->
-                    <div>
-                        <label class="label-lg">
-                            Fecha de nacimiento
-                        </label>
-                        <p class="form-hint">
-                            Nos ayuda a personalizar su atención
-                        </p>
-
-                        <InputDate @bind-Value="registerModel.BirthDate"
-                                   class="input-lg" />
-                    </div>
 
                     <!-- Email -->
                     <div>
@@ -215,6 +237,15 @@
     [Parameter]
     public EventCallback OnLoginClick { get; set; }
     private string? _errorMessage;
+
+    private static string DocumentHint(DocumentType type) => type switch
+    {
+        DocumentType.CC => "Solo dígitos (6 a 10)",
+        DocumentType.TI => "Solo dígitos (6 a 11)",
+        DocumentType.CE => "Alfanumérico (5 a 12 caracteres)",
+        DocumentType.PA => "Alfanumérico (6 a 12 caracteres)",
+        _ => "Ingrese su documento"
+    };
 
     private async Task HandleRegister()
     {
