@@ -87,15 +87,17 @@
         else
         {
             <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-                <table class="min-w-full text-sm">
+                <table class="w-full text-sm">
                     <thead class="bg-slate-50 text-left text-xs font-semibold uppercase text-slate-500">
                         <tr>
-                            <th class="px-4 py-3">Fecha</th>
+                            <th class="px-4 py-3 whitespace-nowrap">Fecha</th>
                             <th class="px-4 py-3">Entidad</th>
                             <th class="px-4 py-3">Acción</th>
+                            <th class="px-4 py-3">Origen</th>
                             <th class="px-4 py-3">Actor</th>
-                            <th class="px-4 py-3">Sujeto</th>
-                            <th class="px-4 py-3"></th>
+                            <th class="px-4 py-3 w-full">Sujeto</th>
+                            <th class="px-4 py-3 whitespace-nowrap">IP</th>
+                            <th class="px-4 py-3 text-right">Datos</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
@@ -116,10 +118,11 @@
                                     <span class="rounded-full px-2 py-0.5 text-xs font-semibold @ActionClass(log.Action)">
                                         @log.Action
                                     </span>
-                                    @if (log.Source == "Business")
-                                    {
-                                        <span class="ml-1 text-[10px] text-teal-600">●</span>
-                                    }
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap">
+                                    <span class="rounded-full px-2 py-0.5 text-xs font-medium @(log.Source == "Business" ? "bg-teal-100 text-teal-700" : "bg-slate-100 text-slate-500")">
+                                        @(log.Source == "Business" ? "Negocio" : "Automático")
+                                    </span>
                                 </td>
                                 <td class="px-4 py-3">
                                     <span class="text-slate-800">@(log.ActorName ?? "Sistema / Invitado")</span>
@@ -128,7 +131,7 @@
                                         <span class="block text-xs text-slate-400">@log.ActorRoles</span>
                                     }
                                 </td>
-                                <td class="px-4 py-3">
+                                <td class="px-4 py-3 w-full">
                                     @if (!string.IsNullOrEmpty(log.SubjectName) || !string.IsNullOrEmpty(log.SubjectIdentification))
                                     {
                                         <span class="text-slate-800">@log.SubjectName</span>
@@ -140,6 +143,9 @@
                                     {
                                         <span class="text-slate-300">—</span>
                                     }
+                                </td>
+                                <td class="px-4 py-3 whitespace-nowrap text-xs text-slate-500">
+                                    @(string.IsNullOrEmpty(log.IpAddress) ? "—" : log.IpAddress)
                                 </td>
                                 <td class="px-4 py-3 text-right">
                                     @if (!string.IsNullOrEmpty(log.Data))
@@ -154,12 +160,8 @@
                             @if (_expandedId == log.Id && !string.IsNullOrEmpty(log.Data))
                             {
                                 <tr class="bg-slate-50">
-                                    <td colspan="6" class="px-4 py-3">
+                                    <td colspan="8" class="px-4 py-3">
                                         <pre class="max-h-72 overflow-auto whitespace-pre-wrap break-all rounded-lg bg-slate-900 p-3 text-xs text-slate-100">@FormatJson(log.Data)</pre>
-                                        @if (!string.IsNullOrEmpty(log.IpAddress))
-                                        {
-                                            <p class="mt-2 text-xs text-slate-500">IP: @log.IpAddress</p>
-                                        }
                                     </td>
                                 </tr>
                             }
