@@ -9,13 +9,16 @@ public sealed class GetDoctorAvailableDaysHandler
 {
     private readonly IDoctorAvailabilitySlotRepository _slotRepository;
     private readonly IAppointmentRepository _appointmentRepository;
+    private readonly IDoctorRepository _doctorRepository;
 
     public GetDoctorAvailableDaysHandler(
         IDoctorAvailabilitySlotRepository slotRepository,
-        IAppointmentRepository appointmentRepository)
+        IAppointmentRepository appointmentRepository,
+        IDoctorRepository doctorRepository)
     {
         _slotRepository = slotRepository;
         _appointmentRepository = appointmentRepository;
+        _doctorRepository = doctorRepository;
     }
 
     public async ValueTask<IReadOnlyList<DateOnly>> Handle(
@@ -31,19 +34,28 @@ public sealed class GetDoctorAvailableDaysHandler
         if (slots.Count == 0)
             return [];
 
+        // Enforcement: limitar el rango por la ventana de reserva personalizada del doctor.
+        var doctor = await _doctorRepository.GetByIdAsync(request.DoctorId, cancellationToken);
+        var maxWeeks = doctor?.BookingWindowWeeks ?? 4;
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var maxDate = today.AddDays(maxWeeks * 7);
+
+        // Clamp: no permitir días más allá de la ventana, aunque el cliente pida más.
+        var effectiveEnd = request.StartDate.AddDays(request.NumberOfDays - 1);
+        if (effectiveEnd > maxDate) effectiveEnd = maxDate;
+        if (request.StartDate > maxDate) return [];
+
         // Query 2: All active appointments for this doctor (no date filter → full list)
         var allAppointments = await _appointmentRepository.ListByDoctorAsync(
             request.DoctorId,
             date: null,
             cancellationToken);
 
-        var endDate = request.StartDate.AddDays(request.NumberOfDays - 1);
-
         var occupiedSlotsByDate = allAppointments
             .Where(a =>
                 a.Status == AppointmentStatus.Active &&
                 a.Date >= request.StartDate &&
-                a.Date <= endDate)
+                a.Date <= effectiveEnd)
             .GroupBy(a => a.Date)
             .ToDictionary(
                 g => g.Key,
@@ -54,8 +66,9 @@ public sealed class GetDoctorAvailableDaysHandler
             .ToDictionary(g => g.Key, g => g.ToList());
 
         var availableDays = new List<DateOnly>();
+        var totalDays = effectiveEnd.DayNumber - request.StartDate.DayNumber + 1;
 
-        for (var i = 0; i < request.NumberOfDays; i++)
+        for (var i = 0; i < totalDays; i++)
         {
             var date = request.StartDate.AddDays(i);
 

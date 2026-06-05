@@ -1,17 +1,16 @@
 using HotChocolate.Authorization;
 using Mediator;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
 using PiedraAzul.Application.Common.Caching;
 using PiedraAzul.Application.Common.Interfaces;
 using PiedraAzul.Application.Features.Doctors.Queries.GetDoctorAvailableDays;
 using PiedraAzul.Application.Features.Doctors.Queries.GetDoctorByUserId;
 using PiedraAzul.Application.Features.Doctors.Queries.GetDoctorDaySlots;
+using PiedraAzul.Application.Features.Doctors.Queries.GetDoctorPatients;
 using PiedraAzul.Application.Features.Doctors.Queries.GetDoctorsBySpecialty;
-using PiedraAzul.Domain.Repositories;
+using PiedraAzul.Application.Features.Doctors.Queries.GetScheduleConfig;
+using PiedraAzul.Contracts.DTOs;
 using PiedraAzul.GraphQL.Types;
-using PiedraAzul.Infrastructure.Identity;
 using System.Security.Claims;
 
 namespace PiedraAzul.GraphQL;
@@ -42,7 +41,7 @@ public partial class Query
         return doctors.Select(DoctorType.FromDto).ToList();
     }
 
-    public async Task<List<SlotType>> GetDoctorSlotsAsync(
+    public async Task<List<SlotDto>> GetDoctorSlotsAsync(
         string doctorId,
         DateTime date,
         [Service] IMediator mediator,
@@ -55,7 +54,7 @@ public partial class Query
             TimeSpan.FromSeconds(90),
             new[] { CacheKeys.TagDoctor(doctorId) });
 
-        return slots.Select(s => new SlotType
+        return slots.Select(s => new SlotDto
         {
             Id = s.Id.ToString(),
             Start = date.Date.Add(s.StartTime),
@@ -64,7 +63,7 @@ public partial class Query
         }).ToList();
     }
 
-    public async Task<List<SlotType>> GetAvailableSlotsAsync(
+    public async Task<List<SlotDto>> GetAvailableSlotsAsync(
         string doctorId,
         DateTime date,
         [Service] IMediator mediator,
@@ -77,7 +76,7 @@ public partial class Query
             TimeSpan.FromSeconds(90),
             new[] { CacheKeys.TagDoctor(doctorId) });
 
-        return result.Select(s => new SlotType
+        return result.Select(s => new SlotDto
         {
             Id = s.Id.ToString(),
             Start = date.Date.Add(s.StartTime),
@@ -115,9 +114,7 @@ public partial class Query
     [Authorize(Roles = new[] { "Doctor", "Admin" })]
     public async Task<List<DoctorPatientType>> GetDoctorPatientsAsync(
         string doctorId,
-        [Service] IAppointmentRepository appointmentRepository,
-        [Service] IPatientGuestRepository guestRepository,
-        [Service] UserManager<ApplicationUser> userManager,
+        [Service] IMediator mediator,
         [Service] IHttpContextAccessor httpContextAccessor)
     {
         var userId = httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)
@@ -128,146 +125,27 @@ public partial class Query
         if (userId != doctorId && !isAdmin)
             throw new GraphQLException("No tienes permiso para ver los pacientes de este doctor.");
 
-        // Todas las citas del doctor (Active, Completed, NoShow, Cancelled)
-        var appointments = await appointmentRepository.ListByDoctorAsync(doctorId);
+        var patients = await mediator.Send(new GetDoctorPatientsQuery(doctorId));
 
-        var result = new List<DoctorPatientType>();
-
-        // --- Pacientes Registrados ---
-        var registeredGroups = appointments
-            .Where(a => a.PatientUserId != null)
-            .GroupBy(a => a.PatientUserId!)
-            .ToList();
-
-        var registeredIds = registeredGroups.Select(g => g.Key).ToList();
-        var users = registeredIds.Any()
-            ? await userManager.Users
-                .Where(u => registeredIds.Contains(u.Id) && !u.IsDeleted)
-                .ToListAsync()
-            : [];
-
-        var usersDict = users.ToDictionary(u => u.Id);
-
-        foreach (var group in registeredGroups)
+        return patients.Select(p => new DoctorPatientType
         {
-            usersDict.TryGetValue(group.Key, out var user);
-            var lastVisit = group.Max(a => a.Date);
-            result.Add(new DoctorPatientType
-            {
-                Id = group.Key,
-                Name = user?.Name ?? group.Key,
-                Identification = user?.IdentificationNumber ?? "",
-                Phone = user?.PhoneNumber ?? "",
-                Type = PatientTypeEnum.Registered,
-                LastVisit = lastVisit.ToDateTime(TimeOnly.MinValue)
-            });
-        }
-
-        // --- Pacientes Invitados ---
-        // Construimos un índice de identificaciones de usuarios registrados para deduplicar:
-        // Si un invitado tiene la misma identificación que un registrado, es la misma persona
-        // (ocurre cuando alguien con cuenta fue agendado como invitado por error).
-        var registeredIdentifications = users
-            .Where(u => !string.IsNullOrWhiteSpace(u.IdentificationNumber))
-            .Select(u => u.IdentificationNumber!.Trim())
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        // También un índice para actualizar la última visita si el invitado tiene fecha más reciente
-        var registeredByIdentification = result
-            .ToDictionary(r => r.Identification?.Trim() ?? "", StringComparer.OrdinalIgnoreCase);
-
-        var guestGroups = appointments
-            .Where(a => a.PatientGuestId != null)
-            .GroupBy(a => a.PatientGuestId!)
-            .ToList();
-
-        var guestIds = guestGroups.Select(g => g.Key).ToList();
-        var guests = guestIds.Any()
-            ? await guestRepository.GetByIdsAsync(guestIds, CancellationToken.None)
-            : [];
-        var guestsDict = guests.ToDictionary(g => g.Id);
-
-        foreach (var group in guestGroups)
-        {
-            guestsDict.TryGetValue(group.Key, out var guest);
-            var lastVisit = group.Max(a => a.Date);
-            // La identificación del invitado es su PatientGuestId (que es su número de identificación)
-            var identification = guest?.Id ?? group.Key;
-
-            // Si esta identificación ya existe en los registrados → es el mismo paciente, fusionar
-            if (registeredIdentifications.Contains(identification))
-            {
-                // Actualizar la última visita del registrado si la del invitado es más reciente
-                if (registeredByIdentification.TryGetValue(identification, out var existingRegistered))
-                {
-                    var guestLastVisitDt = lastVisit.ToDateTime(TimeOnly.MinValue);
-                    if (existingRegistered.LastVisit.HasValue && guestLastVisitDt > existingRegistered.LastVisit.Value)
-                        existingRegistered.LastVisit = guestLastVisitDt;
-                }
-                // No agregar duplicado
-                continue;
-            }
-
-            result.Add(new DoctorPatientType
-            {
-                Id             = group.Key,
-                Name           = guest?.Name ?? group.Key,
-                Identification = identification,
-                Phone          = guest?.Phone ?? "",
-                Type           = PatientTypeEnum.Guest,
-                LastVisit      = lastVisit.ToDateTime(TimeOnly.MinValue)
-            });
-        }
-
-        return result.OrderBy(p => p.Name).ToList();
+            Id = p.Id,
+            Name = p.Name,
+            Identification = p.Identification,
+            Phone = p.Phone,
+            Type = (PatientTypeEnum)(int)p.Type,
+            LastVisit = p.LastVisit
+        }).ToList();
     }
 
     public async Task<ScheduleConfigType> GetScheduleConfigByDoctorIdAsync(
         string doctorId,
-        [Service] ISystemConfigRepository systemConfigRepository,
-        [Service] IDoctorAvailabilitySlotRepository slotRepository)
+        [Service] IMediator mediator)
     {
         if (string.IsNullOrWhiteSpace(doctorId))
             throw new GraphQLException("doctorId es requerido");
 
-        var config = await systemConfigRepository.GetOrCreateAsync();
-        var allSlots = await slotRepository.ListByDoctorAsync(doctorId, includeDeleted: true);
-        var activeSlots = allSlots.Where(s => !s.IsDeleted).OrderBy(s => s.StartTime).ToList();
-
-        var availability = Enum.GetValues<DayOfWeek>()
-            .Select(day =>
-            {
-                var dayActive = activeSlots.Where(s => s.DayOfWeek == day).ToList();
-                var startTs = dayActive.Count > 0 ? dayActive.First().StartTime : TimeSpan.Zero;
-                var endTs = dayActive.Count > 0 ? dayActive.Last().EndTime : TimeSpan.Zero;
-                return new ScheduleDayType
-                {
-                    DayOfWeek = day.ToString(),
-                    IsEnabled = dayActive.Count > 0,
-                    StartTime = startTs.ToString(@"hh\:mm\:ss"),
-                    EndTime = endTs.ToString(@"hh\:mm\:ss")
-                };
-            }).ToList();
-
-        var intervalMinutes = activeSlots.Count > 1
-            ? (int)System.Math.Max(1,
-                (activeSlots.Skip(1).First().StartTime - activeSlots.First().StartTime).TotalMinutes)
-            : 15;
-
-        return new ScheduleConfigType
-        {
-            DoctorId = doctorId,
-            BookingWindowWeeks = config.BookingWindowWeeks,
-            IntervalMinutes = intervalMinutes,
-            Availability = availability,
-            Slots = allSlots.Select(s => new RawSlotType
-            {
-                Id = s.Id.ToString(),
-                DayOfWeek = s.DayOfWeek.ToString(),
-                StartTime = s.StartTime.ToString(@"hh\:mm\:ss"),
-                EndTime = s.EndTime.ToString(@"hh\:mm\:ss"),
-                IsDeleted = s.IsDeleted
-            }).ToList()
-        };
+        var config = await mediator.Send(new GetScheduleConfigByDoctorIdQuery(doctorId));
+        return ScheduleConfigType.FromDto(config);
     }
 }

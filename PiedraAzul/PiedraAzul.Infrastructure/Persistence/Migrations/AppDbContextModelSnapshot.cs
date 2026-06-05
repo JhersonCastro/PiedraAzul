@@ -343,6 +343,11 @@ namespace PiedraAzul.Infrastructure.Persistence.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("character varying(450)");
 
+                    b.Property<int>("BookingWindowWeeks")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(4);
+
                     b.Property<bool>("IsAvailable")
                         .HasColumnType("boolean");
 

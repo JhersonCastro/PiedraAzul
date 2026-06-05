@@ -1,5 +1,6 @@
 using PiedraAzul.GraphQL;
 using PiedraAzul.GraphQL.Types;
+using PiedraAzul.Contracts.DTOs;
 using HotChocolate.AspNetCore;
 using HotChocolate.AspNetCore.Authorization;
 
@@ -17,7 +18,7 @@ public static class GraphQLExtensions
             .AddType<MFAStatusType>()
             .AddType<PatientTypeEnum>()
             .AddType<GuestLookupResultType>()
-            .AddType<GuestDataType>()
+            .AddType<GuestDataDto>()
             .AddAuthorization()
             .AddDiagnosticEventListener<GraphQLDiagnosticEventListener>();
 

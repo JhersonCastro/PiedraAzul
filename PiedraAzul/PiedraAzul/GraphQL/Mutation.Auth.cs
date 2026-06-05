@@ -145,6 +145,10 @@ public partial class Mutation
         if (!ColombianValidation.IsAtLeastAge(input.BirthDate, ColombianValidation.MinRegistrationAge))
             throw new GraphQLException($"Debes tener al menos {ColombianValidation.MinRegistrationAge} años para registrarte.");
 
+        if (!ColombianValidation.IsDocumentTypeValidForAge(input.DocumentType, input.BirthDate))
+            throw new GraphQLException(ColombianValidation.DocumentTypeAgeError(
+                input.DocumentType, ColombianValidation.AgeFrom(input.BirthDate)));
+
         var result = await mediator.Send(new RegisterCommand(
             new RegisterUserDto(
                 input.Email,

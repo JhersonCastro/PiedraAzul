@@ -49,6 +49,9 @@ public class RescheduleAppointmentByHashHandler
         var sessionData = await _guestOtpService.GetVerifiedDataAsync(request.VerificationHash)
             ?? throw new DomainException("No se pudieron obtener los datos de verificación.");
 
+        string oldDoctorId = "";
+        DateOnly oldDate = default;
+
         var createdAppt = await _unitOfWork.ExecuteAsync(async ct =>
         {
             // 3. Cargar la cita con tracking
@@ -86,8 +89,8 @@ public class RescheduleAppointmentByHashHandler
 
             // 8. Soft-delete de la vieja
             var oldSlotId = old.DoctorAvailabilitySlotId;
-            var oldDate = old.Date;
-            var oldDoctorId = old.DoctorId;
+            oldDate = old.Date;
+            oldDoctorId = old.DoctorId;
             old.MarkAsRescheduled(newAppt.Id);
 
             // 9. Registro de auditoría. El autor es el guest/usuario verificado por OTP.
@@ -118,7 +121,8 @@ public class RescheduleAppointmentByHashHandler
             return newAppt;
         }, ct);
 
-        // Notificar por email fuera de la transacción.
+        // Notificar fuera de la transacción. Incluye el día/doctor de origen para que la
+        // invalidación de cache refresque tanto el slot liberado como el nuevo.
         await _mediator.Publish(
             new AppointmentNotification(
                 AppointmentChange.Rescheduled,
@@ -126,7 +130,9 @@ public class RescheduleAppointmentByHashHandler
                 createdAppt.PatientGuestId,
                 createdAppt.DoctorId,
                 createdAppt.DoctorAvailabilitySlotId,
-                createdAppt.Date),
+                createdAppt.Date,
+                oldDoctorId,
+                oldDate),
             ct);
 
         return createdAppt;

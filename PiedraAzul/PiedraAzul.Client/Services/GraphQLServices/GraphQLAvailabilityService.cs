@@ -1,11 +1,33 @@
 using PiedraAzul.Client.Models;
 using PiedraAzul.Client.Models.GraphQL;
 using PiedraAzul.Client.Services.Wrappers;
+using PiedraAzul.Contracts.DTOs;
 
 namespace PiedraAzul.Client.Services.GraphQLServices;
 
 public class GraphQLAvailabilityService(GraphQLHttpClient client)
 {
+    /// <summary>
+    /// Obtiene la ventana de reserva personalizada de un doctor (en semanas).
+    /// </summary>
+    public async Task<Result<int>> GetBookingWindowWeeksAsync(string doctorId)
+    {
+        const string query = """
+            query GetBookingWindowWeeks($doctorId: String!) {
+                bookingWindowWeeks(doctorId: $doctorId)
+            }
+            """;
+
+        return await GraphQLExecutor.Execute(async () =>
+        {
+            var result = await client.ExecuteAsync<int>(
+                query,
+                new { doctorId },
+                "bookingWindowWeeks");
+            return result > 0 ? result : 4;
+        });
+    }
+
     public async Task<Result<List<DateTime>>> GetDoctorAvailableDaysAsync(
         string doctorId,
         DateTime startDate,
@@ -33,7 +55,7 @@ public class GraphQLAvailabilityService(GraphQLHttpClient client)
         });
     }
 
-    public async Task<Result<List<SlotGQL>>> GetDoctorSlotsByDate(
+    public async Task<Result<List<SlotDto>>> GetDoctorSlotsByDate(
         string doctorId,
         DateTime date,
         CancellationToken cancellationToken = default)
@@ -48,7 +70,7 @@ public class GraphQLAvailabilityService(GraphQLHttpClient client)
 
         return await GraphQLExecutor.Execute(async () =>
         {
-            var result = await client.ExecuteAsync<List<SlotGQL>>(
+            var result = await client.ExecuteAsync<List<SlotDto>>(
                 query,
                 new { doctorId, date = date.ToUniversalTime().ToString("o") },
                 "availableSlots");

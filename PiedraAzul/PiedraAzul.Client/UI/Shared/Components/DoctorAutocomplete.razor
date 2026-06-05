@@ -1,0 +1,144 @@
+@using PiedraAzul.Client.Models.GraphQL
+
+<div class="ac-wrap">
+    <div class="ac-control @(HasValue ? "ring-1 ring-[#257D8D]/30" : "")" @onclick="OpenDropdown">
+
+        <span class="ac-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+            </svg>
+        </span>
+
+        @if (_open)
+        {
+            <input @ref="_inputRef"
+                   value="@_search"
+                   @oninput="OnSearchInput"
+                   @onclick:stopPropagation="true"
+                   placeholder="@Placeholder"
+                   class="ac-input" />
+        }
+        else
+        {
+            <span class="ac-input truncate @(HasValue ? "font-semibold text-[#0F172A]" : "text-[#94A3B8]")">
+                @(HasValue ? DisplayLabel : Placeholder)
+            </span>
+        }
+
+        @if (HasValue)
+        {
+            <button type="button" class="ac-clear"
+                    @onclick="Clear" @onclick:stopPropagation="true" title="Limpiar">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2.5" stroke-linecap="round">
+                    <path d="M18 6 6 18M6 6l12 12"/>
+                </svg>
+            </button>
+        }
+
+        <span class="ac-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m6 9 6 6 6-6"/>
+            </svg>
+        </span>
+    </div>
+
+    @if (_open)
+    {
+        <div class="ac-backdrop" @onclick="Close"></div>
+        <div class="ac-dropdown">
+            @if (IncludeAll)
+            {
+                <button type="button"
+                        class="ac-option @(Value == AllValue ? "ac-option-active" : "")"
+                        @onclick='() => Pick(AllValue, AllLabel)'>
+                    <span class="ac-option-name">@AllLabel</span>
+                </button>
+            }
+            @foreach (var d in FilteredDoctors)
+            {
+                var v = ValueSelector(d);
+                var lbl = $"{d.Name} ({d.Specialty})";
+                <button type="button"
+                        class="ac-option @(Value == v ? "ac-option-active" : "")"
+                        @onclick="() => Pick(v, lbl)">
+                    <span class="ac-option-name">@d.Name</span>
+                    <span class="ac-option-sub">@d.Specialty</span>
+                </button>
+            }
+            @if (!FilteredDoctors.Any() && !IncludeAll)
+            {
+                <div class="ac-empty">Sin resultados para «@_search»</div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public List<DoctorGQL>  Doctors       { get; set; } = new();
+    [Parameter] public string?          Value         { get; set; }
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+    [Parameter] public Func<DoctorGQL, string> ValueSelector { get; set; } = d => d.UserId;
+    [Parameter] public bool   IncludeAll { get; set; }
+    [Parameter] public string AllValue   { get; set; } = "all";
+    [Parameter] public string AllLabel   { get; set; } = "Todos los profesionales";
+    [Parameter] public string Placeholder { get; set; } = "Buscar especialista...";
+
+    private string _search = "";
+    private bool   _open;
+    private bool   _focus;
+    private ElementReference _inputRef;
+
+    // ── Computed every render — never stale ──────────────────────────
+    private bool HasValue => !string.IsNullOrEmpty(Value);
+
+    private string DisplayLabel =>
+        Value == AllValue
+            ? AllLabel
+            : Doctors.FirstOrDefault(d => ValueSelector(d) == Value) is { } doc
+                ? $"{doc.Name} ({doc.Specialty})"
+                : Value ?? "";   // fallback: si el doctor aún no cargó, muestra el id temporalmente
+
+    private IEnumerable<DoctorGQL> FilteredDoctors
+    {
+        get
+        {
+            var q = _search.Trim();
+            return q.Length == 0
+                ? Doctors
+                : Doctors.Where(d =>
+                    d.Name.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                    d.Specialty.Contains(q, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    // ── Actions ──────────────────────────────────────────────────────
+    private void OnSearchInput(ChangeEventArgs e) => _search = e.Value?.ToString() ?? "";
+
+    private void OpenDropdown()
+    {
+        if (_open) return;
+        _open = true; _search = ""; _focus = true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focus) { _focus = false; try { await _inputRef.FocusAsync(); } catch { } }
+    }
+
+    private async Task Pick(string value, string label)
+    {
+        _open = false; _search = "";
+        if (Value != value) { Value = value; await ValueChanged.InvokeAsync(value); }
+    }
+
+    private async Task Clear()
+    {
+        _open = false; _search = "";
+        if (Value is not null) { Value = null; await ValueChanged.InvokeAsync(null); }
+    }
+
+    private void Close() { _open = false; _search = ""; }
+}

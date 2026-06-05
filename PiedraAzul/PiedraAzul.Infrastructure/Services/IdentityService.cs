@@ -135,6 +135,24 @@ public class IdentityService(
             .ToListAsync();
     }
 
+    public async Task<List<PatientUserDto>> GetPatientUsersByIds(IReadOnlyCollection<string> userIds)
+    {
+        if (userIds.Count == 0)
+            return [];
+
+        var ids = new HashSet<string>(userIds);
+
+        return await userManager.Users
+            .Where(u => ids.Contains(u.Id) && !u.IsDeleted)
+            .Select(u => new PatientUserDto(
+                u.Id,
+                u.Name,
+                u.IdentificationNumber,
+                u.PhoneNumber ?? string.Empty
+            ))
+            .ToListAsync();
+    }
+
     public async Task CreateProfileForRoleAsync(string userId, string role)
     {
         if (string.IsNullOrWhiteSpace(role))

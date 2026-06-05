@@ -40,6 +40,9 @@ public class RescheduleAppointmentHandler
         RescheduleAppointmentCommand request,
         CancellationToken ct)
     {
+        string oldDoctorId = "";
+        DateOnly oldDate = default;
+
         var createdAppt = await _unitOfWork.ExecuteAsync(async ct =>
         {
             // 1. Cargar la cita con tracking
@@ -79,8 +82,8 @@ public class RescheduleAppointmentHandler
 
             // 6. Soft-delete de la vieja
             var oldSlotId = old.DoctorAvailabilitySlotId;
-            var oldDate = old.Date;
-            var oldDoctorId = old.DoctorId;
+            oldDate = old.Date;
+            oldDoctorId = old.DoctorId;
             old.MarkAsRescheduled(newAppt.Id);
 
             // 7. Registro de auditoría. Calcular el linaje (Root) buscando si la vieja
@@ -112,7 +115,8 @@ public class RescheduleAppointmentHandler
             return newAppt;
         }, ct);
 
-        // Notificar por email fuera de la transacción.
+        // Notificar fuera de la transacción. Incluye el día/doctor de origen para que la
+        // invalidación de cache refresque tanto el slot liberado como el nuevo.
         await _mediator.Publish(
             new AppointmentNotification(
                 AppointmentChange.Rescheduled,
@@ -120,7 +124,9 @@ public class RescheduleAppointmentHandler
                 createdAppt.PatientGuestId,
                 createdAppt.DoctorId,
                 createdAppt.DoctorAvailabilitySlotId,
-                createdAppt.Date),
+                createdAppt.Date,
+                oldDoctorId,
+                oldDate),
             ct);
 
         return createdAppt;

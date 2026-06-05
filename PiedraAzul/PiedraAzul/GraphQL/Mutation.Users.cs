@@ -53,6 +53,10 @@ public partial class Mutation
         if (!ColombianValidation.IsAtLeastAge(input.BirthDate, ColombianValidation.MinRegistrationAge))
             throw new GraphQLException($"El usuario debe tener al menos {ColombianValidation.MinRegistrationAge} años.");
 
+        if (!ColombianValidation.IsDocumentTypeValidForAge(input.DocumentType, input.BirthDate))
+            throw new GraphQLException(ColombianValidation.DocumentTypeAgeError(
+                input.DocumentType, ColombianValidation.AgeFrom(input.BirthDate)));
+
         var identification = input.IdentificationNumber.Trim();
         var dupId = await userManager.Users.FirstOrDefaultAsync(
             u => u.IdentificationNumber == identification && !u.IsDeleted);

@@ -30,8 +30,8 @@
             {
                 <div class="selected-patient">
                     <div>
-                        <p class="text-sm font-bold text-teal-900">@SelectedPatient.PatientName</p>
-                        <p class="mt-0.5 text-xs text-teal-600">
+                        <p class="text-sm font-bold text-[#257D8D]">@SelectedPatient.PatientName</p>
+                        <p class="mt-0.5 text-xs text-[#257D8D]">
                             @if (!string.IsNullOrEmpty(SelectedPatient.PatientIdentification))
                             {
                                 <span>CC: @SelectedPatient.PatientIdentification &bull; </span>
@@ -71,14 +71,14 @@
                 else if (_isDoctor)
                 {
                     <div class="doctor-info-row">
-                        <svg class="icon-6 flex-shrink-0 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg class="icon-6 flex-shrink-0 text-[#257D8D]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                         </svg>
                         <div>
                             <p class="text-xs font-medium text-slate-500">Doctor asignado</p>
                             <p class="text-sm font-bold text-slate-900">@_currentUserName</p>
                         </div>
-                        <span class="ml-auto rounded-full bg-teal-100 px-2 py-0.5 text-xs font-medium text-teal-700">Tú</span>
+                        <span class="chip-brand ml-auto">Tú</span>
                     </div>
                 }
 

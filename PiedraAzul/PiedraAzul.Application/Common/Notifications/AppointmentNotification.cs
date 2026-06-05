@@ -11,8 +11,14 @@ public enum AppointmentChange
 
 /// <summary>
 /// Evento de dominio de aplicación: una cita fue creada, cancelada o reagendada.
-/// Un handler resuelve el email del paciente (registrado o invitado) y le notifica.
-/// Si el paciente no tiene email, se ignora silenciosamente.
+/// Lo consumen varios handlers como consecuencia del cambio de estado:
+///  - notificación por email al paciente (registrado o invitado),
+///  - invalidación del cache de lectura del doctor.
+/// <para>
+/// <see cref="DoctorId"/>/<see cref="Date"/> son el día afectado por el cambio (en un
+/// reagendamiento, el nuevo). <see cref="OldDoctorId"/>/<see cref="OldDate"/> solo se llenan
+/// en un reagendamiento para refrescar también el día/doctor de origen.
+/// </para>
 /// </summary>
 public sealed record AppointmentNotification(
     AppointmentChange Change,
@@ -20,5 +26,7 @@ public sealed record AppointmentNotification(
     string? PatientGuestId,
     string DoctorId,
     Guid SlotId,
-    DateOnly Date
+    DateOnly Date,
+    string? OldDoctorId = null,
+    DateOnly? OldDate = null
 ) : INotification;

@@ -3,12 +3,12 @@
 @using PiedraAzul.Client.States
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
+@using PiedraAzul.Client.Models.GraphQL
 
 @inject UserState UserState
 @inject UIModeState UIModeState
 @inject UIModeService UIModeService
 @inject AuthenticationStateProvider AuthStateProvider
-@inject AuthenticationService AuthService
 @inject NavigationManager Navigation
 @inject DriverTourService DriverTourService
 @inherits LayoutComponentBase
@@ -16,6 +16,8 @@
 
 @* Captura el IP real del cliente (prerender) para la auditoría. Invisible. *@
 <PiedraAzul.Client.UI.Shared.Components.ClientIpCapture />
+@* Lee la cookie uiMode durante SSR para evitar flash al cambiar a modo fácil. Invisible. *@
+<PiedraAzul.Client.UI.Shared.Components.UIModeCapture />
 
 @if (UIModeState.IsEasy)
 {
@@ -326,7 +328,7 @@ else
                 No se preocupe, esto a veces ocurre. Puede intentar recargar la página para continuar.
             </p>
             <div class="flex gap-3">
-                <a href="." class="reload rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-teal-800">
+                <a href="." class="reload rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#1E5F6F]">
                     Recargar página
                 </a>
                 <a class="dismiss cursor-pointer rounded-lg px-4 py-2 text-sm font-medium text-gray-500 transition-colors hover:bg-gray-100">
@@ -360,13 +362,17 @@ else
         {
             _isAuthenticated = true;
 
-            var userResult = await AuthService.GetCurrentUserAsync();
-            if (userResult.IsSuccess && userResult.Value is not null)
+            UserState.User = new UserGQL
             {
-                UserState.User = userResult.Value;
-            }
+                Id             = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "",
+                Name           = principal.FindFirst("name")?.Value ?? principal.FindFirst(ClaimTypes.Name)?.Value ?? "",
+                Email          = principal.FindFirst(ClaimTypes.Email)?.Value ?? "",
+                AvatarUrl      = principal.FindFirst("avatar_url")?.Value ?? "default.png",
+                Roles          = principal.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList(),
+                EmailConfirmed = true
+            };
 
-            _userName = UserState.User?.Name;
+            _userName = UserState.User.Name;
         }
 
         _isLoaded = true;

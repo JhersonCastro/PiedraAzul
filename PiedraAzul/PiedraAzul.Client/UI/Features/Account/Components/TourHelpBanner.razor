@@ -1,42 +1,49 @@
 @inject PiedraAzul.Client.Services.DriverTourService DriverTourService
 
-<div class="help-banner">
+@if (IsVisible)
+{
+    <div class="help-banner">
 
-    <div class="help-banner-left">
-        <div class="help-banner-icon">
-            <svg class="icon-4 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                      d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+        <div class="help-banner-left">
+            <div class="help-banner-icon">
+                <svg class="icon-4 text-[#257D8D]/80" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <div>
+                <p class="help-banner-title">¿Es tu primera vez aquí?</p>
+                <p class="help-banner-sub">Inicia el tour para conocer las funciones de tu cuenta</p>
+            </div>
         </div>
-        <div>
-            <p class="help-banner-title">¿Es tu primera vez aquí?</p>
-            <p class="help-banner-sub">Inicia el tour para conocer las funciones de tu cuenta</p>
+
+        <div class="help-banner-right">
+            <button type="button"
+                    @onclick="HandleStartTour"
+                    class="help-banner-btn">
+                Iniciar tour
+            </button>
+            <button type="button"
+                    @onclick="HandleSkipTour"
+                    title="Omitir tour"
+                    class="@($"help-banner-close {(IsClosable ? "" : "opacity-50")}")"
+                    @onclick:preventDefault="!IsClosable">
+                <svg class="icon-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
         </div>
-    </div>
 
-    <div class="help-banner-right">
-        <button type="button"
-                @onclick="HandleStartTour"
-                class="help-banner-btn">
-            Iniciar tour
-        </button>
-        <button type="button"
-                @onclick="HandleSkipTour"
-                title="Omitir tour"
-                class="help-banner-close">
-            <svg class="icon-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-        </button>
     </div>
-
-</div>
+}
 
 @code {
     [Parameter, EditorRequired] public string TourId { get; set; } = "";
     [Parameter] public EventCallback OnStartTour { get; set; }
     [Parameter] public EventCallback OnSkipTour { get; set; }
+    [Parameter] public bool IsClosable { get; set; } = true;
+
+    private bool IsVisible { get; set; } = true;
 
     private async Task HandleStartTour()
     {
@@ -48,8 +55,16 @@
 
     private async Task HandleSkipTour()
     {
+        if (!IsClosable) return;
+
         await DriverTourService.SkipTourAsync(TourId);
+
+        // Ocultar inmediatamente el banner en el cliente.
+        IsVisible = false;
+
         if (OnSkipTour.HasDelegate)
             await OnSkipTour.InvokeAsync();
+        else
+            StateHasChanged();
     }
 }

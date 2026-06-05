@@ -62,43 +62,4 @@ public class DoctorPatientType
     public DateTime? LastVisit { get; set; }
 }
 
-/// <summary>
-/// Invitado con la misma cédula que el usuario registrado, candidato a vincular (merge).
-/// No expone datos sin verificación: solo nombre, conteo de citas y canales enmascarados.
-/// </summary>
-public class MergeableGuestType
-{
-    /// <summary>Hash opaco para enviar/verificar OTP antes del merge.</summary>
-    public string VerificationHash { get; set; } = "";
 
-    /// <summary>Nombre con el que el invitado agendó (para que el usuario lo reconozca).</summary>
-    public string GuestName { get; set; } = "";
-
-    /// <summary>Cantidad de citas que se transferirían a la cuenta.</summary>
-    public int AppointmentCount { get; set; }
-
-    public bool HasPhone { get; set; }
-    public bool HasEmail { get; set; }
-    public string? MaskedPhone { get; set; }
-    public string? MaskedEmail { get; set; }
-}
-
-/// <summary>Resultado de un merge guest → cuenta registrada.</summary>
-public class MergeGuestResultType
-{
-    public bool Success { get; set; }
-    public int MergedCount { get; set; }
-    public string? Error { get; set; }
-}
-
-/// <summary>Datos del usuario devueltos tras verificación exitosa por hash.</summary>
-public class GuestDataType
-{
-    public string Id { get; set; } = "";
-    public string Name { get; set; } = "";
-    public string Phone { get; set; } = "";
-    public string Email { get; set; } = "";
-
-    /// <summary>"Guest" o "RegisteredUser" para que el cliente sepa el tipo.</summary>
-    public string SessionType { get; set; } = "";
-}

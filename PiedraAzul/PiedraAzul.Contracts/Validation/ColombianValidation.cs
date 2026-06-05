@@ -93,5 +93,51 @@ namespace PiedraAzul.Contracts.Validation
             var age = AgeFrom(birthDate);
             return age is not null && age >= minAge;
         }
+
+        /// <summary>
+        /// Valida que el tipo de documento sea coherente con la edad, según el estándar colombiano:
+        /// - CC  → 18+ años
+        /// - TI  → 7–17 años
+        /// - CE / PA → cualquier edad (aplica a extranjeros, sin restricción)
+        /// </summary>
+        public static bool IsDocumentTypeValidForAge(DocumentType type, DateTime? birthDate)
+        {
+            var age = AgeFrom(birthDate);
+            if (age is null) return true; // sin fecha no se puede validar
+
+            return type switch
+            {
+                DocumentType.CC => age >= 18,
+                DocumentType.TI => age >= 7 && age <= 17,
+                DocumentType.CE => true,  // sin restricción de edad para extranjeros
+                DocumentType.PA => true,
+                _ => true
+            };
+        }
+
+        /// <summary>
+        /// Devuelve el tipo de documento esperado según la edad del usuario colombiano.
+        /// CE/PA se sugieren solo para extranjeros; este método asume ciudadanos colombianos.
+        /// </summary>
+        public static DocumentType ExpectedDocumentType(DateTime? birthDate)
+        {
+            var age = AgeFrom(birthDate);
+            return age switch
+            {
+                >= 18 => DocumentType.CC,
+                >= 7  => DocumentType.TI,
+                _     => DocumentType.TI  // menores de 7 usarían RC, pero no está en el enum
+            };
+        }
+
+        /// <summary>Mensaje de error cuando el documento no corresponde a la edad.</summary>
+        public static string DocumentTypeAgeError(DocumentType type, int? age) => type switch
+        {
+            DocumentType.CC => $"La cédula de ciudadanía (CC) es para mayores de 18 años. " +
+                               $"Con {age} años debes usar Tarjeta de Identidad (TI).",
+            DocumentType.TI => $"La tarjeta de identidad (TI) es para personas de 7 a 17 años. " +
+                               $"Con {age} años debes usar Cédula de Ciudadanía (CC).",
+            _ => "El tipo de documento no corresponde a la edad indicada."
+        };
     }
 }

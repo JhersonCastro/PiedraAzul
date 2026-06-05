@@ -7,6 +7,8 @@
 @implements IDisposable
 @inject DriverTourService DriverTourService
 @inject UIModeState UIModeState
+@inject ITourSeenReader TourSeenReader
+@inject PersistentComponentState AppState
 
 <PageTitle>Piedra Azul</PageTitle>
 
@@ -41,7 +43,7 @@ else
                 <div class="hero-actions">
                     <a data-tour="home-bottom-section" href="/consulta" class="hero-cta">Ayúdame a elegir</a>
                     <div class="hero-badge">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6 stroke-teal-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6 stroke-[#257D8D]">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
                         </svg>
                         <span class="hero-badge-text">Clínica Certificada</span>
@@ -104,7 +106,7 @@ else
                 <div class="hero-actions">
                     <a data-tour="home-bottom-section" href="/consulta" class="hero-cta">Ayúdame a elegir</a>
                     <div class="hero-badge">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6 stroke-teal-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="size-6 stroke-[#257D8D]">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
                         </svg>
                         <span class="hero-badge-text">Clínica Certificada</span>
@@ -207,16 +209,39 @@ else
 
 @code {
     private DotNetObjectReference<Home>? _tourRef;
+    private PersistingComponentStateSubscription _sub;
+    private bool _tourAlreadySeen;
 
     protected override void OnInitialized()
     {
         UIModeState.OnSetupComplete += OnSetupComplete;
+
+        _sub = AppState.RegisterOnPersisting(Persist);
+
+        // WASM hydration: leer si el tour ya fue visto, persistido durante SSR
+        if (AppState.TryTakeFromJson<bool>("tourSeen_" + TourIds.HomeWelcome, out var seen) && seen)
+        {
+            _tourAlreadySeen = true;
+            return;
+        }
+
+        // SSR prerender: leer cookie via implementación server-side
+        if (TourSeenReader.IsSeen(TourIds.HomeWelcome))
+            _tourAlreadySeen = true;
+    }
+
+    private Task Persist()
+    {
+        AppState.PersistAsJson("tourSeen_" + TourIds.HomeWelcome, _tourAlreadySeen);
+        return Task.CompletedTask;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
+            if (_tourAlreadySeen) return;
+
             var shouldShow = await DriverTourService.ShouldShowTourAsync(TourIds.HomeWelcome);
             if (shouldShow)
                 await StartTourAsync();
@@ -242,6 +267,7 @@ else
     public void Dispose()
     {
         UIModeState.OnSetupComplete -= OnSetupComplete;
+        _sub.Dispose();
         _tourRef?.Dispose();
     }
 }

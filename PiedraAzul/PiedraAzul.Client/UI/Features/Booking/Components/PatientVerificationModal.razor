@@ -38,7 +38,7 @@
                 @if (IsLoading || string.IsNullOrEmpty(SearchResultType))
                 {
                     <div class="flex flex-col items-center gap-4 py-6">
-                        <svg class="w-10 h-10 animate-spin text-teal-600" fill="none" viewBox="0 0 24 24">
+                        <svg class="w-10 h-10 animate-spin text-[#257D8D]" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                         </svg>
@@ -58,11 +58,11 @@
                 }
                 else if (SearchResultType == "GUEST")
                 {
-                    <div class="flex items-start gap-3 rounded-xl bg-teal-50 border border-teal-200 px-4 py-3">
-                        <svg class="w-5 h-5 text-teal-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div class="alert-brand">
+                        <svg class="w-5 h-5 text-[#257D8D] flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                         </svg>
-                        <p class="text-sm text-teal-800">
+                        <p>
                             Encontramos un registro con tu cédula. Para continuar, verifica tu identidad con un código OTP.
                         </p>
                     </div>

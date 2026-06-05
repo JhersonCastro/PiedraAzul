@@ -11,6 +11,7 @@ namespace PiedraAzul.Application.Common.Interfaces
         Task<List<string>> GetRolesByUser(string userId);
         Task<UserDto?> GetById(string userId);
         Task<List<UserDto>> GetByIds(List<string> userIds);
+        Task<List<PatientUserDto>> GetPatientUsersByIds(IReadOnlyCollection<string> userIds);
         Task CreateProfileForRoleAsync(string userId, string role);
         Task<UserDto?> UpdateProfileAsync(string userId, string name, string? avatarUrl);
         Task<string?> GeneratePasswordResetTokenAsync(string email);

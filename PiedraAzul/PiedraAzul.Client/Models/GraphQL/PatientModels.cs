@@ -42,32 +42,3 @@ public class DoctorPatientGQL
     public DateTime? LastVisit { get; set; }
 }
 
-/// <summary>Datos del usuario tras verificación de OTP.</summary>
-public class GuestDataGQL
-{
-    public string Id { get; set; } = "";
-    public string Name { get; set; } = "";
-    public string Phone { get; set; } = "";
-    public string Email { get; set; } = "";
-    public string SessionType { get; set; } = "";
-}
-
-/// <summary>Invitado con la misma cédula del usuario, candidato a vincular (merge).</summary>
-public class MergeableGuestGQL
-{
-    public string VerificationHash { get; set; } = "";
-    public string GuestName { get; set; } = "";
-    public int AppointmentCount { get; set; }
-    public bool HasPhone { get; set; }
-    public bool HasEmail { get; set; }
-    public string? MaskedPhone { get; set; }
-    public string? MaskedEmail { get; set; }
-}
-
-/// <summary>Resultado de un merge guest → cuenta.</summary>
-public class MergeGuestResultGQL
-{
-    public bool Success { get; set; }
-    public int MergedCount { get; set; }
-    public string? Error { get; set; }
-}

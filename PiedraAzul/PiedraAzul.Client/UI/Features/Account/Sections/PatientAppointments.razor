@@ -1,5 +1,6 @@
 @using System.Globalization
 @using PiedraAzul.Client.Models.GraphQL
+@using PiedraAzul.Contracts.DTOs
 @using PiedraAzul.Client.Services.GraphQLServices
 @using PiedraAzul.Client.States
 @using PiedraAzul.Client.UI.Features.Account.Components
@@ -205,7 +206,7 @@ else
     private bool _cancelLoading;
 
     // Merge de cuenta invitada
-    private MergeableGuestGQL? _mergeableGuest;
+    private MergeableGuestDto? _mergeableGuest;
     private bool _mergeModalOpen;
 
     protected override async Task OnInitializedAsync()

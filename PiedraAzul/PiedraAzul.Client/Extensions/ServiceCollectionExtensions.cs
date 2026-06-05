@@ -24,6 +24,8 @@ public static class SharedClientServicesExtensions
 
         #region UI Mode
         services.AddScoped<UIModeService>();
+        // El servidor sobrescribe IUIModeReader con una implementación que lee la cookie uiMode.
+        services.AddScoped<IUIModeReader, NullUIModeReader>();
         #endregion
 
         #region Auth Services
@@ -50,6 +52,8 @@ public static class SharedClientServicesExtensions
 
         #region Tour
         services.AddScoped<DriverTourService>();
+        // El servidor sobrescribe ITourSeenReader con una implementación que lee las cookies de tour.
+        services.AddScoped<ITourSeenReader, NullTourSeenReader>();
         #endregion
 
         #region Auth

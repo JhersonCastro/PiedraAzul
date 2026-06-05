@@ -2,8 +2,6 @@ using HotChocolate;
 using HotChocolate.Authorization;
 using Mediator;
 using Microsoft.AspNetCore.Http;
-using PiedraAzul.Application.Common.Caching;
-using PiedraAzul.Application.Common.Interfaces;
 using PiedraAzul.Application.Common.Models.Patients;
 using PiedraAzul.Contracts.Validation;
 using PiedraAzul.Application.Features.Appointments.CancelAppointment;
@@ -11,7 +9,6 @@ using PiedraAzul.Application.Features.Appointments.CreateAppointment;
 using PiedraAzul.Application.Features.Appointments.RescheduleAppointment;
 using PiedraAzul.Application.Features.Appointments.UpdateAppointmentStatus;
 using PiedraAzul.Domain.Entities.Operations;
-using PiedraAzul.Domain.Repositories;
 using PiedraAzul.GraphQL.Inputs;
 using PiedraAzul.GraphQL.Types;
 using System.Security.Claims;
@@ -20,19 +17,11 @@ namespace PiedraAzul.GraphQL;
 
 public partial class Mutation
 {
-    /// <summary>Invalida el cache de lectura de un doctor para un día (slots del día + lista de días).</summary>
-    private static void InvalidateDoctorDay(ICacheService cache, string doctorId, DateOnly date)
-    {
-        cache.Remove(CacheKeys.DoctorDaySlots(doctorId, date));
-        cache.RemoveByTag(CacheKeys.TagDoctorDays(doctorId));
-    }
-
     [Authorize(Roles = new[] { "Doctor", "Admin", "Patient" })]
     public async Task<AppointmentType> CreateAppointmentAsync(
         CreateAppointmentInput input,
         [Service] IMediator mediator,
-        [Service] IHttpContextAccessor httpContextAccessor,
-        [Service] ICacheService cache)
+        [Service] IHttpContextAccessor httpContextAccessor)
     {
         if (string.IsNullOrWhiteSpace(input.DoctorId))
             throw new GraphQLException("DoctorId requerido");
@@ -75,8 +64,6 @@ public partial class Mutation
             )
         );
 
-        InvalidateDoctorDay(cache, appointment.DoctorId, appointment.Date);
-
         return AppointmentType.FromDomain(appointment);
     }
 
@@ -86,8 +73,7 @@ public partial class Mutation
     /// </summary>
     public async Task<AppointmentType> BookGuestAppointmentAsync(
         CreateAppointmentInput input,
-        [Service] IMediator mediator,
-        [Service] ICacheService cache)
+        [Service] IMediator mediator)
     {
         if (string.IsNullOrWhiteSpace(input.DoctorId))
             throw new GraphQLException("DoctorId requerido");
@@ -128,8 +114,6 @@ public partial class Mutation
             )
         );
 
-        InvalidateDoctorDay(cache, appointment.DoctorId, appointment.Date);
-
         return AppointmentType.FromDomain(appointment);
     }
 
@@ -140,22 +124,12 @@ public partial class Mutation
     public async Task<bool> CancelAppointmentAsync(
         Guid appointmentId,
         [Service] IMediator mediator,
-        [Service] IHttpContextAccessor httpContextAccessor,
-        [Service] IAppointmentRepository appointmentRepository,
-        [Service] ICacheService cache)
+        [Service] IHttpContextAccessor httpContextAccessor)
     {
         var userId = httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)
             ?? throw new GraphQLException("No autenticado");
 
-        // Capturar doctor+fecha antes de cancelar (para invalidar su cache).
-        var appt = await appointmentRepository.GetByIdAsync(appointmentId);
-
-        var result = await mediator.Send(new CancelAppointmentCommand(appointmentId, userId));
-
-        if (result && appt is not null)
-            InvalidateDoctorDay(cache, appt.DoctorId, appt.Date);
-
-        return result;
+        return await mediator.Send(new CancelAppointmentCommand(appointmentId, userId));
     }
 
     /// <summary>
@@ -167,15 +141,10 @@ public partial class Mutation
         Guid newSlotId,
         DateTime newDate,
         [Service] IMediator mediator,
-        [Service] IHttpContextAccessor httpContextAccessor,
-        [Service] IAppointmentRepository appointmentRepository,
-        [Service] ICacheService cache)
+        [Service] IHttpContextAccessor httpContextAccessor)
     {
         var userId = httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)
             ?? throw new GraphQLException("No autenticado");
-
-        // Capturar el doctor+fecha viejos antes de reagendar (para invalidar su cache).
-        var oldAppt = await appointmentRepository.GetByIdAsync(appointmentId);
 
         // El permiso (paciente dueño / doctor de la cita / admin) se deriva del userId en el handler.
         var appointment = await mediator.Send(
@@ -184,10 +153,6 @@ public partial class Mutation
                 userId,
                 newSlotId,
                 DateOnly.FromDateTime(newDate)));
-
-        if (oldAppt is not null)
-            InvalidateDoctorDay(cache, oldAppt.DoctorId, oldAppt.Date);
-        InvalidateDoctorDay(cache, appointment.DoctorId, appointment.Date);
 
         return AppointmentType.FromDomain(appointment);
     }
@@ -221,23 +186,14 @@ public partial class Mutation
         Guid appointmentId,
         Guid newSlotId,
         DateTime newDate,
-        [Service] IMediator mediator,
-        [Service] IAppointmentRepository appointmentRepository,
-        [Service] ICacheService cache)
+        [Service] IMediator mediator)
     {
-        // Capturar el doctor+fecha viejos antes de reagendar (para invalidar su cache).
-        var oldAppt = await appointmentRepository.GetByIdAsync(appointmentId);
-
         var appointment = await mediator.Send(
             new RescheduleAppointmentByHashCommand(
                 verificationHash,
                 appointmentId,
                 newSlotId,
                 DateOnly.FromDateTime(newDate)));
-
-        if (oldAppt is not null)
-            InvalidateDoctorDay(cache, oldAppt.DoctorId, oldAppt.Date);
-        InvalidateDoctorDay(cache, appointment.DoctorId, appointment.Date);
 
         return AppointmentType.FromDomain(appointment);
     }

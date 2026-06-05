@@ -1,6 +1,8 @@
+@using System.Globalization
 @using PiedraAzul.Client.Models.GraphQL
 @using PiedraAzul.Client.States
 @using PiedraAzul.Client.Services.GraphQLServices
+@using PiedraAzul.Client.UI.Shared.Components
 @using PiedraAzul.Contracts.Enums
 @inject UserState UserState
 @inject IJSRuntime JS
@@ -11,52 +13,105 @@
     <!-- Header -->
     <div class="portal-head">
         <h2 class="portal-title">Exportar citas (XLS)</h2>
-        <p class="portal-subtitle">Prepare su consulta offline descargando el listado del día.</p>
+        <p class="portal-subtitle">Prepare su consulta offline descargando el listado por rango de fechas.</p>
     </div>
 
-    <!-- Filters -->
+    <!-- Filtros -->
     <div class="portal-card mb-5">
         <div class="mb-4 flex items-center gap-2 text-[#257D8D]">
             <svg class="icon-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
             <span class="text-sm font-bold text-[#0F172A]">Filtros de Exportación</span>
         </div>
 
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-                <label class="portal-card-title mb-2 block uppercase tracking-wider text-xs text-[#94A3B8]">Médico / Terapista</label>
-                @if (IsDoctor && !IsAdmin)
-                {
-                    <div class="doctor-info-row">
-                        <svg class="icon-4 flex-shrink-0 text-[#257D8D]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                        <span class="text-sm font-medium text-[#0F172A]">@UserState.User?.Name</span>
-                        <span class="ml-auto rounded-full bg-[#E0F7FA] px-2 py-0.5 text-xs font-semibold text-[#257D8D]">Tú</span>
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
+
+            <!-- Columna izquierda: especialista + resumen + acciones -->
+            <div class="flex flex-col gap-4">
+                <div>
+                    <label class="portal-card-title mb-2 block text-xs uppercase tracking-wider text-[#94A3B8]">Médico / Terapista</label>
+                    <DoctorAutocomplete Doctors="allDoctors"
+                                        Value="@SelectedDoctor"
+                                        ValueChanged="OnDoctorChanged"
+                                        ValueSelector="d => d.DoctorId"
+                                        IncludeAll="true"
+                                        AllValue="all"
+                                        AllLabel="Todos los profesionales"
+                                        Placeholder="Busca por nombre o especialidad..." />
+                </div>
+
+                <!-- Resumen -->
+                <div class="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+                    <p class="portal-card-title mb-3 text-xs uppercase tracking-wider text-[#94A3B8]">Resumen</p>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[#64748B]">Profesional</span>
+                            <span class="font-semibold text-[#0F172A]">@DoctorLabel</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-[#64748B]">Rango</span>
+                            <span class="font-semibold text-[#0F172A]">@RangeLabel</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-[#64748B]">Citas encontradas</span>
+                            <span class="rounded-full bg-[#E0F7FA] px-2.5 py-0.5 text-xs font-bold text-[#257D8D]">@appointments.Count</span>
+                        </div>
                     </div>
-                }
-                else
-                {
-                    <select value="@SelectedDoctor" @onchange="OnDoctorChanged" class="search-input rounded-xl">
-                        <option value="all">Todos los profesionales</option>
-                        @foreach (var doc in allDoctors)
-                        {
-                            <option value="@doc.DoctorId">@doc.Name (@doc.Specialty)</option>
-                        }
-                    </select>
-                }
+
+                    <div class="mt-4 flex flex-col gap-2">
+                        <button @onclick="ExportToExcel" disabled="@(!appointments.Any())" class="btn-portal-sm w-full rounded-xl px-4 py-2.5 text-sm disabled:opacity-50">
+                            <svg class="icon-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Exportar a Excel
+                        </button>
+                        <button @onclick="PrintList" disabled="@(!appointments.Any())" class="btn-portal-outline w-full rounded-xl px-4 py-2.5 disabled:opacity-50">
+                            <svg class="icon-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
+                            Imprimir listado de asistencia
+                        </button>
+                    </div>
+                </div>
             </div>
+
+            <!-- Columna derecha: calendario de rango -->
             <div>
-                <label class="portal-card-title mb-2 block uppercase tracking-wider text-xs text-[#94A3B8]">Fecha de Citas</label>
-                <input type="date" value="@SelectedDate.ToString("yyyy-MM-dd")" @onchange="OnDateChanged"
-                       class="search-input rounded-xl" />
+                <label class="portal-card-title mb-2 block text-xs uppercase tracking-wider text-[#94A3B8]">Rango de fechas</label>
+                <div class="rounded-xl border border-[#E2E8F0] bg-white p-3 shadow-sm">
+                    <div class="mb-2 flex items-center justify-between px-1">
+                        <button @onclick="PrevMonth" class="cal-nav-btn">
+                            <svg class="icon-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg>
+                        </button>
+                        <span class="text-sm font-black text-[#0F172A]">@CalMonthLabel</span>
+                        <button @onclick="NextMonth" class="cal-nav-btn">
+                            <svg class="icon-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+                        </button>
+                    </div>
+                    <div class="rcal-grid mb-1">
+                        @foreach (var d in new[] { "L", "M", "X", "J", "V", "S", "D" })
+                        {
+                            <div class="py-1 text-center text-[10px] font-bold uppercase text-[#94A3B8]">@d</div>
+                        }
+                    </div>
+                    <div class="rcal-grid">
+                        @foreach (var date in CalDays)
+                        {
+                            var inMonth = date.Month == CalMonth.Month;
+                            <div class="rcal-cell @CellClass(date, inMonth)" @onclick="() => OnDayClick(date)">
+                                @date.Day
+                            </div>
+                        }
+                    </div>
+                    <p class="mt-2 px-1 text-[10px] italic text-[#94A3B8]">
+                        Un clic = un día. Dos clics = rango (el orden no importa).
+                    </p>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Preview -->
-    <div class="table-card mb-5">
+    <!-- Vista previa -->
+    <div class="table-card">
         <div class="flex items-center justify-between border-b border-[#E2E8F0] bg-[#F8FAFC] px-6 py-4">
-            <span class="text-sm font-bold text-[#0F172A]">Vista Previa de Exportación</span>
+            <span class="text-sm font-bold text-[#0F172A]">Vista previa</span>
             <span class="rounded-full bg-[#E0F7FA] px-3 py-1 text-[11px] font-bold text-[#257D8D]">
-                @appointments.Count citas encontradas
+                @appointments.Count citas
             </span>
         </div>
 
@@ -65,6 +120,7 @@
                 <thead>
                     <tr class="table-head-row">
                         <th class="table-th">Paciente</th>
+                        <th class="table-th">Fecha</th>
                         <th class="table-th">Horario</th>
                         <th class="table-th">Especialidad</th>
                         <th class="table-th">Estado</th>
@@ -73,15 +129,15 @@
                 <tbody class="table-body">
                     @if (isLoading)
                     {
-                        <tr><td colspan="4" class="table-loading"><div class="inline-block"><div class="spinner"></div></div></td></tr>
+                        <tr><td colspan="5" class="table-loading"><div class="inline-block"><div class="spinner"></div></div></td></tr>
                     }
                     else if (_lastError is not null)
                     {
-                        <tr><td colspan="4" class="py-8 text-center text-xs italic text-rose-500">Error: @_lastError</td></tr>
+                        <tr><td colspan="5" class="py-8 text-center text-xs italic text-rose-500">Error: @_lastError</td></tr>
                     }
                     else if (!appointments.Any())
                     {
-                        <tr><td colspan="4" class="table-empty">No se encontraron citas para los filtros seleccionados.</td></tr>
+                        <tr><td colspan="5" class="table-empty">No se encontraron citas para los filtros seleccionados.</td></tr>
                     }
                     else
                     {
@@ -89,6 +145,7 @@
                         {
                             <tr class="table-row">
                                 <td class="table-td font-medium text-[#0F172A]">@app.Patient</td>
+                                <td class="table-td text-sm text-[#64748B]">@app.DateLabel</td>
                                 <td class="table-td font-mono text-sm text-[#64748B]">@app.Time</td>
                                 <td class="table-td text-sm text-[#64748B]">@app.Specialty</td>
                                 <td class="table-td">
@@ -104,103 +161,145 @@
             </table>
         </div>
     </div>
-
-    <!-- Actions -->
-    <div class="actions-end-row">
-        <button @onclick="PrintList" class="btn-portal-outline rounded-xl px-5 py-2.5">
-            <svg class="icon-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
-            Imprimir Listado
-        </button>
-        <button @onclick="ExportToExcel" class="btn-portal-sm rounded-xl px-5 py-2.5 text-sm">
-            <svg class="icon-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Exportar datos
-        </button>
-    </div>
 </div>
 
 @code {
     [Parameter] public EventCallback<string> OnNavigateTo { get; set; }
 
-    private string SelectedDoctor { get; set; } = "all";
-    private DateTime SelectedDate { get; set; } = DateTime.Today;
+    private static readonly CultureInfo _es = new("es-ES");
+
+    private string? SelectedDoctor { get; set; } = "all";
     private bool isLoading = true;
     private string? _lastError;
 
     private List<DoctorGQL> allDoctors = new();
     private List<AppointmentVM> appointments = new();
 
-    private bool IsAdmin  => UserState?.User?.Roles.Contains("Admin")  == true;
-    private bool IsDoctor => UserState?.User?.Roles.Contains("Doctor") == true;
+    // Rango de fechas
+    private DateTime RangeStart = DateTime.Today;
+    private DateTime RangeEnd = DateTime.Today;
+    private DateTime _anchor = DateTime.Today;
+    private bool _awaitingEnd;
+
+    // Calendario visible
+    private DateTime CalMonth = new(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private List<DateTime> CalDays = new();
+
+    private string CalMonthLabel =>
+        char.ToUpper(CalMonth.ToString("MMMM", _es)[0]) + CalMonth.ToString("MMMM yyyy", _es)[1..];
+
+    private string RangeLabel =>
+        RangeStart.Date == RangeEnd.Date
+            ? RangeStart.ToString("d MMM yyyy", _es)
+            : $"{RangeStart.ToString("d MMM", _es)} – {RangeEnd.ToString("d MMM yyyy", _es)}";
+
+    private string DoctorLabel =>
+        (SelectedDoctor is null or "all")
+            ? "Todos"
+            : allDoctors.FirstOrDefault(d => d.DoctorId == SelectedDoctor)?.Name ?? "—";
 
     protected override async Task OnInitializedAsync()
     {
+        BuildCalendar();
         isLoading = true;
 
-        if (IsDoctor && !IsAdmin)
+        for (int i = 0; i <= 3; i++)
         {
-            SelectedDoctor = UserState.User!.Id;
+            var result = await DoctorService.GetDoctorsByTypeAsync(((DoctorType)i).ToGraphQL());
+            if (result.Any()) allDoctors.AddRange(result);
+        }
+
+        await LoadAppointmentsAsync();
+    }
+
+    private void BuildCalendar()
+    {
+        CalDays.Clear();
+        var first = new DateTime(CalMonth.Year, CalMonth.Month, 1);
+        int offset = ((int)first.DayOfWeek - (int)DayOfWeek.Monday + 7) % 7;
+        var start = first.AddDays(-offset);
+        for (int i = 0; i < 42; i++) CalDays.Add(start.AddDays(i));
+    }
+
+    private void PrevMonth() { CalMonth = CalMonth.AddMonths(-1); BuildCalendar(); }
+    private void NextMonth() { CalMonth = CalMonth.AddMonths(1); BuildCalendar(); }
+
+    private async Task OnDayClick(DateTime date)
+    {
+        if (!_awaitingEnd)
+        {
+            // Primer clic: un día específico
+            _anchor = date.Date;
+            RangeStart = date.Date;
+            RangeEnd = date.Date;
+            _awaitingEnd = true;
         }
         else
         {
-            for (int i = 0; i <= 3; i++)
-            {
-                var result = await DoctorService.GetDoctorsByTypeAsync(((DoctorType)i).ToGraphQL());
-                if (result.Any()) allDoctors.AddRange(result);
-            }
+            // Segundo clic: cerrar rango (bidireccional)
+            RangeStart = date.Date <= _anchor ? date.Date : _anchor;
+            RangeEnd   = date.Date >= _anchor ? date.Date : _anchor;
+            _awaitingEnd = false;
         }
-
         await LoadAppointmentsAsync();
     }
 
-    private async Task OnDoctorChanged(ChangeEventArgs e)
+    private string CellClass(DateTime date, bool inMonth)
     {
-        SelectedDoctor = e.Value?.ToString() ?? "all";
-        await LoadAppointmentsAsync();
+        if (!inMonth) return "rcal-muted";
+
+        var d = date.Date;
+        if (RangeStart.Date == RangeEnd.Date && d == RangeStart.Date) return "rcal-single";
+        if (d == RangeStart.Date) return "rcal-start";
+        if (d == RangeEnd.Date)   return "rcal-end";
+        if (d > RangeStart.Date && d < RangeEnd.Date) return "rcal-inrange";
+        if (d == DateTime.Today) return "rcal-today";
+        return "";
     }
 
-    private async Task OnDateChanged(ChangeEventArgs e)
+    private async Task OnDoctorChanged(string? value)
     {
-        if (DateTime.TryParse(e.Value?.ToString(), out var date))
-        {
-            SelectedDate = date;
-            await LoadAppointmentsAsync();
-        }
+        SelectedDoctor = value ?? "all";
+        await LoadAppointmentsAsync();
     }
 
     private async Task LoadAppointmentsAsync()
     {
-        isLoading = true; _lastError = null;
+        isLoading = true; _lastError = null; StateHasChanged();
         var list = new List<AppointmentVM>();
 
-        if (SelectedDoctor == "all")
+        // Doctores a consultar
+        var targets = (SelectedDoctor is null or "all")
+            ? allDoctors
+            : allDoctors.Where(d => d.DoctorId == SelectedDoctor).ToList();
+
+        foreach (var doc in targets)
         {
-            foreach (var doc in allDoctors)
+            // Traemos TODAS las citas del doctor una vez y filtramos por rango en cliente.
+            var res = await AppointmentService.GetDoctorAppointments(doc.DoctorId, null);
+            if (res.IsSuccess)
             {
-                var res = await AppointmentService.GetDoctorAppointments(doc.DoctorId, SelectedDate);
-                if (res.IsSuccess)
-                    list.AddRange(res.Value.Select(a => Map(a, doc.Specialty)));
-                else
-                    _lastError = $"[{doc.Name}] {res.Error?.Message}";
+                var inRange = (res.Value ?? new())
+                    .Where(a => a.Start.Date >= RangeStart.Date && a.Start.Date <= RangeEnd.Date)
+                    .Select(a => Map(a, doc.Specialty));
+                list.AddRange(inRange);
+            }
+            else
+            {
+                _lastError = $"[{doc.Name}] {res.Error?.Message}";
             }
         }
-        else
-        {
-            var doc = allDoctors.FirstOrDefault(d => d.DoctorId == SelectedDoctor);
-            var res = await AppointmentService.GetDoctorAppointments(SelectedDoctor, SelectedDate);
-            if (res.IsSuccess)
-                list.AddRange(res.Value.Select(a => Map(a, doc?.Specialty ?? "General")));
-            else
-                _lastError = res.Error?.Message;
-        }
 
-        appointments = list.OrderBy(a => a.Time).ToList();
+        appointments = list.OrderBy(a => a.SortKey).ToList();
         isLoading = false;
         StateHasChanged();
     }
 
     private static AppointmentVM Map(AppointmentGQL a, string specialty) => new()
     {
+        SortKey   = a.Start,
         Patient   = string.IsNullOrWhiteSpace(a.PatientName) ? "Paciente" : a.PatientName,
+        DateLabel = a.Start.ToString("dd/MM/yyyy"),
         Time      = a.Start.ToString("hh:mm tt"),
         Specialty = specialty,
         Status    = a.Status switch
@@ -213,35 +312,79 @@
         }
     };
 
+    private string DoctorFull =>
+        (SelectedDoctor is null or "all")
+            ? "Todos los profesionales"
+            : allDoctors.FirstOrDefault(d => d.DoctorId == SelectedDoctor) is { } d ? $"{d.Name} ({d.Specialty})" : "—";
+
+    // ── Impresión: replica el documento de feature/export.xls ──
+    // Título gris, bordes negros, texto a la izquierda. + columna Fecha (rango) y casilla en Asistencia.
     private async Task PrintList()
     {
-        await JS.InvokeVoidAsync("window.print");
+        if (!appointments.Any()) return;
+
+        var sb = new System.Text.StringBuilder();
+        sb.Append("<!DOCTYPE html><html lang='es'><head><meta charset='utf-8'><title>Registro Piedra Azul</title><style>");
+        sb.Append("body{font-family:sans-serif;padding:40px;}");
+        sb.Append("table{width:100%;border-collapse:collapse;}");
+        sb.Append("th,td{border:1px solid black;padding:12px;text-align:left;font-size:13px;}");
+        sb.Append(".header-row{background-color:#f0f0f0;font-weight:bold;text-align:center;font-size:18px;}");
+        sb.Append(".sub-header{font-weight:bold;}");
+        sb.Append(".col-header{background-color:#f9f9f9;font-weight:bold;font-size:12px;text-transform:uppercase;}");
+        sb.Append(".chk{display:inline-block;width:16px;height:16px;border:1.5px solid #333;border-radius:3px;}");
+        sb.Append("@media print{@page{margin:14mm;}body{padding:0;}*{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}");
+        sb.Append("</style></head><body><table>");
+        sb.Append($"<tr class='header-row'><th colspan='6'>Registro Piedra Azul — {Esc(RangeLabel)}</th></tr>");
+        sb.Append($"<tr><th colspan='6' class='sub-header'>Especialista: {Esc(DoctorFull)}</th></tr>");
+        sb.Append("<tr class='col-header'><th>Paciente</th><th>Fecha</th><th>Horario</th><th>Especialidad</th><th>Estado</th><th>Asistencia</th></tr>");
+        foreach (var a in appointments)
+            sb.Append($"<tr><td><b>{Esc(a.Patient)}</b></td><td>{Esc(a.DateLabel)}</td><td>{Esc(a.Time)}</td><td>{Esc(a.Specialty)}</td><td>{Esc(a.Status)}</td><td><span class='chk'></span></td></tr>");
+        sb.Append("</table></body></html>");
+
+        await JS.InvokeVoidAsync("printHtml", sb.ToString());
     }
 
+    // ── XLS: replica el documento de feature/export.xls ──
+    // Título sin fondo (bold centrado), bordes negros, encabezados gris claro, datos centrados. + columna Fecha.
     private async Task ExportToExcel()
     {
         if (!appointments.Any()) return;
-        var csv = new System.Text.StringBuilder();
-        csv.AppendLine("Paciente,Hora,Especialidad,Estado");
-        foreach (var a in appointments)
-            csv.AppendLine($"\"{a.Patient}\",\"{a.Time}\",\"{a.Specialty}\",\"{a.Status}\"");
 
-        var bytes = System.Text.Encoding.UTF8.GetBytes(csv.ToString());
+        var sb = new System.Text.StringBuilder();
+        sb.Append("<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:x='urn:schemas-microsoft-com:office:excel' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><style>");
+        sb.Append("table{border-collapse:collapse;width:100%;font-family:Arial,sans-serif;table-layout:fixed;}");
+        sb.Append("td,th{border:1px solid black;padding:12px 8px;font-size:10pt;word-wrap:break-word;vertical-align:middle;}");
+        sb.Append(".title{font-weight:bold;text-align:center;font-size:14pt;border:none;padding:20px;}");
+        sb.Append(".specialist{font-weight:bold;text-align:left;border:none;padding:10px 0;}");
+        sb.Append(".header-cell{font-weight:bold;text-align:center;background-color:#f8fafc;}");
+        sb.Append(".center-cell{text-align:center;}");
+        sb.Append("</style></head><body><table>");
+        sb.Append("<colgroup><col style='width:200px'><col style='width:90px'><col style='width:90px'><col style='width:150px'><col style='width:110px'><col style='width:100px'></colgroup>");
+        sb.Append($"<tr><td colspan='6' class='title'>Registro Piedra Azul — {Esc(RangeLabel)}</td></tr>");
+        sb.Append($"<tr><td colspan='6' class='specialist'>Especialista: {Esc(DoctorFull)}</td></tr>");
+        sb.Append("<tr><td class='header-cell'>Paciente</td><td class='header-cell'>Fecha</td><td class='header-cell'>Horario</td><td class='header-cell'>Especialidad</td><td class='header-cell'>Estado</td><td class='header-cell'>Asistencia</td></tr>");
+        foreach (var a in appointments)
+            sb.Append($"<tr><td>{Esc(a.Patient)}</td><td class='center-cell'>{Esc(a.DateLabel)}</td><td class='center-cell'>{Esc(a.Time)}</td><td class='center-cell'>{Esc(a.Specialty)}</td><td class='center-cell'>{Esc(a.Status)}</td><td></td></tr>");
+        sb.Append("</table></body></html>");
+
+        var bytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
         var base64 = Convert.ToBase64String(bytes);
-        var fileName = $"citas_{SelectedDate:yyyy-MM-dd}.csv";
-        await JS.InvokeVoidAsync("eval", $@"
-            var a = document.createElement('a');
-            a.href = 'data:text/csv;base64,{base64}';
-            a.download = '{fileName}';
-            a.click();
-        ");
+        var fileName = RangeStart.Date == RangeEnd.Date
+            ? $"Listado_Citas_{RangeStart:yyyyMMdd}.xls"
+            : $"Listado_Citas_{RangeStart:yyyyMMdd}_{RangeEnd:yyyyMMdd}.xls";
+
+        await JS.InvokeVoidAsync("downloadFile", fileName, "application/vnd.ms-excel;base64," + base64);
     }
+
+    private static string Esc(string? s) => System.Net.WebUtility.HtmlEncode(s ?? "");
 
     private class AppointmentVM
     {
-        public string Patient   { get; set; } = "";
-        public string Time      { get; set; } = "";
-        public string Specialty { get; set; } = "";
-        public string Status    { get; set; } = "";
+        public DateTime SortKey   { get; set; }
+        public string Patient     { get; set; } = "";
+        public string DateLabel   { get; set; } = "";
+        public string Time        { get; set; } = "";
+        public string Specialty   { get; set; } = "";
+        public string Status      { get; set; } = "";
     }
 }

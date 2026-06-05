@@ -582,6 +582,8 @@ else
     private string _breadcrumbGroup = "Mi Cuenta";
     private string _breadcrumbItem = "Mi perfil";
 
+    private bool _shouldCheckTour;
+
     protected override async Task OnInitializedAsync()
     {
         UIModeState.OnSetupComplete += OnSetupComplete;
@@ -598,14 +600,20 @@ else
             _loading = false;
         }
 
+        // Habilitar el check del tour DESPUÉS de que _user esté disponible con sus roles.
+        // No usar firstRender porque OnAfterRenderAsync(firstRender) puede disparar antes
+        // de que OnInitializedAsync complete, dejando _user null y los roles vacíos.
+        _shouldCheckTour = true;
+
         // Sincronizar citas en segundo plano (falla silenciosamente si JS no está listo)
         _ = OfflineCache.SyncAsync();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
+        if (_shouldCheckTour)
         {
+            _shouldCheckTour = false;
             var shouldShow = await DriverTourService.ShouldShowTourAsync(TourIds.AccountProfile);
             if (shouldShow)
                 await StartTourAsync();

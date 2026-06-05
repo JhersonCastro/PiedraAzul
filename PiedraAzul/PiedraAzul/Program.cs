@@ -77,6 +77,12 @@ builder.Services.AddScoped<AuthenticationStateProvider, PersistingRevalidatingAu
 // IP real del cliente para auditoría: el servidor lee el HttpContext (override del Null de WASM)
 builder.Services.AddScoped<PiedraAzul.Client.Services.IClientIpResolver, PiedraAzul.Services.HttpContextClientIpResolver>();
 
+// Modo UI: el servidor lee la cookie uiMode del HttpContext para el prerender SSR (override del Null de WASM)
+builder.Services.AddScoped<PiedraAzul.Client.Services.IUIModeReader, PiedraAzul.Services.HttpContextUIModeReader>();
+
+// Tours: el servidor lee las cookies tourSeen_{id} para que WASM no intente mostrar tours ya vistos
+builder.Services.AddScoped<PiedraAzul.Client.Services.ITourSeenReader, PiedraAzul.Services.HttpContextTourSeenReader>();
+
 // Override GraphQL client for SSR: forwards the incoming request cookie + IP real del cliente
 builder.Services.AddScoped<GraphQLHttpClient>(sp =>
 {

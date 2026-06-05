@@ -226,12 +226,9 @@
 
     private void SyncTimeRangeFromConfig(ScheduleConfigModel config)
     {
-        var sample = config.Availability.FirstOrDefault(a => a.IsEnabled) ?? config.Availability.FirstOrDefault();
-        if (sample is null) return;
-        var st = sample.StartTimeSpan;
-        var et = sample.EndTimeSpan;
-        StartTimeText = $"{st.Hours:00}:{st.Minutes:00}";
-        EndTimeText   = $"{et.Hours:00}:{et.Minutes:00}";
+        var (start, end) = ScheduleConfigHelper.DetectTimeRange(config);
+        StartTimeText = $"{start.Hours:00}:{start.Minutes:00}";
+        EndTimeText   = $"{end.Hours:00}:{end.Minutes:00}";
     }
 
     private void OnStartTimeChanged(ChangeEventArgs e)
@@ -264,23 +261,8 @@
         RegenerateAllSlots();
     }
 
-    /// <summary>
-    /// Calcula el intervalo real desde la DURACIÓN de un slot (EndTime - StartTime),
-    /// no desde la diferencia entre slots (que puede confundirse con 1 min).
-    /// </summary>
     private static int DetectIntervalFromSlots(ScheduleConfigModel config)
-    {
-        var firstActive = config.Slots.FirstOrDefault(s => !s.IsDeleted);
-        if (firstActive is null) return config.IntervalMinutes > 0 ? config.IntervalMinutes : 15;
-
-        if (TimeSpan.TryParse(firstActive.StartTime, out var st) &&
-            TimeSpan.TryParse(firstActive.EndTime, out var et))
-        {
-            var mins = (int)(et - st).TotalMinutes;
-            if (mins >= 5 && mins <= 60) return mins;
-        }
-        return config.IntervalMinutes > 0 ? config.IntervalMinutes : 15;
-    }
+        => ScheduleConfigHelper.DetectInterval(config);
 
     private void BuildWeekGrid()
     {

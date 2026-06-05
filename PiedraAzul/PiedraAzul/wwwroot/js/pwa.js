@@ -57,3 +57,42 @@ window.getAppointmentsFromIndexedDB = async () => {
 
 // Verificar si hay conexión
 window.isOnline = () => navigator.onLine;
+
+// Persistir el modo UI en una cookie para que el servidor pueda leerla en el prerender SSR
+window.setUiModeCookie = (mode) => {
+    document.cookie = `uiMode=${mode};path=/;max-age=31536000;SameSite=Strict`;
+};
+
+// Descargar un archivo desde un data-URL (sin usar eval)
+window.downloadFile = (fileName, dataContent) => {
+    const a = document.createElement('a');
+    a.href = 'data:' + dataContent;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+};
+
+// Imprimir un documento HTML completo en un iframe aislado.
+// Evita imprimir el SPA completo (sidebars, nav) y evita window.open() que el navegador bloquea.
+window.printHtml = (html) => {
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow.document;
+    doc.open();
+    doc.write(html);
+    doc.close();
+
+    iframe.contentWindow.focus();
+    setTimeout(() => {
+        iframe.contentWindow.print();
+        setTimeout(() => document.body.removeChild(iframe), 1000);
+    }, 300);
+};
