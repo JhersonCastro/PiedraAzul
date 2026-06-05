@@ -143,6 +143,7 @@ window.DriverTour = {
 
     markTourAsSeen: function (tourId) {
         localStorage.setItem('tour_' + tourId + '_seen', 'true');
+        document.cookie = 'tourSeen_' + tourId + '=1;path=/;max-age=31536000;SameSite=Strict';
     },
 
     startTour: function (tourSteps, tourId, dotnetRef) {

@@ -1,0 +1,40 @@
+@implements IDisposable
+@using PiedraAzul.Client.Services
+@using PiedraAzul.Client.States
+@inject UIModeState ModeState
+@inject IUIModeReader ModeReader
+@inject PersistentComponentState AppState
+
+@* Componente invisible: lee el modo UI desde la cookie durante el prerender SSR y lo persiste
+   al WASM para que el primer render interactivo no muestre el modo incorrecto. *@
+
+@code {
+    private const string PersistKey = "uiMode";
+    private PersistingComponentStateSubscription _sub;
+
+    protected override void OnInitialized()
+    {
+        _sub = AppState.RegisterOnPersisting(Persist);
+
+        // Fase interactiva (WASM/Server): recuperar el modo que SSR persistió
+        if (AppState.TryTakeFromJson<string>(PersistKey, out var persisted) && persisted is not null
+            && Enum.TryParse<UIMode>(persisted, ignoreCase: true, out var persistedMode))
+        {
+            ModeState.SetMode(persistedMode);
+            return;
+        }
+
+        // Prerender SSR: leer desde cookie via implementación server-side
+        var mode = ModeReader.Read();
+        if (mode.HasValue)
+            ModeState.SetMode(mode.Value);
+    }
+
+    private Task Persist()
+    {
+        AppState.PersistAsJson(PersistKey, ModeState.CurrentMode.ToString());
+        return Task.CompletedTask;
+    }
+
+    public void Dispose() => _sub.Dispose();
+}

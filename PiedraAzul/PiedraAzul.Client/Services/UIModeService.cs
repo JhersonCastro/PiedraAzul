@@ -48,6 +48,7 @@ public class UIModeService
         try
         {
             await _js.InvokeVoidAsync("localStorage.setItem", StorageKey, mode.ToString());
+            await _js.InvokeVoidAsync("setUiModeCookie", mode.ToString());
         }
         catch { }
     }
