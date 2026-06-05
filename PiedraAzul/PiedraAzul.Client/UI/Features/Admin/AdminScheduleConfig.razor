@@ -32,7 +32,7 @@
                 <div class="flex flex-col gap-2">
                     <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Especialista</label>
                     <DoctorAutocomplete Doctors="Doctors"
-                                        Value="EditModel.DoctorId"
+                                        Value="@EditModel.DoctorId"
                                         ValueChanged="OnSpecialistAutocompleteChanged"
                                         ValueSelector="d => d.UserId"
                                         Placeholder="Busca por nombre o especialidad..." />

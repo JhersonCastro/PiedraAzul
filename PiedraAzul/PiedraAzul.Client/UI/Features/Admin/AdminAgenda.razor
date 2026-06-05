@@ -38,7 +38,7 @@
         <div data-tour="admin-agenda-filters" class="filter-card mb-6">
             <label class="label-sm">Especialista</label>
             <DoctorAutocomplete Doctors="doctores"
-                                Value="SelectedDoctorId"
+                                Value="@SelectedDoctorId"
                                 ValueChanged="OnDoctorSelected"
                                 ValueSelector="d => d.UserId"
                                 Placeholder="Busca por nombre o especialidad..." />
