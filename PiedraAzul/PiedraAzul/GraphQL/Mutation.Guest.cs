@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using PiedraAzul.Application.Common.Interfaces;
+using PiedraAzul.Contracts.DTOs;
 using PiedraAzul.GraphQL.Types;
 using PiedraAzul.Infrastructure.Identity;
 using System.Security.Claims;
@@ -96,7 +97,7 @@ public partial class Mutation
     /// Verifica el OTP de la sesión hash y opcionalmente actualiza datos editados por el usuario.
     /// Si es correcto retorna los datos finales del usuario.
     /// </summary>
-    public async Task<GuestDataType?> VerifyGuestOtpByHashAsync(
+    public async Task<GuestDataDto?> VerifyGuestOtpByHashAsync(
         string hash,
         string code,
         string? name,
@@ -125,7 +126,7 @@ public partial class Mutation
                 subjectName: d.Name,
                 subjectPhone: d.Phone);
 
-            return new GuestDataType
+            return new GuestDataDto
             {
                 Id = d.Id,
                 Name = d.Name,
@@ -145,7 +146,7 @@ public partial class Mutation
     /// cédula del usuario autenticado. Transfiere todas las citas del invitado a la cuenta.
     /// </summary>
     [Authorize]
-    public async Task<MergeGuestResultType> MergeGuestAppointmentsAsync(
+    public async Task<MergeGuestResultDto> MergeGuestAppointmentsAsync(
         string hash,
         string code,
         [Service] IHttpContextAccessor httpContextAccessor,
@@ -178,7 +179,7 @@ public partial class Mutation
                 subjectName: user.Name,
                 subjectPhone: user.PhoneNumber);
 
-        return new MergeGuestResultType
+        return new MergeGuestResultDto
         {
             Success = result.Success,
             MergedCount = result.MergedCount,

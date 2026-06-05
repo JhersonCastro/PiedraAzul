@@ -2,15 +2,17 @@ using HotChocolate;
 using HotChocolate.Authorization;
 using Microsoft.AspNetCore.Http;
 using PiedraAzul.Application.Common.Interfaces;
-using PiedraAzul.GraphQL.Types;
 using System.Security.Claims;
+// Alias: el PasskeyDto de Contracts (Id string, expuesto por GraphQL) coexiste con el
+// PasskeyDto de Application (Id Guid, contrato interno del servicio).
+using PasskeyDto = PiedraAzul.Contracts.DTOs.PasskeyDto;
 
 namespace PiedraAzul.GraphQL;
 
 public partial class Query
 {
     [Authorize]
-    public async Task<List<PasskeyType>> GetMyPasskeysAsync(
+    public async Task<List<PasskeyDto>> GetMyPasskeysAsync(
         [Service] IPasskeyService passkeys,
         [Service] IHttpContextAccessor httpContextAccessor)
     {
@@ -19,7 +21,7 @@ public partial class Query
 
         var list = await passkeys.GetUserPasskeysAsync(userId);
 
-        return list.Select(p => new PasskeyType
+        return list.Select(p => new PasskeyDto
         {
             Id = p.Id.ToString(),
             FriendlyName = p.FriendlyName,

@@ -39,8 +39,18 @@ public class ScheduleConfigType
                 {
                     DayOfWeek = day.DayOfWeek.ToString(),
                     IsEnabled = day.IsEnabled,
-                    StartTime = $"{day.StartTime.Hours:00}:{day.StartTime.Minutes:00}:{day.StartTime.Seconds:00}",
-                    EndTime = $"{day.EndTime.Hours:00}:{day.EndTime.Minutes:00}:{day.EndTime.Seconds:00}"
+                    StartTime = day.StartTime.ToString(@"hh\:mm\:ss"),
+                    EndTime = day.EndTime.ToString(@"hh\:mm\:ss")
+                })
+                .ToList(),
+            Slots = dto.Slots
+                .Select(s => new RawSlotType
+                {
+                    Id = s.Id.ToString(),
+                    DayOfWeek = s.DayOfWeek.ToString(),
+                    StartTime = s.StartTime.ToString(@"hh\:mm\:ss"),
+                    EndTime = s.EndTime.ToString(@"hh\:mm\:ss"),
+                    IsDeleted = s.IsDeleted
                 })
                 .ToList()
         };

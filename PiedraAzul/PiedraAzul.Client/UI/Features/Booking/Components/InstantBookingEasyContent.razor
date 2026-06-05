@@ -1,5 +1,6 @@
 @using PiedraAzul.Client.UI.Features.Booking.Pages
 @using PiedraAzul.Client.Models.GraphQL
+@using PiedraAzul.Contracts.DTOs
 @using PiedraAzul.Contracts.Enums
 
 @* ═══════════════════════════════════════════════════════════════
@@ -297,7 +298,7 @@
         _step = 2;
     }
 
-    private async Task ConfirmChannelAsync((GuestDataGQL Data, string OtpCode) payload)
+    private async Task ConfirmChannelAsync((GuestDataDto Data, string OtpCode) payload)
     {
         await Page.OnChannelValidationConfirmEasy(payload);
         // If confirmation succeeded, model is now populated → advance to doctor step

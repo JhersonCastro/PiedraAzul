@@ -9,10 +9,3 @@ public class UserGQL
     public List<string> Roles { get; set; } = new();
     public bool EmailConfirmed { get; set; } = false;
 }
-
-public class PasskeyGQL
-{
-    public string Id { get; set; } = "";
-    public string FriendlyName { get; set; } = "";
-    public DateTime CreatedAt { get; set; }
-}

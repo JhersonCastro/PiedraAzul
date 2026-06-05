@@ -1,4 +1,5 @@
 @using PiedraAzul.Client.Models.GraphQL
+@using PiedraAzul.Contracts.DTOs
 @using PiedraAzul.Client.States
 @inject UIModeState UIModeState
 
@@ -224,15 +225,15 @@
 
     /// <summary>
     /// Callback que verifica OTP. Recibe (canal, código).
-    /// Debe retornar GuestDataGQL? con los datos del usuario si fue exitoso, null si falló.
+    /// Debe retornar GuestDataDto? con los datos del usuario si fue exitoso, null si falló.
     /// </summary>
-    [Parameter] public Func<string, string, Task<GuestDataGQL?>>? OnVerifyOtp { get; set; }
+    [Parameter] public Func<string, string, Task<GuestDataDto?>>? OnVerifyOtp { get; set; }
 
     /// <summary>
     /// Callback final que recibe los datos confirmados por el usuario y el código OTP usado.
     /// El padre debe persistir estos cambios en BD usando el código.
     /// </summary>
-    [Parameter] public EventCallback<(GuestDataGQL Data, string OtpCode)> OnConfirmData { get; set; }
+    [Parameter] public EventCallback<(GuestDataDto Data, string OtpCode)> OnConfirmData { get; set; }
 
     [Parameter] public EventCallback OnClose { get; set; }
 
@@ -314,7 +315,7 @@
         if (string.IsNullOrWhiteSpace(_editName) || string.IsNullOrWhiteSpace(_editPhone)) return;
         if (string.IsNullOrEmpty(_otpCode)) return;
 
-        var data = new GuestDataGQL
+        var data = new GuestDataDto
         {
             Name = _editName.Trim(),
             Phone = _editPhone.Trim(),

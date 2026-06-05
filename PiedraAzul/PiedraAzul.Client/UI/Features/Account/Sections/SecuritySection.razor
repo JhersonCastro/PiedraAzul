@@ -1,4 +1,5 @@
 @using PiedraAzul.Client.Models.GraphQL
+@using PiedraAzul.Contracts.DTOs
 @using PiedraAzul.Client.Services.AuthServices
 @using PiedraAzul.Client.Services.GraphQLServices
 @using PiedraAzul.Client.States
@@ -74,7 +75,7 @@
 </div>
 
 @code {
-    private List<PasskeyGQL> _passkeys = [];
+    private List<PasskeyDto> _passkeys = [];
     private bool _loadingPasskeys = true;
     private bool _deletingPasskey;
 

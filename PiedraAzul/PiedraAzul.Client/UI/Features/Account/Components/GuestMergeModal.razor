@@ -1,4 +1,5 @@
 @using PiedraAzul.Client.Models.GraphQL
+@using PiedraAzul.Contracts.DTOs
 @using PiedraAzul.Client.Services.GraphQLServices
 @inject GraphQLAppointmentService AppointmentService
 
@@ -146,7 +147,7 @@
     enum Stage { SelectChannel, EnterOtp }
 
     [Parameter] public bool IsOpen { get; set; }
-    [Parameter] public MergeableGuestGQL? Guest { get; set; }
+    [Parameter] public MergeableGuestDto? Guest { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
 
     /// <summary>Se invoca tras un merge exitoso con la cantidad de citas transferidas.</summary>

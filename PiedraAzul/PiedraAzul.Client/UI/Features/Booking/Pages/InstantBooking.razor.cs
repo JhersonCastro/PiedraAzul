@@ -1,5 +1,6 @@
 using PiedraAzul.Client.Models.Booking;
 using PiedraAzul.Client.Models.GraphQL;
+using PiedraAzul.Contracts.DTOs;
 using PiedraAzul.Client.Models.UserProfiles;
 using PiedraAzul.Client.Services.GraphQLServices;
 using PiedraAzul.Client.Services.Utils;
@@ -238,7 +239,7 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
             return result.IsSuccess;
         }
 
-        internal async Task<GuestDataGQL?> VerifyChannelValidationOtpAsync(string channel, string code)
+        internal async Task<GuestDataDto?> VerifyChannelValidationOtpAsync(string channel, string code)
         {
             _channelValidationError = null;
             _channelValidationLoading = true;
@@ -254,7 +255,7 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
         }
 
         /// <summary>Shared core: persists OTP + updates model. Does NOT touch Stepper.</summary>
-        private async Task<bool> ApplyChannelValidationConfirm((GuestDataGQL Data, string OtpCode) payload)
+        private async Task<bool> ApplyChannelValidationConfirm((GuestDataDto Data, string OtpCode) payload)
         {
             _channelValidationLoading = true;
             NotifyState();
@@ -283,7 +284,7 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
         }
 
         /// <summary>Modern mode: after confirm, also jumps Stepper to doctor step.</summary>
-        private async Task OnChannelValidationConfirm((GuestDataGQL Data, string OtpCode) payload)
+        private async Task OnChannelValidationConfirm((GuestDataDto Data, string OtpCode) payload)
         {
             if (await ApplyChannelValidationConfirm(payload))
                 Stepper.GoToStep(2);
@@ -291,7 +292,7 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
         }
 
         /// <summary>Easy mode: after confirm, Easy content advances its own step.</summary>
-        internal async Task OnChannelValidationConfirmEasy((GuestDataGQL Data, string OtpCode) payload)
+        internal async Task OnChannelValidationConfirmEasy((GuestDataDto Data, string OtpCode) payload)
         {
             await ApplyChannelValidationConfirm(payload);
             NotifyState();

@@ -1,6 +1,7 @@
 using Mediator;
 using Moq;
 using PiedraAzul.Application.Common.Interfaces;
+using PiedraAzul.Application.Common.Notifications;
 using PiedraAzul.Application.Features.Appointments.RescheduleAppointment;
 using PiedraAzul.Domain.Common.Exceptions;
 using PiedraAzul.Domain.Entities.Operations;
@@ -219,6 +220,29 @@ public class RescheduleAppointmentHandlerTests
 
         Assert.Equal(AppointmentStatus.Rescheduled, old.Status);
         Assert.Equal(newDate, result.Date);
+    }
+
+    [Fact]
+    public async Task RescheduleAppointment_PublishesNotificationWithOldAndNewDay()
+    {
+        var (old, newSlot, newDate) = SetupValidReschedule("user-1");
+        var oldDate = old.Date;
+        var oldDoctorId = old.DoctorId;
+
+        await _sut.Handle(
+            new RescheduleAppointmentCommand(old.Id, "user-1", newSlot.Id, newDate),
+            CancellationToken.None);
+
+        // La notificación debe llevar el día/doctor de origen (para invalidar el cache de ambos días).
+        _mediator.Verify(x => x.Publish(
+            It.Is<AppointmentNotification>(n =>
+                n.Change == AppointmentChange.Rescheduled &&
+                n.OldDoctorId == oldDoctorId &&
+                n.OldDate == oldDate &&
+                n.DoctorId == newSlot.DoctorId &&
+                n.Date == newDate),
+            It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     private (Appointment old, DoctorAvailabilitySlot newSlot, DateOnly newDate) SetupValidReschedule(string userId)

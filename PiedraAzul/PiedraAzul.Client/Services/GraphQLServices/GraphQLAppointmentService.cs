@@ -1,6 +1,7 @@
 using PiedraAzul.Client.Models;
 using PiedraAzul.Client.Models.GraphQL;
 using PiedraAzul.Client.Services.Wrappers;
+using PiedraAzul.Contracts.DTOs;
 
 namespace PiedraAzul.Client.Services.GraphQLServices;
 
@@ -124,7 +125,7 @@ public class GraphQLAppointmentService(GraphQLHttpClient client)
     /// Detecta si existe una cuenta invitada con la misma cédula del usuario autenticado
     /// que tenga citas transferibles. Retorna null si no hay nada que vincular.
     /// </summary>
-    public async Task<Result<MergeableGuestGQL?>> CheckForMergeableGuestAsync()
+    public async Task<Result<MergeableGuestDto?>> CheckForMergeableGuestAsync()
     {
         const string query = """
             query CheckForMergeableGuest {
@@ -136,14 +137,14 @@ public class GraphQLAppointmentService(GraphQLHttpClient client)
             """;
 
         return await GraphQLExecutor.Execute(async () =>
-            await client.ExecuteAsync<MergeableGuestGQL?>(query, null, "checkForMergeableGuest")
+            await client.ExecuteAsync<MergeableGuestDto?>(query, null, "checkForMergeableGuest")
         );
     }
 
     /// <summary>
     /// Verifica el OTP y transfiere las citas de la cuenta invitada al usuario autenticado.
     /// </summary>
-    public async Task<Result<MergeGuestResultGQL?>> MergeGuestAppointmentsAsync(string hash, string code)
+    public async Task<Result<MergeGuestResultDto?>> MergeGuestAppointmentsAsync(string hash, string code)
     {
         const string mutation = """
             mutation MergeGuestAppointments($hash: String!, $code: String!) {
@@ -154,7 +155,7 @@ public class GraphQLAppointmentService(GraphQLHttpClient client)
             """;
 
         return await GraphQLExecutor.Execute(async () =>
-            await client.ExecuteAsync<MergeGuestResultGQL?>(mutation, new { hash, code }, "mergeGuestAppointments")
+            await client.ExecuteAsync<MergeGuestResultDto?>(mutation, new { hash, code }, "mergeGuestAppointments")
         );
     }
 
@@ -162,7 +163,7 @@ public class GraphQLAppointmentService(GraphQLHttpClient client)
     /// Verifica OTP por hash y opcionalmente actualiza datos editados por el usuario.
     /// Si name/phone/email son null, solo verifica el OTP.
     /// </summary>
-    public async Task<Result<GuestDataGQL?>> VerifyGuestOtpByHashAsync(
+    public async Task<Result<GuestDataDto?>> VerifyGuestOtpByHashAsync(
         string hash, string code, string? name = null, string? phone = null, string? email = null)
     {
         const string mutation = """
@@ -174,7 +175,7 @@ public class GraphQLAppointmentService(GraphQLHttpClient client)
             """;
 
         return await GraphQLExecutor.Execute(async () =>
-            await client.ExecuteAsync<GuestDataGQL?>(mutation, new { hash, code, name, phone, email }, "verifyGuestOtpByHash")
+            await client.ExecuteAsync<GuestDataDto?>(mutation, new { hash, code, name, phone, email }, "verifyGuestOtpByHash")
         );
     }
 

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using PiedraAzul.Application.Common.Interfaces;
 using PiedraAzul.Application.Features.Patients.Queries.SearchPatients;
+using PiedraAzul.Contracts.DTOs;
 using PiedraAzul.GraphQL.Types;
 using PiedraAzul.Domain.Repositories;
 using PiedraAzul.Infrastructure.Identity;
@@ -159,7 +160,7 @@ public partial class Query
     /// Retorna null si no hay nada que vincular.
     /// </summary>
     [Authorize]
-    public async Task<MergeableGuestType?> CheckForMergeableGuestAsync(
+    public async Task<MergeableGuestDto?> CheckForMergeableGuestAsync(
         [Service] IHttpContextAccessor httpContextAccessor,
         [Service] UserManager<ApplicationUser> userManager,
         [Service] IGuestOtpService guestOtpService)
@@ -177,7 +178,7 @@ public partial class Query
         var hasPhone = !string.IsNullOrEmpty(info.Phone);
         var hasEmail = !string.IsNullOrEmpty(info.Email);
 
-        return new MergeableGuestType
+        return new MergeableGuestDto
         {
             VerificationHash = info.VerificationHash,
             GuestName = info.GuestName,

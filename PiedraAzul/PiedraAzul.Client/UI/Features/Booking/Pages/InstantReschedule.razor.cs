@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using PiedraAzul.Client.Models.GraphQL;
 using PiedraAzul.Client.Services.GraphQLServices;
+using PiedraAzul.Contracts.DTOs;
 using PiedraAzul.Client.States;
 
 namespace PiedraAzul.Client.UI.Features.Booking.Pages
@@ -202,7 +203,7 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
             return result.IsSuccess;
         }
 
-        internal async Task<GuestDataGQL?> VerifyOtpByHashAsync(string channel, string code)
+        internal async Task<GuestDataDto?> VerifyOtpByHashAsync(string channel, string code)
         {
             _channelLoading = true;
             NotifyState();
@@ -215,7 +216,7 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
             return result.IsSuccess ? result.Value : null;
         }
 
-        internal async Task OnChannelConfirm((GuestDataGQL Data, string OtpCode) payload)
+        internal async Task OnChannelConfirm((GuestDataDto Data, string OtpCode) payload)
         {
             _channelLoading = true;
             NotifyState();

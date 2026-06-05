@@ -11,6 +11,7 @@ public class GetDoctorAvailableDaysHandlerTests
 {
     private readonly Mock<IDoctorAvailabilitySlotRepository> _slotRepository = new();
     private readonly Mock<IAppointmentRepository> _appointmentRepository = new();
+    private readonly Mock<IDoctorRepository> _doctorRepository = new();
 
     private readonly GetDoctorAvailableDaysHandler _sut;
 
@@ -18,7 +19,8 @@ public class GetDoctorAvailableDaysHandlerTests
     {
         _sut = new GetDoctorAvailableDaysHandler(
             _slotRepository.Object,
-            _appointmentRepository.Object);
+            _appointmentRepository.Object,
+            _doctorRepository.Object);
     }
 
     [Fact]
@@ -159,6 +161,39 @@ public class GetDoctorAvailableDaysHandlerTests
             CancellationToken.None);
 
         Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task GetAvailableDays_ClampsToDoctorBookingWindow()
+    {
+        // Doctor con ventana de 1 semana: no deben devolverse días más allá de hoy+7,
+        // aunque el cliente pida 30 días y haya slots todos los días.
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var slots = Enum.GetValues<DayOfWeek>()
+            .Select(d => new DoctorAvailabilitySlot("doc-1", d, TimeSpan.FromHours(9), TimeSpan.FromHours(10)))
+            .ToList();
+
+        var doctor = new Doctor("doc-1", DoctorType.NaturalMedicine, "LIC", "");
+        doctor.SetBookingWindow(1);
+
+        _slotRepository
+            .Setup(x => x.ListByDoctorAsync("doc-1", false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(slots);
+        _appointmentRepository
+            .Setup(x => x.ListByDoctorAsync("doc-1", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        _doctorRepository
+            .Setup(x => x.GetByIdAsync("doc-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(doctor);
+
+        var result = await _sut.Handle(
+            new GetDoctorAvailableDaysQuery("doc-1", today, 30),
+            CancellationToken.None);
+
+        var maxDate = today.AddDays(7);
+        Assert.NotEmpty(result);
+        Assert.All(result, d => Assert.True(d <= maxDate));
+        Assert.DoesNotContain(today.AddDays(8), result);
     }
 
     private static DateOnly NextDateFor(DayOfWeek day)

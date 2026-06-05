@@ -4,6 +4,7 @@ using PiedraAzul.Client.Models.GraphQL;
 using PiedraAzul.Client.Models.UserProfiles;
 using PiedraAzul.Client.Services.GraphQLServices;
 using PiedraAzul.Client.Services.Wrappers;
+using PiedraAzul.Contracts.DTOs;
 
 namespace PiedraAzul.Client.Services.AuthServices;
 
@@ -83,7 +84,7 @@ public class PasskeyService(GraphQLHttpClient graphQL, IJSRuntime js)
         });
     }
 
-    public async Task<Result<List<PasskeyGQL>>> GetMyPasskeysAsync()
+    public async Task<Result<List<PasskeyDto>>> GetMyPasskeysAsync()
     {
         const string query = """
             query MyPasskeys {
@@ -93,7 +94,7 @@ public class PasskeyService(GraphQLHttpClient graphQL, IJSRuntime js)
 
         return await GraphQLExecutor.Execute(async () =>
         {
-            var list = await graphQL.ExecuteAsync<List<PasskeyGQL>>(query, null, "myPasskeys");
+            var list = await graphQL.ExecuteAsync<List<PasskeyDto>>(query, null, "myPasskeys");
             return list ?? [];
         });
     }
