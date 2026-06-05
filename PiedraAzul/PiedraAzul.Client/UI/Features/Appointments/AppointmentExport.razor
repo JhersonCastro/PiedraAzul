@@ -317,69 +317,57 @@
             ? "Todos los profesionales"
             : allDoctors.FirstOrDefault(d => d.DoctorId == SelectedDoctor) is { } d ? $"{d.Name} ({d.Specialty})" : "—";
 
-    /// <summary>
-    /// Construye la tabla "registro" compartida por impresión y XLS:
-    /// fila de título, fila de especialista, encabezados y filas de datos.
-    /// La columna Asistencia queda vacía (casilla ☐ en impresión) para marcar a mano.
-    /// </summary>
-    private string BuildRegistryTable(bool forPrint)
-    {
-        var sb = new System.Text.StringBuilder();
-        sb.Append("<table><colgroup>");
-        sb.Append("<col style='width:200px'><col style='width:90px'><col style='width:90px'><col style='width:150px'><col style='width:110px'><col style='width:90px'>");
-        sb.Append("</colgroup>");
-        sb.Append($"<tr><td colspan='6' class='title'>Registro Piedra Azul — {Esc(RangeLabel)}</td></tr>");
-        sb.Append($"<tr><td colspan='6' class='specialist'>Especialista: {Esc(DoctorFull)}</td></tr>");
-        sb.Append("<tr>"
-            + "<td class='hc'>Paciente</td><td class='hc'>Fecha</td><td class='hc'>Horario</td>"
-            + "<td class='hc'>Especialidad</td><td class='hc'>Estado</td><td class='hc'>Asistencia</td></tr>");
-        foreach (var a in appointments)
-        {
-            var asistencia = forPrint ? "<span class='chk'></span>" : "";
-            sb.Append($"<tr><td>{Esc(a.Patient)}</td><td class='c'>{Esc(a.DateLabel)}</td><td class='c'>{Esc(a.Time)}</td><td class='c'>{Esc(a.Specialty)}</td><td class='c'>{Esc(a.Status)}</td><td class='c'>{asistencia}</td></tr>");
-        }
-        sb.Append("</table>");
-        return sb.ToString();
-    }
-
+    // ── Impresión: replica el documento de feature/export.xls ──
+    // Título gris, bordes negros, texto a la izquierda. + columna Fecha (rango) y casilla en Asistencia.
     private async Task PrintList()
     {
         if (!appointments.Any()) return;
 
-        const string styles = @"
-            *{box-sizing:border-box;}
-            body{font-family:Arial,'DM Sans',sans-serif;color:#0F172A;margin:24px;}
-            table{border-collapse:collapse;width:100%;table-layout:fixed;}
-            td{border:1px solid #334155;padding:9px 8px;font-size:11px;word-wrap:break-word;}
-            .title{font-weight:bold;text-align:center;font-size:16px;background:#257D8D;color:#fff;border-color:#257D8D;}
-            .specialist{font-weight:bold;text-align:left;background:#e8f5f3;}
-            .hc{font-weight:bold;text-align:center;background:#f1f5f9;text-transform:uppercase;font-size:10px;letter-spacing:.04em;}
-            .c{text-align:center;}
-            .chk{display:inline-block;width:16px;height:16px;border:1.5px solid #475569;border-radius:3px;}
-            @media print{@page{size:A4;margin:14mm;}body{margin:0;}*{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
-        ";
+        var sb = new System.Text.StringBuilder();
+        sb.Append("<!DOCTYPE html><html lang='es'><head><meta charset='utf-8'><title>Registro Piedra Azul</title><style>");
+        sb.Append("body{font-family:sans-serif;padding:40px;}");
+        sb.Append("table{width:100%;border-collapse:collapse;}");
+        sb.Append("th,td{border:1px solid black;padding:12px;text-align:left;font-size:13px;}");
+        sb.Append(".header-row{background-color:#f0f0f0;font-weight:bold;text-align:center;font-size:18px;}");
+        sb.Append(".sub-header{font-weight:bold;}");
+        sb.Append(".col-header{background-color:#f9f9f9;font-weight:bold;font-size:12px;text-transform:uppercase;}");
+        sb.Append(".chk{display:inline-block;width:16px;height:16px;border:1.5px solid #333;border-radius:3px;}");
+        sb.Append("@media print{@page{margin:14mm;}body{padding:0;}*{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}");
+        sb.Append("</style></head><body><table>");
+        sb.Append($"<tr class='header-row'><th colspan='6'>Registro Piedra Azul — {Esc(RangeLabel)}</th></tr>");
+        sb.Append($"<tr><th colspan='6' class='sub-header'>Especialista: {Esc(DoctorFull)}</th></tr>");
+        sb.Append("<tr class='col-header'><th>Paciente</th><th>Fecha</th><th>Horario</th><th>Especialidad</th><th>Estado</th><th>Asistencia</th></tr>");
+        foreach (var a in appointments)
+            sb.Append($"<tr><td><b>{Esc(a.Patient)}</b></td><td>{Esc(a.DateLabel)}</td><td>{Esc(a.Time)}</td><td>{Esc(a.Specialty)}</td><td>{Esc(a.Status)}</td><td><span class='chk'></span></td></tr>");
+        sb.Append("</table></body></html>");
 
-        var html = $"<!DOCTYPE html><html lang='es'><head><meta charset='utf-8'><title>Registro Piedra Azul</title><style>{styles}</style></head><body>{BuildRegistryTable(true)}</body></html>";
-        await JS.InvokeVoidAsync("printHtml", html);
+        await JS.InvokeVoidAsync("printHtml", sb.ToString());
     }
 
+    // ── XLS: replica el documento de feature/export.xls ──
+    // Título sin fondo (bold centrado), bordes negros, encabezados gris claro, datos centrados. + columna Fecha.
     private async Task ExportToExcel()
     {
         if (!appointments.Any()) return;
 
-        // .xls real: HTML con namespaces de Office que Excel/Sheets/Numbers abren nativamente.
-        const string styles = @"
-            table{border-collapse:collapse;width:100%;font-family:Arial,sans-serif;table-layout:fixed;}
-            td{border:1px solid #000;padding:10px 8px;font-size:10pt;word-wrap:break-word;vertical-align:middle;}
-            .title{font-weight:bold;text-align:center;font-size:14pt;background-color:#257D8D;color:#ffffff;}
-            .specialist{font-weight:bold;text-align:left;background-color:#e8f5f3;}
-            .hc{font-weight:bold;text-align:center;background-color:#f1f5f9;}
-            .c{text-align:center;}
-        ";
+        var sb = new System.Text.StringBuilder();
+        sb.Append("<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:x='urn:schemas-microsoft-com:office:excel' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><style>");
+        sb.Append("table{border-collapse:collapse;width:100%;font-family:Arial,sans-serif;table-layout:fixed;}");
+        sb.Append("td,th{border:1px solid black;padding:12px 8px;font-size:10pt;word-wrap:break-word;vertical-align:middle;}");
+        sb.Append(".title{font-weight:bold;text-align:center;font-size:14pt;border:none;padding:20px;}");
+        sb.Append(".specialist{font-weight:bold;text-align:left;border:none;padding:10px 0;}");
+        sb.Append(".header-cell{font-weight:bold;text-align:center;background-color:#f8fafc;}");
+        sb.Append(".center-cell{text-align:center;}");
+        sb.Append("</style></head><body><table>");
+        sb.Append("<colgroup><col style='width:200px'><col style='width:90px'><col style='width:90px'><col style='width:150px'><col style='width:110px'><col style='width:100px'></colgroup>");
+        sb.Append($"<tr><td colspan='6' class='title'>Registro Piedra Azul — {Esc(RangeLabel)}</td></tr>");
+        sb.Append($"<tr><td colspan='6' class='specialist'>Especialista: {Esc(DoctorFull)}</td></tr>");
+        sb.Append("<tr><td class='header-cell'>Paciente</td><td class='header-cell'>Fecha</td><td class='header-cell'>Horario</td><td class='header-cell'>Especialidad</td><td class='header-cell'>Estado</td><td class='header-cell'>Asistencia</td></tr>");
+        foreach (var a in appointments)
+            sb.Append($"<tr><td>{Esc(a.Patient)}</td><td class='center-cell'>{Esc(a.DateLabel)}</td><td class='center-cell'>{Esc(a.Time)}</td><td class='center-cell'>{Esc(a.Specialty)}</td><td class='center-cell'>{Esc(a.Status)}</td><td></td></tr>");
+        sb.Append("</table></body></html>");
 
-        var html = $"<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:x='urn:schemas-microsoft-com:office:excel' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><style>{styles}</style></head><body>{BuildRegistryTable(false)}</body></html>";
-
-        var bytes = System.Text.Encoding.UTF8.GetBytes(html);
+        var bytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
         var base64 = Convert.ToBase64String(bytes);
         var fileName = RangeStart.Date == RangeEnd.Date
             ? $"Listado_Citas_{RangeStart:yyyyMMdd}.xls"
