@@ -224,13 +224,14 @@ public partial class Query
 
     public async Task<ScheduleConfigType> GetScheduleConfigByDoctorIdAsync(
         string doctorId,
-        [Service] ISystemConfigRepository systemConfigRepository,
+        [Service] IDoctorRepository doctorRepository,
         [Service] IDoctorAvailabilitySlotRepository slotRepository)
     {
         if (string.IsNullOrWhiteSpace(doctorId))
             throw new GraphQLException("doctorId es requerido");
 
-        var config = await systemConfigRepository.GetOrCreateAsync();
+        var doctor = await doctorRepository.GetByIdAsync(doctorId);
+        var bookingWeeks = doctor?.BookingWindowWeeks ?? 4;
         var allSlots = await slotRepository.ListByDoctorAsync(doctorId, includeDeleted: true);
         var activeSlots = allSlots.Where(s => !s.IsDeleted).OrderBy(s => s.StartTime).ToList();
 
@@ -257,7 +258,7 @@ public partial class Query
         return new ScheduleConfigType
         {
             DoctorId = doctorId,
-            BookingWindowWeeks = config.BookingWindowWeeks,
+            BookingWindowWeeks = bookingWeeks,
             IntervalMinutes = intervalMinutes,
             Availability = availability,
             Slots = allSlots.Select(s => new RawSlotType

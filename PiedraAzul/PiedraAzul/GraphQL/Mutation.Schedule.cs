@@ -1,4 +1,4 @@
-﻿using HotChocolate;
+using HotChocolate;
 using PiedraAzul.Application.Common.Caching;
 using PiedraAzul.Application.Common.Interfaces;
 using PiedraAzul.GraphQL.Inputs;
@@ -11,7 +11,7 @@ public partial class Mutation
 {
     public async Task<bool> SaveScheduleConfigAsync(
         ScheduleConfigInput input,
-        [Service] ISystemConfigRepository systemConfigRepository,
+        [Service] IDoctorRepository doctorRepository,
         [Service] IDoctorAvailabilitySlotRepository slotRepository,
         [Service] IUnitOfWork unitOfWork,
         [Service] ICacheService cache)
@@ -38,9 +38,11 @@ public partial class Mutation
 
         await unitOfWork.ExecuteAsync(async ct =>
         {
-            var config = await systemConfigRepository.GetOrCreateAsync(ct);
-            config.UpdateBookingWindowWeeks(input.BookingWindowWeeks);
-            await systemConfigRepository.SaveAsync(config, ct);
+            // Guardar BookingWindowWeeks en el Doctor (por doctor, no global).
+            var doctor = await doctorRepository.GetByIdAsync(input.DoctorId, ct)
+                ?? throw new GraphQLException($"Doctor '{input.DoctorId}' no encontrado.");
+            doctor.SetBookingWindow(input.BookingWindowWeeks);
+            await doctorRepository.UpdateAsync(doctor, ct);
 
             var desired = activeSlots
                 .Select(s => {
@@ -83,20 +85,6 @@ public partial class Mutation
 
         // Cambió el horario del doctor → invalidar todos sus días y slots cacheados.
         cache.RemoveByTag(CacheKeys.TagDoctor(input.DoctorId));
-
-        return true;
-    }
-
-    public async Task<bool> UpdateBookingWindowWeeksAsync(
-        int bookingWindowWeeks,
-        [Service] ISystemConfigRepository systemConfigRepository)
-    {
-        if (bookingWindowWeeks < 1)
-            throw new GraphQLException("bookingWindowWeeks debe ser mayor o igual a 1");
-
-        var config = await systemConfigRepository.GetOrCreateAsync();
-        config.UpdateBookingWindowWeeks(bookingWindowWeeks);
-        await systemConfigRepository.SaveAsync(config);
 
         return true;
     }

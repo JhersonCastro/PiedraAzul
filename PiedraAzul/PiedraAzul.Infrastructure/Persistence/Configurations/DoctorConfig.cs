@@ -24,6 +24,10 @@ namespace PiedraAzul.Infrastructure.Persistence.Configurations
                 .HasMaxLength(100)
                 .IsRequired();
 
+            builder.Property(x => x.BookingWindowWeeks)
+                .IsRequired()
+                .HasDefaultValue(4);
+
             builder.HasMany(x => x.Slots)
                 .WithOne()
                 .HasForeignKey("DoctorId")

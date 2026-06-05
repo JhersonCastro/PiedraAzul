@@ -14,6 +14,12 @@ namespace PiedraAzul.Domain.Entities.Profiles.Doctor
         public string Notes { get; private set; }
         public bool IsAvailable { get; private set; } = true;
 
+        /// <summary>
+        /// Cuántas semanas adelante pueden reservar los pacientes con este doctor.
+        /// Valor predeterminado: 4 semanas.
+        /// </summary>
+        public int BookingWindowWeeks { get; private set; } = 4;
+
         private readonly List<DoctorAvailabilitySlot> _slots = new();
         public IReadOnlyCollection<DoctorAvailabilitySlot> Slots => _slots;
 
@@ -26,9 +32,18 @@ namespace PiedraAzul.Domain.Entities.Profiles.Doctor
             LicenseNumber = licenseNumber;
             Notes = notes;
             IsAvailable = true;
+            BookingWindowWeeks = 4;
         }
 
         public void SetAvailability(bool available) => IsAvailable = available;
+
+        /// <summary>Actualiza la ventana de reserva personalizada de este doctor.</summary>
+        public void SetBookingWindow(int weeks)
+        {
+            if (weeks < 1)
+                throw new DomainException("La ventana de reserva debe ser al menos 1 semana.");
+            BookingWindowWeeks = weeks;
+        }
 
         public void AddAvailability(DayOfWeek day, TimeSpan start, TimeSpan end)
         {
