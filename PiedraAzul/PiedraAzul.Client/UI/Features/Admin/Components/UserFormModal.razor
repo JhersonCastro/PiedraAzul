@@ -49,8 +49,8 @@
                     <div>
                         <label class="label-sm">Tipo de documento *</label>
                         <select @bind="_documentType" class="input-slate-select">
-                            <option value="CC">Cédula de ciudadanía</option>
-                            <option value="TI">Tarjeta de identidad</option>
+                            <option value="CC">Cédula de ciudadanía (18+ años)</option>
+                            <option value="TI">Tarjeta de identidad (7–17 años)</option>
                             <option value="CE">Cédula de extranjería</option>
                             <option value="PA">Pasaporte</option>
                         </select>
@@ -84,6 +84,7 @@
                     <div>
                         <label class="label-sm">Fecha de nacimiento *</label>
                         <input type="date" @bind="_birthDate"
+                               @bind:after="SuggestDocumentType"
                                class="input-slate" />
                     </div>
                     <div>
@@ -181,6 +182,16 @@
     private bool _saving;
     private string? _errorMsg;
 
+    // Auto-sugerir el tipo de documento correcto al ingresar la fecha de nacimiento.
+    // Este modal usa campos sueltos (no EditForm), así que la validación cruzada
+    // se hace en HandleSave con ColombianValidation.IsDocumentTypeValidForAge.
+    private void SuggestDocumentType()
+    {
+        if (_documentType is "CE" or "PA") return;
+        if (_birthDate is null) return;
+        _documentType = ColombianValidation.ExpectedDocumentType(_birthDate).ToString();
+    }
+
     protected override void OnParametersSet()
     {
         if (IsOpen)
@@ -239,6 +250,9 @@
         if (_birthDate is null) { _errorMsg = "La fecha de nacimiento es requerida"; return; }
         if (!ColombianValidation.IsAtLeastAge(_birthDate, ColombianValidation.MinRegistrationAge))
         { _errorMsg = $"El usuario debe tener al menos {ColombianValidation.MinRegistrationAge} años"; return; }
+
+        if (!ColombianValidation.IsDocumentTypeValidForAge(docType, _birthDate))
+        { _errorMsg = ColombianValidation.DocumentTypeAgeError(docType, ColombianValidation.AgeFrom(_birthDate)); return; }
 
         var birthUtc = DateTime.SpecifyKind(_birthDate.Value, DateTimeKind.Utc);
 

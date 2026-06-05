@@ -2,6 +2,7 @@
 @using PiedraAzul.Client.Services.AuthServices
 @using PiedraAzul.Client.UI.Shared.Components.StepTag
 @using PiedraAzul.Contracts.Enums
+@using PiedraAzul.Contracts.Validation
 
 @inject AuthenticationService AuthService
 @inject NavigationManager NavigationManager
@@ -37,8 +38,8 @@
 
                         <InputSelect @bind-Value="registerModel.DocumentType"
                                      class="input-lg">
-                            <option value="@DocumentType.CC">Cédula de ciudadanía</option>
-                            <option value="@DocumentType.TI">Tarjeta de identidad</option>
+                            <option value="@DocumentType.CC">Cédula de ciudadanía (18+ años)</option>
+                            <option value="@DocumentType.TI">Tarjeta de identidad (7–17 años)</option>
                             <option value="@DocumentType.CE">Cédula de extranjería</option>
                             <option value="@DocumentType.PA">Pasaporte</option>
                         </InputSelect>
@@ -126,6 +127,7 @@
                         </p>
 
                         <InputDate @bind-Value="registerModel.BirthDate"
+                                   @bind-Value:after="SuggestDocumentType"
                                    class="input-lg" />
 
                         <ValidationMessage For="@(() => registerModel.BirthDate)" class="form-error" />
@@ -246,6 +248,15 @@
         DocumentType.PA => "Alfanumérico (6 a 12 caracteres)",
         _ => "Ingrese su documento"
     };
+
+    // Auto-sugerir el tipo de documento correcto al ingresar la fecha de nacimiento.
+    // La VALIDACIÓN la hace el atributo [DocumentTypeForAge] en el modelo.
+    private void SuggestDocumentType()
+    {
+        if (registerModel.DocumentType is DocumentType.CE or DocumentType.PA) return;
+        if (registerModel.BirthDate is null) return;
+        registerModel.DocumentType = ColombianValidation.ExpectedDocumentType(registerModel.BirthDate);
+    }
 
     private async Task HandleRegister()
     {

@@ -7,6 +7,7 @@ namespace PiedraAzul.Client.Models.UserProfiles
     public class RegisterModel
     {
         [Required(ErrorMessage = "Selecciona el tipo de documento")]
+        [DocumentTypeForAge(nameof(BirthDate))]
         public DocumentType DocumentType { get; set; } = DocumentType.CC;
 
         [Required(ErrorMessage = "El número de documento es requerido")]
