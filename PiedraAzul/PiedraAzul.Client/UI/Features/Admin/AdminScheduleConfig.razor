@@ -319,7 +319,8 @@
 
         EditModel = ToEditModel(loaded);
         FeedbackMessage = null;
-        SyncTimeRangeInputs();
+        EditModel.IntervalMinutes = DetectIntervalFromSlots(loaded);
+        SyncTimeRangeInputs(loaded);
         RebuildSlots();
     }
 
@@ -335,27 +336,24 @@
         }
     }
 
-    private void SyncTimeRangeInputs()
+    private void SyncTimeRangeInputs(ScheduleConfigModel? source = null)
     {
-        if (EditModel.Availability?.Count == 0)
+        // Si tenemos el modelo original cargado del backend, usarlo directamente.
+        // En otros contextos (EnsureAvailabilityDays, etc.) usamos Availability de EditModel.
+        if (source is not null)
         {
-            StartTimeText = "08:00";
-            EndTimeText = "17:00";
+            var (start, end) = ScheduleConfigHelper.DetectTimeRange(source);
+            StartTimeText = $"{start.Hours:00}:{start.Minutes:00}";
+            EndTimeText   = $"{end.Hours:00}:{end.Minutes:00}";
             return;
         }
 
-        var sample = EditModel.Availability!.FirstOrDefault(x => x.IsEnabled) ?? EditModel.Availability.FirstOrDefault();
-        if (sample is null)
-        {
-            StartTimeText = "08:00";
-            EndTimeText = "17:00";
-            return;
-        }
-
-        var start = sample.StartTimeSpan;
-        var end = sample.EndTimeSpan;
-        StartTimeText = $"{start.Hours:00}:{start.Minutes:00}";
-        EndTimeText = $"{end.Hours:00}:{end.Minutes:00}";
+        // Fallback: primer día habilitado en EditModel
+        var sample = EditModel.Availability?.FirstOrDefault(x => x.IsEnabled)
+                  ?? EditModel.Availability?.FirstOrDefault();
+        if (sample is null) { StartTimeText = "08:00"; EndTimeText = "17:00"; return; }
+        StartTimeText = $"{sample.StartTimeSpan.Hours:00}:{sample.StartTimeSpan.Minutes:00}";
+        EndTimeText   = $"{sample.EndTimeSpan.Hours:00}:{sample.EndTimeSpan.Minutes:00}";
     }
 
     private void ApplyTimeRangeToAvailability()
@@ -598,6 +596,9 @@
                 }))
             .ToList();
     }
+
+    private static int DetectIntervalFromSlots(ScheduleConfigModel config)
+        => ScheduleConfigHelper.DetectInterval(config);
 
     private static ScheduleConfigEditModel ToEditModel(ScheduleConfigModel model) => new()
     {
