@@ -175,11 +175,14 @@ else
             Logger.LogError(ex, "Error al iniciar SignalR");
         }
 
-        // Una sola query al backend en lugar de 28 requests paralelos.
-        // GetDoctorAvailableDaysAsync hace 2 consultas a la BD y computa en memoria.
+        // Leer la ventana de reserva personalizada del doctor (en semanas).
+        var windowResult = await AvailabilityClient.GetBookingWindowWeeksAsync(DoctorId);
+        var windowDays = (windowResult.IsSuccess ? windowResult.Value : 4) * 7;
+
+        // Una sola query al backend — el servidor también hace clamp por seguridad.
         var startDate = DateTime.Today.AddDays(1);
         var availableDaysResult = await AvailabilityClient.GetDoctorAvailableDaysAsync(
-            DoctorId, startDate, numberOfDays: 28);
+            DoctorId, startDate, numberOfDays: windowDays);
 
         if (availableDaysResult.IsSuccess)
         {

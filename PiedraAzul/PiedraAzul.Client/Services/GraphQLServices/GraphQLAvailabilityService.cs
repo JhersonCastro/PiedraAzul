@@ -6,6 +6,27 @@ namespace PiedraAzul.Client.Services.GraphQLServices;
 
 public class GraphQLAvailabilityService(GraphQLHttpClient client)
 {
+    /// <summary>
+    /// Obtiene la ventana de reserva personalizada de un doctor (en semanas).
+    /// </summary>
+    public async Task<Result<int>> GetBookingWindowWeeksAsync(string doctorId)
+    {
+        const string query = """
+            query GetBookingWindowWeeks($doctorId: String!) {
+                bookingWindowWeeks(doctorId: $doctorId)
+            }
+            """;
+
+        return await GraphQLExecutor.Execute(async () =>
+        {
+            var result = await client.ExecuteAsync<int>(
+                query,
+                new { doctorId },
+                "bookingWindowWeeks");
+            return result > 0 ? result : 4;
+        });
+    }
+
     public async Task<Result<List<DateTime>>> GetDoctorAvailableDaysAsync(
         string doctorId,
         DateTime startDate,
