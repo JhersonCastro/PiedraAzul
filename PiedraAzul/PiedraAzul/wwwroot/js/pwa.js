@@ -73,46 +73,9 @@ window.downloadFile = (fileName, dataContent) => {
     document.body.removeChild(a);
 };
 
-// Imprimir una tabla en un iframe aislado — evita imprimir el SPA completo (sidebars, nav, etc.)
-// Si checkLast = true, cada fila añade una columna final con una casilla vacía ☐ para marcar
-// manualmente la asistencia (✓ asistió / ✗ no asistió) sobre el papel.
-window.printTable = (title, subtitle, headers, rows, checkLast) => {
-    const esc = (s) => String(s ?? '')
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-    const thead = '<tr>' + headers.map((h, i) =>
-        `<th class="${checkLast && i === headers.length - 1 ? 'chk-col' : ''}">${esc(h)}</th>`
-    ).join('') + '</tr>';
-
-    const tbody = rows.map(r => {
-        const cells = r.map(c => '<td>' + esc(c) + '</td>').join('');
-        const box = checkLast ? '<td class="chk-col"><span class="chk"></span></td>' : '';
-        return '<tr>' + cells + box + '</tr>';
-    }).join('');
-
-    const html = `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>${esc(title)}</title>
-        <style>
-            * { box-sizing: border-box; }
-            body { font-family: 'DM Sans', -apple-system, Segoe UI, sans-serif; color: #0F172A; margin: 32px; }
-            h1 { font-size: 20px; margin: 0 0 4px; color: #257D8D; }
-            .sub { font-size: 12px; color: #64748B; margin: 0 0 20px; }
-            table { width: 100%; border-collapse: collapse; font-size: 12px; }
-            thead th { text-align: left; text-transform: uppercase; letter-spacing: .04em;
-                       font-size: 10px; color: #475569; border-bottom: 2px solid #257D8D;
-                       padding: 8px 10px; }
-            tbody td { padding: 8px 10px; border-bottom: 1px solid #E2E8F0; }
-            tbody tr:nth-child(even) { background: #F8FAFC; }
-            .chk-col { text-align: center; width: 70px; }
-            .chk { display: inline-block; width: 16px; height: 16px;
-                   border: 1.5px solid #475569; border-radius: 3px; }
-            @media print { body { margin: 0; } tbody tr:nth-child(even) { background: #F8FAFC !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
-        </style></head>
-        <body>
-            <h1>${esc(title)}</h1>
-            <p class="sub">${esc(subtitle)}</p>
-            <table><thead>${thead}</thead><tbody>${tbody}</tbody></table>
-        </body></html>`;
-
+// Imprimir un documento HTML completo en un iframe aislado.
+// Evita imprimir el SPA completo (sidebars, nav) y evita window.open() que el navegador bloquea.
+window.printHtml = (html) => {
     const iframe = document.createElement('iframe');
     iframe.style.position = 'fixed';
     iframe.style.right = '0';
