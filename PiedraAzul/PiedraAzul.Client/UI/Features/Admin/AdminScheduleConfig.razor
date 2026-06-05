@@ -6,6 +6,7 @@
 @using PiedraAzul.Client.Services.GraphQLServices
 @using PiedraAzul.Contracts.Enums
 @using PiedraAzul.Client.States
+@using PiedraAzul.Client.UI.Shared.Components
 @inject UserState UserState
 @inject IJSRuntime JS
 @inject GraphQLDoctorService DoctorService
@@ -30,23 +31,11 @@
 
                 <div class="flex flex-col gap-2">
                     <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Especialista</label>
-                    <div class="bg-white p-2 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-2 w-full">
-                        <div class="pl-2 text-slate-400 flex-shrink-0">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-                        </div>
-                        <select class="flex-1 min-w-0 bg-transparent border-none focus:outline-none text-slate-700 font-bold text-sm"
-                                value="@EditModel.DoctorId"
-                                @onchange="OnDoctorChangedAsync">
-                            <option value="">Selecciona un especialista</option>
-                            @foreach (var doctor in Doctors)
-                            {
-                                <option value="@doctor.UserId">@doctor.Name (@doctor.Specialty)</option>
-                            }
-                        </select>
-                        <button type="button" @onclick="LoadSelectedSpecialistConfigAsync" class="bg-primary text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:opacity-90 transition-all shadow-lg shadow-primary/20 flex-shrink-0">
-                            CARGAR
-                        </button>
-                    </div>
+                    <DoctorAutocomplete Doctors="Doctors"
+                                        Value="EditModel.DoctorId"
+                                        ValueChanged="OnSpecialistAutocompleteChanged"
+                                        ValueSelector="d => d.UserId"
+                                        Placeholder="Busca por nombre o especialidad..." />
                     <ValidationMessage For="() => EditModel.DoctorId" class="text-red-500 text-xs ml-1" />
                 </div>
             </div>
@@ -54,55 +43,68 @@
             
 
             <div class="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-10">
-                <aside class="space-y-8">
-                    <div class="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
-                        <div class="flex items-center justify-between mb-8">
-                            <h3 class="font-black text-slate-900 text-xl">@SelectedMonthLabel</h3>
-                            <div class="text-primary">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                <aside class="space-y-4">
+                    <!-- Leyenda -->
+                    <div class="portal-card">
+                        <p class="portal-card-title mb-4 uppercase tracking-wider">Leyenda</p>
+                        <div class="space-y-3">
+                            <div class="legend-item">
+                                <div class="legend-dot-primary"></div>
+                                <span class="legend-text">Disponible</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-dot-idle"></div>
+                                <span class="legend-text">Bloqueado</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="h-3 w-3 rounded-full border border-amber-300 bg-amber-100"></div>
+                                <span class="legend-text">Eliminado (reactivable)</span>
                             </div>
                         </div>
-                        <div class="space-y-3">
-                            @foreach (var day in new[] { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday })
-                            {
-                                var label = day switch
-                                {
-                                    DayOfWeek.Monday => "Lunes",
-                                    DayOfWeek.Tuesday => "Martes",
-                                    DayOfWeek.Wednesday => "Miércoles",
-                                    DayOfWeek.Thursday => "Jueves",
-                                    DayOfWeek.Friday => "Viernes",
-                                    _ => ""
-                                };
-                                <div class="px-4 py-3 bg-primary text-white rounded-lg font-bold text-sm text-center">
-                                    @label
+                        <p class="mt-4 text-xs text-[#94A3B8]">Clic en una franja de @EditModel.IntervalMinutes min para cambiar disponibilidad.</p>
+                    </div>
+
+                    <!-- Intervalo + Franja Horaria -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="portal-card">
+                            <p class="portal-card-title mb-3 uppercase tracking-wider">Intervalo</p>
+                            <select value="@EditModel.IntervalMinutes" @onchange="OnIntervalChanged" class="sched-input">
+                                <option value="5">5 min</option>
+                                <option value="10">10 min</option>
+                                <option value="15">15 min</option>
+                                <option value="20">20 min</option>
+                                <option value="30">30 min</option>
+                                <option value="60">60 min</option>
+                            </select>
+                            <p class="mt-2 text-[11px] text-[#94A3B8]">@EditModel.IntervalMinutes min por slot</p>
+                        </div>
+
+                        <div class="portal-card">
+                            <p class="portal-card-title mb-3 uppercase tracking-wider">Franja Horaria</p>
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="mb-1 block text-[11px] text-[#64748B]">Apertura</label>
+                                    <input type="time" value="@StartTimeText" @onchange="OnStartTimeChanged" class="sched-input" />
                                 </div>
-                            }
+                                <div>
+                                    <label class="mb-1 block text-[11px] text-[#64748B]">Cierre</label>
+                                    <input type="time" value="@EndTimeText" @onchange="OnEndTimeChanged" class="sched-input" />
+                                </div>
+                            </div>
+                            <p class="mt-2 text-[11px] text-[#94A3B8]">Se aplica a todos los días habilitados.</p>
                         </div>
                     </div>
 
-                    <div class="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
-                        <h3 class="font-black text-slate-900 mb-6">Estado</h3>
-                        <div class="space-y-5">
-                            <div class="flex items-center gap-3">
-                                <div class="w-5 h-5 rounded-lg bg-primary"></div>
-                                <span class="text-sm font-bold text-slate-600">Disponible</span>
-                            </div>
-                            <div class="flex items-center gap-3">
-                                <div class="w-5 h-5 rounded-lg bg-slate-200"></div>
-                                <span class="text-sm font-bold text-slate-600">Bloqueado</span>
-                            </div>
-                            <div class="flex items-center gap-3">
-                                <div class="w-5 h-5 rounded-lg bg-amber-100 border border-amber-200"></div>
-                                <span class="text-sm font-bold text-slate-600">Eliminado (reactivable)</span>
-                            </div>
-                        </div>
-                        <div class="mt-8 pt-8 border-t border-slate-50">
-                            <div class="flex gap-4 text-slate-400">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-                                <p class="text-xs font-bold leading-relaxed">Haz clic en cualquier franja horaria de @EditModel.IntervalMinutes min para cambiar su disponibilidad.</p>
-                            </div>
-                        </div>
+                    <!-- Ventana de reserva (exclusivo de Admin) -->
+                    <div class="portal-card">
+                        <p class="portal-card-title mb-3 uppercase tracking-wider">Ventana de reserva</p>
+                        <select @bind="EditModel.BookingWindowWeeks" class="sched-input">
+                            @for (var week = 1; week <= 8; week++)
+                            {
+                                <option value="@week">@week semana(s)</option>
+                            }
+                        </select>
+                        <p class="mt-2 text-[11px] text-[#94A3B8]">Cuántas semanas hacia adelante pueden reservar los pacientes.</p>
                     </div>
                 </aside>
 
@@ -124,61 +126,7 @@
                     }
                     else
                     {
-                        <div class="bg-white rounded-2xl md:rounded-[2.5rem] p-5 md:p-10 shadow-sm border border-slate-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-8">
-                        <div>
-                            <h2 class="text-xl md:text-3xl font-black text-slate-900 mb-1 md:mb-3">Intervalo de atención</h2>
-                            <p class="text-slate-500 text-sm font-medium">Ajusta la configuración del cronograma semanal.</p>
-                        </div>
-
-                        <div class="relative">
-                            <div class="flex items-center gap-3">
-                                <div class="bg-slate-50 p-4 rounded-3xl border border-slate-100 flex items-center gap-4 min-w-[200px]">
-                                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">Intervalo de atención</span>
-                                    <select value="@EditModel.IntervalMinutes" @onchange="OnIntervalChanged" class="flex-1 bg-transparent border-none font-black text-slate-700 focus:outline-none">
-                                        <option value="5">5 min</option>
-                                        <option value="10">10 min</option>
-                                        <option value="15">15 min</option>
-                                        <option value="20">20 min</option>
-                                        <option value="30">30 min</option>
-                                    </select>
-                                </div>
-                                <button type="button" @onclick="() => showConfigPopover = !showConfigPopover" class="p-4 bg-slate-100 rounded-2xl text-slate-500 hover:bg-slate-200 transition-all">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-                                </button>
-                            </div>
-
-                            @if (showConfigPopover)
-                            {
-                                <div class="absolute right-0 mt-6 w-[350px] bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-slate-100 p-10 z-50 transition-all transform scale-100 origin-top-right">
-                                    <h3 class="text-2xl font-black text-slate-900 mb-8">Configuración</h3>
-                                    <div class="space-y-8">
-                                        <div>
-                                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Ventana de semanas</label>
-                                            <select @bind="EditModel.BookingWindowWeeks" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 font-black text-slate-700 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all">
-                                                @for (var week = 1; week <= 8; week++)
-                                                {
-                                                    <option value="@week">@week semana(s)</option>
-                                                }
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Hora de Apertura</label>
-                                            <input type="time" value="@StartTimeText" @onchange="OnStartTimeChanged" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 font-black text-slate-700 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all" />
-                                        </div>
-                                        <div>
-                                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-1">Hora de Cierre</label>
-                                            <input type="time" value="@EndTimeText" @onchange="OnEndTimeChanged" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 font-black text-slate-700 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all" />
-                                        </div>
-                                        <button type="button" @onclick="() => showConfigPopover = false" class="w-full bg-primary text-white py-5 rounded-2xl font-black text-sm shadow-xl shadow-primary/20 hover:opacity-90 transition-all mt-4">
-                                            Aplicar
-                                        </button>
-                                    </div>
-                                </div>
-                            }
-                        </div>
-                    </div>
-
-                    <div class="bg-white rounded-2xl md:rounded-[2.5rem] shadow-xl shadow-slate-200/40 border border-slate-100 overflow-hidden">
+                        <div class="bg-white rounded-2xl md:rounded-[2.5rem] shadow-xl shadow-slate-200/40 border border-slate-100 overflow-hidden">
                       <div class="overflow-x-auto">
                        <div class="min-w-[560px]">
                         <div class="grid grid-cols-[100px_1fr_1fr_1fr_1fr_1fr] border-b border-slate-100 bg-slate-50/20">
@@ -315,10 +263,13 @@
             .ToList();
     }
 
-    private async Task OnDoctorChangedAsync(ChangeEventArgs args)
+    // Igual que el portal del doctor: al elegir un especialista se carga su horario automáticamente.
+    private async Task OnSpecialistAutocompleteChanged(string? userId)
     {
-        EditModel.DoctorId = args.Value?.ToString() ?? string.Empty;
-        await OnSpecialistSelectedAsync();
+        EditModel.DoctorId = userId ?? string.Empty;
+        FeedbackMessage = null;
+        if (!string.IsNullOrWhiteSpace(EditModel.DoctorId))
+            await LoadSelectedSpecialistConfigAsync();
     }
 
     private void OnIntervalChanged(ChangeEventArgs args)

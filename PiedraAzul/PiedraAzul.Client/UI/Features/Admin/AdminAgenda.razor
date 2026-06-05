@@ -1,7 +1,9 @@
 @page "/admin/agenda"
+@using System.Globalization
 @using PiedraAzul.Client.Models.GraphQL
 @using PiedraAzul.Contracts.Enums
 @using PiedraAzul.Client.UI.Features.Booking.Components
+@using PiedraAzul.Client.UI.Shared.Components
 @inject PiedraAzul.Client.Services.GraphQLServices.GraphQLAppointmentService AppointmentService
 @inject PiedraAzul.Client.Services.GraphQLServices.GraphQLDoctorService DoctorService
 
@@ -14,20 +16,6 @@
             <div>
                 <h1 class="admin-heading">Agenda Médica</h1>
                 <p class="admin-sub">Gestión y listado de citas de los especialistas</p>
-            </div>
-
-            <div class="flex flex-wrap items-center gap-2">
-                <a href="/admin/configurar-horario" class="btn-admin-outline">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z"/><path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
-                    Configurar Horario
-                </a>
-
-                <a href="/booking/manual" class="btn-admin-primary">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon-4" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
-                    </svg>
-                    Agendar Manualmente
-                </a>
             </div>
         </div>
 
@@ -46,148 +34,215 @@
             </div>
         }
 
-        <!-- Filtros -->
-        <div data-tour="admin-agenda-filters" class="filter-card grid grid-cols-1 gap-4 md:grid-cols-3">
-            <div>
-                <label class="label-sm">Especialista</label>
-                <select class="input-slate-select" @bind="SelectedDoctorId">
-                    <option value="">Selecciona un médico...</option>
-                    @foreach (var doc in doctores)
-                    {
-                        <option value="@doc.UserId">@doc.Name (@doc.Specialty)</option>
-                    }
-                </select>
-            </div>
-
-            <div>
-                <label class="label-sm">Fecha</label>
-                <input type="date" class="input-slate" value="@SelectedDate.ToString("yyyy-MM-dd")" @onchange="OnDateChange" />
-            </div>
-
-            <div class="flex items-end">
-                <button class="w-full rounded-lg bg-slate-800 px-4 py-2.5 font-medium text-white shadow-sm transition-colors hover:bg-slate-900" @onclick="CargarCitas">
-                    Filtrar Agenda
-                </button>
-            </div>
+        <!-- Selector de especialista -->
+        <div data-tour="admin-agenda-filters" class="filter-card mb-6">
+            <label class="label-sm">Especialista</label>
+            <DoctorAutocomplete Doctors="doctores"
+                                Value="SelectedDoctorId"
+                                ValueChanged="OnDoctorSelected"
+                                ValueSelector="d => d.UserId"
+                                Placeholder="Busca por nombre o especialidad..." />
         </div>
 
-        <!-- Tabla de Citas -->
-        <div class="table-card">
-            <div class="table-scroll">
-                <table class="table-base">
-                    <thead>
-                        <tr class="table-head-row">
-                            <th class="table-th">Hora</th>
-                            <th class="table-th">Paciente</th>
-                            <th class="table-th">Motivo/Servicio</th>
-                            <th class="table-th">Estado</th>
-                            <th class="table-th-right">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody class="table-body">
-                        @if (citas == null || !citas.Any())
-                        {
-                            <tr><td colspan="5" class="table-empty">No hay citas para mostrar en esta fecha o seleccione un médico.</td></tr>
-                        }
-                        else
-                        {
-                            @foreach (var cita in citas)
-                            {
-                                <tr class="table-row">
-                                    <td class="table-td">
-                                        <div class="font-semibold text-slate-800">@cita.Start.ToString("hh:mm tt")</div>
-                                    </td>
-                                    <td class="table-td">
-                                        <div class="font-medium text-slate-900">@cita.PatientName</div>
-                                        <div class="text-sm text-slate-500">Tipo: @cita.PatientType</div>
-                                    </td>
-                                    <td class="table-td">
-                                        <div class="inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">Consulta Médica</div>
-                                    </td>
-                                    <td class="table-td">
-                                        <span class="badge-guest">
-                                            <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
-                                            Confirmada
-                                        </span>
-                                    </td>
-                                    <td class="table-td-right">
-                                        <div class="flex items-center justify-end gap-3">
-                                            @if (cita.WasRescheduled)
-                                            {
-                                                <button title="Esta cita fue reagendada — ver historial"
-                                                        @onclick="() => ToggleHistory(cita.Id)"
-                                                        class="flex h-7 w-7 items-center justify-center rounded-lg border-2 border-amber-300 bg-amber-50 text-amber-600 transition hover:bg-amber-100">
-                                                    <svg class="icon-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-                                                    </svg>
-                                                </button>
-                                            }
-                                            <button class="text-sm font-medium text-teal-600 transition-colors hover:text-teal-800" @onclick="() => OpenRescheduleModal(cita)">Reagendar</button>
-                                            <button class="text-sm font-medium text-rose-500 transition-colors hover:text-rose-700">Cancelar</button>
-                                        </div>
-                                    </td>
-                                </tr>
+        @if (string.IsNullOrEmpty(SelectedDoctorId))
+        {
+            <!-- Empty state -->
+            <div class="cal-card flex flex-col items-center justify-center px-8 py-20 text-center">
+                <div class="mb-4 text-[#94A3B8]">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mx-auto"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                </div>
+                <h3 class="mb-2 text-xl font-black text-[#0F172A]">Selecciona un especialista</h3>
+                <p class="max-w-md text-sm text-[#64748B]">Busca y elige un especialista arriba para ver su agenda mensual de citas.</p>
+            </div>
+        }
+        else
+        {
+            <!-- Calendario mensual -->
+            <div class="cal-card mb-6">
+                <div class="cal-header">
+                    <div class="cal-nav">
+                        <button @onclick="PreviousMonth" class="cal-nav-btn">
+                            <svg class="icon-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg>
+                        </button>
+                        <h3 class="cal-month-title">@MonthLabel</h3>
+                        <button @onclick="NextMonth" class="cal-nav-btn">
+                            <svg class="icon-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+                        </button>
+                    </div>
+                    <span class="text-xs font-semibold text-[#64748B]">@_allCitas.Count cita(s) en total</span>
+                </div>
 
-                                @if (cita.WasRescheduled && _expandedCitaId == cita.Id)
-                                {
-                                    <tr class="bg-amber-50/40">
-                                        <td colspan="5" class="px-6 py-4">
-                                            <p class="mb-3 text-[12px] font-bold text-amber-900">Historial de reagendamientos</p>
-                                            @if (cita.RescheduleHistory is { Count: > 0 })
+                <div class="cal-days-header">
+                    @foreach (var day in DaysOfWeek)
+                    {
+                        <div class="cal-day-label">@day[..3]</div>
+                    }
+                </div>
+
+                @if (_loading)
+                {
+                    <div class="cal-loading"><div class="spinner"></div><span>Cargando citas...</span></div>
+                }
+                else
+                {
+                    <div class="overflow-x-auto">
+                        <div class="cal-grid" style="min-height:420px">
+                            @foreach (var date in CalendarDays)
+                            {
+                                var isCurrentMonth = date.Month == CurrentMonth.Month;
+                                var isToday = date.Date == DateTime.Today;
+                                var isSelected = _selectedDay == date.Date;
+                                var apps = MonthlyAppointments.TryGetValue(date.Date, out var l) ? l : null;
+
+                                <div @onclick="() => SelectDay(date)"
+                                     class="cal-cell @(isCurrentMonth ? "" : "opacity-40") @(isSelected ? "ring-2 ring-inset ring-[#257D8D] bg-[#F0FBFC]" : "")">
+
+                                    <span class="@(isToday ? "cal-day-today" : "cal-day-normal")">@date.Day</span>
+
+                                    <div class="mt-1 space-y-0.5 overflow-hidden">
+                                        @if (apps is not null)
+                                        {
+                                            @foreach (var app in apps.Take(2))
                                             {
-                                                <div class="space-y-2.5">
-                                                    @foreach (var entry in cita.RescheduleHistory.OrderBy(e => e.RescheduledAt))
-                                                    {
-                                                        <div class="rounded-xl border border-amber-200 bg-white p-3">
-                                                            <div class="flex gap-3">
-                                                                <div class="mt-0.5 flex-shrink-0">
-                                                                    <div class="flex h-4 w-4 items-center justify-center rounded-full border-2 border-[#257D8D] bg-[#E0F7FA]">
-                                                                        <span class="h-1.5 w-1.5 rounded-full bg-[#257D8D]"></span>
-                                                                    </div>
-                                                                </div>
-                                                                <div class="flex-1 space-y-1">
-                                                                    <p class="text-[12px] font-bold text-slate-900">
-                                                                        Reagendada por:
-                                                                        <span class="text-[#257D8D]">@(string.IsNullOrEmpty(entry.RescheduledByName) ? "Usuario" : entry.RescheduledByName)</span>
-                                                                        @if (entry.RescheduledByRoles is { Length: > 0 })
-                                                                        {
-                                                                            <span class="text-[10px] font-medium text-slate-500">(@string.Join(", ", entry.RescheduledByRoles.Select(RoleLabel)))</span>
-                                                                        }
-                                                                    </p>
-                                                                    <p class="text-[11px] text-slate-500">
-                                                                        Fecha del cambio: @ToLocal(entry.RescheduledAt).ToString("d 'de' MMMM 'de' yyyy 'a las' hh:mm tt", _es)
-                                                                    </p>
-                                                                    <div class="mt-1 space-y-0.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-[11px] text-slate-600">
-                                                                        <p><span class="font-semibold">De:</span> @entry.OriginalDate.ToString("d 'de' MMMM", _es) — Dr. @entry.OriginalDoctorName</p>
-                                                                        <p><span class="font-semibold">Para:</span> @entry.NewDate.ToString("d 'de' MMMM", _es) — Dr. @entry.NewDoctorName</p>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    }
-                                                    <p class="px-1 text-[10px] italic text-slate-400">
-                                                        Nota: estas fechas indican cuándo se reagendó la cita, no la fecha de la cita en sí.
-                                                    </p>
+                                                <div class="truncate rounded px-1 py-0.5 text-[10px] font-semibold @GetBadgeClass(app.Status)">
+                                                    @app.Start.ToString("HH:mm") · @FirstName(app.PatientName)
                                                 </div>
                                             }
-                                            else
+                                            @if (apps.Count > 2)
                                             {
-                                                <p class="text-[11px] text-slate-400">Sin detalle de historial disponible.</p>
+                                                <div class="cal-more">+@(apps.Count - 2) más</div>
                                             }
-                                        </td>
-                                    </tr>
-                                }
+                                        }
+                                    </div>
+                                </div>
                             }
-                        }
-                    </tbody>
-                </table>
+                        </div>
+                    </div>
+                }
             </div>
 
-            <!-- Footer -->
-            <div class="table-footer">
-                <span class="table-count">Mostrando resultados del médico</span>
-            </div>
-        </div>
+            <!-- Detalle del día seleccionado -->
+            @if (_selectedDay is not null)
+            {
+                <div class="table-card">
+                    <div class="flex items-center justify-between border-b border-[#E2E8F0] bg-[#F8FAFC] px-6 py-4">
+                        <span class="text-sm font-bold capitalize text-[#0F172A]">
+                            @_selectedDay.Value.ToString("dddd, dd 'de' MMMM yyyy", _es)
+                        </span>
+                        <span class="rounded-full bg-[#E0F7FA] px-3 py-1 text-[11px] font-bold text-[#257D8D]">
+                            @DayCitas.Count cita(s)
+                        </span>
+                    </div>
+
+                    <div class="table-scroll">
+                        <table class="table-base">
+                            <thead>
+                                <tr class="table-head-row">
+                                    <th class="table-th">Hora</th>
+                                    <th class="table-th">Paciente</th>
+                                    <th class="table-th">Motivo/Servicio</th>
+                                    <th class="table-th">Estado</th>
+                                    <th class="table-th-right">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody class="table-body">
+                                @if (!DayCitas.Any())
+                                {
+                                    <tr><td colspan="5" class="table-empty">No hay citas para este día.</td></tr>
+                                }
+                                else
+                                {
+                                    @foreach (var cita in DayCitas)
+                                    {
+                                        <tr class="table-row">
+                                            <td class="table-td">
+                                                <div class="font-semibold text-slate-800">@cita.Start.ToString("hh:mm tt")</div>
+                                            </td>
+                                            <td class="table-td">
+                                                <div class="font-medium text-slate-900">@cita.PatientName</div>
+                                                <div class="text-sm text-slate-500">Tipo: @(cita.PatientType == "Registered" ? "Registrado" : "Invitado")</div>
+                                            </td>
+                                            <td class="table-td">
+                                                <div class="inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">Consulta Médica</div>
+                                            </td>
+                                            <td class="table-td">
+                                                @{ var si = GetStatusInfo(cita.Status); }
+                                                <span class="inline-flex items-center gap-1.5 rounded-full border @si.BadgeClass px-2.5 py-0.5 text-[11px] font-semibold">
+                                                    <span class="h-1.5 w-1.5 rounded-full @si.DotClass"></span>
+                                                    @si.Label
+                                                </span>
+                                            </td>
+                                            <td class="table-td-right">
+                                                <div class="flex items-center justify-end gap-3">
+                                                    @if (cita.WasRescheduled)
+                                                    {
+                                                        <button title="Esta cita fue reagendada — ver historial"
+                                                                @onclick="() => ToggleHistory(cita.Id)"
+                                                                class="flex h-7 w-7 items-center justify-center rounded-lg border-2 border-amber-300 bg-amber-50 text-amber-600 transition hover:bg-amber-100">
+                                                            <svg class="icon-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                                                            </svg>
+                                                        </button>
+                                                    }
+                                                    <button class="text-sm font-medium text-[#257D8D] transition-colors hover:text-[#1E5F6F]" @onclick="() => OpenRescheduleModal(cita)">Reagendar</button>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        @if (cita.WasRescheduled && _expandedCitaId == cita.Id)
+                                        {
+                                            <tr class="bg-amber-50/40">
+                                                <td colspan="5" class="px-6 py-4">
+                                                    <p class="mb-3 text-[12px] font-bold text-amber-900">Historial de reagendamientos</p>
+                                                    @if (cita.RescheduleHistory is { Count: > 0 })
+                                                    {
+                                                        <div class="space-y-2.5">
+                                                            @foreach (var entry in cita.RescheduleHistory.OrderBy(e => e.RescheduledAt))
+                                                            {
+                                                                <div class="rounded-xl border border-amber-200 bg-white p-3">
+                                                                    <div class="flex gap-3">
+                                                                        <div class="mt-0.5 flex-shrink-0">
+                                                                            <div class="flex h-4 w-4 items-center justify-center rounded-full border-2 border-[#257D8D] bg-[#E0F7FA]">
+                                                                                <span class="h-1.5 w-1.5 rounded-full bg-[#257D8D]"></span>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="flex-1 space-y-1">
+                                                                            <p class="text-[12px] font-bold text-slate-900">
+                                                                                Reagendada por:
+                                                                                <span class="text-[#257D8D]">@(string.IsNullOrEmpty(entry.RescheduledByName) ? "Usuario" : entry.RescheduledByName)</span>
+                                                                                @if (entry.RescheduledByRoles is { Length: > 0 })
+                                                                                {
+                                                                                    <span class="text-[10px] font-medium text-slate-500">(@string.Join(", ", entry.RescheduledByRoles.Select(RoleLabel)))</span>
+                                                                                }
+                                                                            </p>
+                                                                            <p class="text-[11px] text-slate-500">
+                                                                                Fecha del cambio: @ToLocal(entry.RescheduledAt).ToString("d 'de' MMMM 'de' yyyy 'a las' hh:mm tt", _es)
+                                                                            </p>
+                                                                            <div class="mt-1 space-y-0.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-[11px] text-slate-600">
+                                                                                <p><span class="font-semibold">De:</span> @entry.OriginalDate.ToString("d 'de' MMMM", _es) — Dr. @entry.OriginalDoctorName</p>
+                                                                                <p><span class="font-semibold">Para:</span> @entry.NewDate.ToString("d 'de' MMMM", _es) — Dr. @entry.NewDoctorName</p>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            }
+                                                        </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <p class="text-[11px] text-slate-400">Sin detalle de historial disponible.</p>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+        }
 
     </div>
 </div>
@@ -202,9 +257,15 @@
 
 @code {
     private List<DoctorGQL> doctores = new();
-    private List<AppointmentGQL> citas = new();
+    private List<AppointmentGQL> _allCitas = new();
     private string SelectedDoctorId { get; set; } = "";
-    private DateTime SelectedDate { get; set; } = DateTime.Today;
+
+    private DateTime CurrentMonth = new(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private readonly string[] DaysOfWeek = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+    private List<DateTime> CalendarDays = new();
+    private Dictionary<DateTime, List<AppointmentGQL>> MonthlyAppointments = new();
+    private DateTime? _selectedDay;
+    private bool _loading;
 
     private bool _rescheduleModalOpen;
     private bool _rescheduleLoading;
@@ -213,7 +274,18 @@
     private string? _successMessage;
 
     private string? _expandedCitaId;
-    private static readonly System.Globalization.CultureInfo _es = new("es-ES");
+    private static readonly CultureInfo _es = new("es-ES");
+
+    private string MonthLabel =>
+        char.ToUpper(CurrentMonth.ToString("MMMM", _es)[0]) + CurrentMonth.ToString("MMMM yyyy", _es)[1..];
+
+    private List<AppointmentGQL> DayCitas =>
+        _selectedDay is null
+            ? new()
+            : _allCitas.Where(c => c.Start.Date == _selectedDay.Value.Date).OrderBy(c => c.Start).ToList();
+
+    private static string FirstName(string? name) =>
+        string.IsNullOrWhiteSpace(name) ? "Paciente" : name.Split(' ')[0];
 
     private void ToggleHistory(string citaId)
         => _expandedCitaId = _expandedCitaId == citaId ? null : citaId;
@@ -231,6 +303,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        CalculateCalendar();
         for (int i = 0; i <= 3; i++)
         {
             var type = (DoctorType)i;
@@ -239,17 +312,66 @@
         }
     }
 
-    private void OnDateChange(ChangeEventArgs e)
+    private void CalculateCalendar()
     {
-        if (DateTime.TryParse(e.Value?.ToString(), out var parsedDate))
-            SelectedDate = parsedDate;
+        CalendarDays.Clear();
+        var first = new DateTime(CurrentMonth.Year, CurrentMonth.Month, 1);
+        int offset = ((int)first.DayOfWeek - (int)DayOfWeek.Monday + 7) % 7;
+        var start = first.AddDays(-offset);
+        for (int i = 0; i < 42; i++) CalendarDays.Add(start.AddDays(i));
     }
 
-    private async Task CargarCitas()
+    private async Task OnDoctorSelected(string? doctorId)
+    {
+        SelectedDoctorId = doctorId ?? "";
+        _selectedDay = null;
+        _expandedCitaId = null;
+        if (string.IsNullOrEmpty(SelectedDoctorId))
+        {
+            _allCitas = new();
+            MonthlyAppointments = new();
+            return;
+        }
+        await LoadCitasAsync();
+    }
+
+    private async Task LoadCitasAsync()
     {
         if (string.IsNullOrEmpty(SelectedDoctorId)) return;
-        var result = await AppointmentService.GetDoctorAppointments(SelectedDoctorId, SelectedDate);
-        if (result.IsSuccess && result.Value != null) citas = result.Value;
+        _loading = true; StateHasChanged();
+        try
+        {
+            var result = await AppointmentService.GetDoctorAppointments(SelectedDoctorId, null);
+            _allCitas = result.IsSuccess ? (result.Value ?? new()) : new();
+            if (!result.IsSuccess) _error = "No se pudieron cargar las citas.";
+            BuildMonthlyDict();
+        }
+        finally { _loading = false; }
+    }
+
+    private void BuildMonthlyDict()
+    {
+        MonthlyAppointments = _allCitas
+            .GroupBy(a => a.Start.Date)
+            .ToDictionary(g => g.Key, g => g.OrderBy(a => a.Start).ToList());
+    }
+
+    private void PreviousMonth()
+    {
+        CurrentMonth = CurrentMonth.AddMonths(-1);
+        CalculateCalendar();
+    }
+
+    private void NextMonth()
+    {
+        CurrentMonth = CurrentMonth.AddMonths(1);
+        CalculateCalendar();
+    }
+
+    private void SelectDay(DateTime date)
+    {
+        _selectedDay = date.Date;
+        _expandedCitaId = null;
     }
 
     private void OpenRescheduleModal(AppointmentGQL appt)
@@ -291,6 +413,26 @@
         _successMessage = "¡La cita fue reagendada exitosamente!";
         _rescheduleModalOpen = false;
         _rescheduleAppt = null;
-        await CargarCitas();
+        await LoadCitasAsync();
     }
+
+    private string GetBadgeClass(string status) => status switch
+    {
+        "Active"    => "bg-[#E0F7FA] text-[#257D8D]",
+        "Completed" => "bg-emerald-50 text-emerald-700",
+        "NoShow"    => "bg-rose-50 text-rose-600",
+        "Cancelled" => "bg-slate-100 text-slate-500",
+        _           => "bg-slate-100 text-slate-500",
+    };
+
+    private record StatusInfo(string Label, string BadgeClass, string DotClass);
+    private StatusInfo GetStatusInfo(string s) => s switch
+    {
+        "Active"      => new("Pendiente",    "border-amber-200/50 bg-amber-50 text-amber-700",       "bg-amber-500"),
+        "Completed"   => new("Completada",   "border-emerald-200/50 bg-emerald-50 text-emerald-700", "bg-emerald-500"),
+        "NoShow"      => new("Inasistencia", "border-rose-200/50 bg-rose-50 text-rose-600",          "bg-rose-500"),
+        "Cancelled"   => new("Cancelada",    "border-slate-200 bg-slate-50 text-slate-500",          "bg-slate-400"),
+        "Rescheduled" => new("Reagendada",   "border-slate-200 bg-slate-50 text-slate-500",          "bg-slate-300"),
+        _             => new(s,              "border-slate-200 bg-slate-50 text-slate-500",          "bg-slate-300"),
+    };
 }

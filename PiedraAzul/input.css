@@ -1739,4 +1739,34 @@
     @apply w-full max-w-sm rounded-xl bg-white p-6 shadow-xl;
   }
 
+
+  /* =============================================
+     AUTOCOMPLETE (selector de especialista)
+     ============================================= */
+  .ac-wrap     { @apply relative; }
+  .ac-control  { @apply flex items-center gap-2 rounded-xl border border-[#E2E8F0] bg-white px-3 py-2.5 shadow-sm transition focus-within:border-[#257D8D]; }
+  .ac-icon     { @apply flex-shrink-0 text-[#94A3B8]; }
+  .ac-input    { @apply min-w-0 flex-1 bg-transparent text-sm font-medium text-[#0F172A] placeholder:text-[#94A3B8] focus:outline-none; }
+  .ac-clear    { @apply flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-[#94A3B8] transition hover:bg-[#F1F5F9] hover:text-[#475569]; }
+  .ac-backdrop { @apply fixed inset-0 z-20; }
+  .ac-dropdown { @apply absolute left-0 right-0 top-full z-30 mt-1 max-h-72 overflow-y-auto rounded-xl border border-[#E2E8F0] bg-white py-1 shadow-xl; }
+  .ac-option   { @apply flex w-full flex-col items-start gap-0.5 px-4 py-2.5 text-left transition hover:bg-[#F8FAFC]; }
+  .ac-option-active { @apply bg-[#E0F7FA]; }
+  .ac-option-name   { @apply text-sm font-semibold text-[#0F172A]; }
+  .ac-option-sub    { @apply text-xs text-[#64748B]; }
+  .ac-empty    { @apply px-4 py-3 text-center text-xs italic text-[#94A3B8]; }
+
+
+  /* =============================================
+     CALENDARIO DE RANGO (Exportar citas)
+     ============================================= */
+  .rcal-grid    { @apply grid grid-cols-7 gap-1; }
+  .rcal-cell    { @apply relative flex h-10 cursor-pointer items-center justify-center rounded-lg text-sm font-semibold text-[#0F172A] transition hover:bg-[#F1F5F9]; }
+  .rcal-muted   { @apply cursor-default text-[#CBD5E1] hover:bg-transparent; }
+  .rcal-inrange { @apply rounded-none bg-[#E0F7FA] text-[#257D8D] hover:bg-[#E0F7FA]; }
+  .rcal-start   { @apply rounded-l-lg rounded-r-none bg-[#257D8D] text-white hover:bg-[#257D8D]; }
+  .rcal-end     { @apply rounded-r-lg rounded-l-none bg-[#257D8D] text-white hover:bg-[#257D8D]; }
+  .rcal-single  { @apply rounded-lg bg-[#257D8D] text-white hover:bg-[#257D8D]; }
+  .rcal-today   { @apply ring-1 ring-inset ring-[#257D8D]; }
+
 }
