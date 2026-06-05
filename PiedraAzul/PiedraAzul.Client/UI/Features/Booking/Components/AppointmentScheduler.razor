@@ -14,7 +14,7 @@
     @if (_scanningDays)
     {
         <div class="col-span-2 md:col-span-5 flex items-center gap-2 py-4 text-gray-500">
-            <div class="h-5 w-5 animate-spin rounded-full border-b-2 border-teal-600"></div>
+            <div class="h-5 w-5 animate-spin rounded-full border-b-2 border-[#257D8D]"></div>
             <span class="text-sm">Buscando días disponibles...</span>
         </div>
     }
@@ -47,7 +47,7 @@
 @if (_isLoading)
 {
     <div class="py-8 text-center">
-        <div class="inline-block h-8 w-8 animate-spin rounded-full border-b-2 border-teal-600"></div>
+        <div class="inline-block h-8 w-8 animate-spin rounded-full border-b-2 border-[#257D8D]"></div>
         <p class="mt-2 text-gray-600">Cargando horarios...</p>
     </div>
 }
@@ -505,8 +505,8 @@ else
     private string GetDayClass(DayItem day)
     {
         if (_selectedDay == day)
-            return $"{BaseButton} border-teal-600 bg-teal-600 text-white shadow-md";
-        return $"{BaseButton} border-gray-200 hover:border-teal-500";
+            return $"{BaseButton} border-[#257D8D] bg-[#257D8D] text-white shadow-md";
+        return $"{BaseButton} border-gray-200 hover:border-[#257D8D]";
     }
 
     private string GetSlotClass(TimeSlot slot)
@@ -517,14 +517,14 @@ else
                 return $"{BaseButton} border-gray-200 bg-gray-300 text-gray-500 cursor-not-allowed";
             // Si no está disponible y es bloqueado por el usuario actual, mostrar estilo especial
             if (_myLockedSlotId == slot.Id)
-                return $"{BaseButton} border-teal-600 bg-teal-100 text-teal-700 font-semibold cursor-not-allowed";
+                return $"{BaseButton} border-[#257D8D] bg-[#e8f5f3] text-[#257D8D] font-semibold cursor-not-allowed";
             return $"{BaseButton} border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed";
         }
 
         if (_selectedSlot == slot)
-            return $"{BaseButton} border-teal-600 bg-teal-50 text-teal-700 font-semibold";
+            return $"{BaseButton} border-[#257D8D] bg-[#e8f5f3] text-[#257D8D] font-semibold";
 
-        return $"{BaseButton} border-gray-200 hover:border-teal-500 hover:bg-teal-50";
+        return $"{BaseButton} border-gray-200 hover:border-[#257D8D] hover:bg-[#e8f5f3]";
     }
 
     public async ValueTask DisposeAsync()

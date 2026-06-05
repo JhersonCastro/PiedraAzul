@@ -30,7 +30,7 @@
         @if (!string.IsNullOrEmpty(_toast))
         {
             <div class="toast-ok">
-                <svg class="icon-6 flex-shrink-0 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg class="icon-6 flex-shrink-0 text-[#257D8D]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                 </svg>
                 @_toast
@@ -85,7 +85,7 @@
 
             <div>
                 <button @onclick="ClearFiltersAsync"
-                        class="py-2.5 px-2 text-sm font-semibold text-teal-600 transition-colors hover:text-teal-800">
+                        class="py-2.5 px-2 text-sm font-semibold text-[#257D8D] transition-colors hover:text-[#1E5F6F]">
                     Limpiar<br />filtros
                 </button>
             </div>
@@ -108,7 +108,7 @@
                     <tbody class="table-body">
                         @if (_loading)
                         {
-                            <tr><td colspan="6" class="py-16 text-center"><div class="loading-center-sm"><svg class="h-8 w-8 animate-spin text-teal-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg></div></td></tr>
+                            <tr><td colspan="6" class="py-16 text-center"><div class="loading-center-sm"><svg class="h-8 w-8 animate-spin text-[#257D8D]" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg></div></td></tr>
                         }
                         else if (_result.Users.Count == 0)
                         {
@@ -155,11 +155,11 @@
                                     <td class="table-td">
                                         <div class="flex items-center justify-center gap-2">
                                             <button @onclick="() => OpenUserDetailModal(user)" title="Ver detalle"
-                                                    class="rounded p-1 text-slate-400 transition-colors hover:text-teal-600">
+                                                    class="rounded p-1 text-slate-400 transition-colors hover:text-[#257D8D]">
                                                 <svg class="icon-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                                             </button>
                                             <button @onclick="() => OpenEditModal(user)" title="Editar"
-                                                    class="rounded p-1 text-slate-400 transition-colors hover:text-teal-600">
+                                                    class="rounded p-1 text-slate-400 transition-colors hover:text-[#257D8D]">
                                                 <svg class="icon-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                             </button>
                                             <button @onclick="() => OnToggleStatusClick(user)"
@@ -222,13 +222,13 @@
                         Comparte esta contraseña temporal con el usuario. Solo se mostrará una vez.
                     </p>
                     <div class="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-                        <code class="flex-1 font-mono text-lg font-bold text-teal-700">@_tempPassword</code>
-                        <button @onclick="CopyPassword" class="text-slate-400 transition-colors hover:text-teal-600">
+                        <code class="flex-1 font-mono text-lg font-bold text-[#257D8D]">@_tempPassword</code>
+                        <button @onclick="CopyPassword" class="text-slate-400 transition-colors hover:text-[#257D8D]">
                             <svg class="icon-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
                         </button>
                     </div>
                     <button @onclick="() => _showTempPassword = false"
-                            class="mt-4 w-full rounded-lg bg-teal-700 py-2 text-sm font-bold text-white transition-colors hover:bg-teal-800">
+                            class="mt-4 w-full rounded-lg bg-[#257D8D] py-2 text-sm font-bold text-white transition-colors hover:bg-[#1E5F6F]">
                         Entendido
                     </button>
                 </div>
