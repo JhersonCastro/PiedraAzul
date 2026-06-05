@@ -165,7 +165,7 @@ namespace PiedraAzul.Client.UI.Features.Booking.Pages
         internal void OnRegisteredLogin()
         {
             _showVerificationModal = false;
-            Navigation.NavigateTo($"/login?returnUrl=/instant-medical-booking");
+            Navigation.NavigateTo($"/account/auth?returnUrl=/instant-medical-booking");
         }
 
         internal void OnRegisteredGuestContinue()
