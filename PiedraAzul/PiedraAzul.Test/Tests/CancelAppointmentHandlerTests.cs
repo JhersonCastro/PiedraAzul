@@ -15,16 +15,24 @@ public class CancelAppointmentHandlerTests
     private readonly Mock<IAppointmentRepository> _appointmentRepository = new();
     private readonly Mock<IAppointmentNotifier> _notifier = new();
     private readonly Mock<IMediator> _mediator = new();
+    private readonly Mock<IBackgroundNotificationService> _backgroundNotificationService = new();
+    private readonly Mock<IAppointmentBackgroundJobsRecordsRepository> _jobsRecordsRepository = new();
 
     private readonly CancelAppointmentHandler _sut;
 
     public CancelAppointmentHandlerTests()
     {
+        _jobsRecordsRepository
+            .Setup(x => x.GetJobsIdsByAppointmentId(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<string>());
+
         _sut = new CancelAppointmentHandler(
             _appointmentRepository.Object,
             new ImmediateUnitOfWork(),
             _notifier.Object,
-            _mediator.Object);
+            _mediator.Object,
+            _backgroundNotificationService.Object,
+            _jobsRecordsRepository.Object);
     }
 
     [Fact]
