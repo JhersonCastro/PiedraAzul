@@ -11,6 +11,11 @@ namespace PiedraAzul.Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            // Limpiar registros existentes antes de reestructurar la tabla.
+            // Los job IDs de Hangfire SQLite son efímeros y se recrean en cada deploy,
+            // por lo que estos registros ya no apuntan a jobs válidos.
+            migrationBuilder.Sql("DELETE FROM \"AppointmentBackgroundJobsRecords\";");
+
             migrationBuilder.DropPrimaryKey(
                 name: "PK_AppointmentBackgroundJobsRecords",
                 table: "AppointmentBackgroundJobsRecords");
