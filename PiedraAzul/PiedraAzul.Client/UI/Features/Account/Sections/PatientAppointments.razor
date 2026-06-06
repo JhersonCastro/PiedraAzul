@@ -256,15 +256,17 @@ else
         else
         {
             var now = DateTime.Now;
-            // Próximas: todas las citas con fecha futura, sin importar el estado.
-            // El badge del card muestra Confirmada / Completada / No se presentó / Cancelada.
-            _upcoming = result.Value!
+
+            // Las citas reagendadas nunca se muestran como card independiente —
+            // su historial ya aparece dentro del card de la cita vigente.
+            var visible = result.Value!.Where(a => a.Status != "Rescheduled").ToList();
+
+            _upcoming = visible
                 .Where(a => a.Start >= now)
                 .OrderBy(a => a.Start)
                 .ToList();
 
-            // Pasadas: todas las citas con fecha pasada.
-            _past = result.Value!
+            _past = visible
                 .Where(a => a.Start < now)
                 .OrderByDescending(a => a.Start)
                 .ToList();
