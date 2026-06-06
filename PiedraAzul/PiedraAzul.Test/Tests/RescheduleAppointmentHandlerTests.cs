@@ -19,6 +19,8 @@ public class RescheduleAppointmentHandlerTests
     private readonly Mock<IAppointmentRescheduleRecordRepository> _rescheduleRecordRepository = new();
     private readonly Mock<IIdentityService> _identityService = new();
     private readonly Mock<IMediator> _mediator = new();
+    private readonly Mock<IBackgroundNotificationService> _backgroundNotificationService = new();
+    private readonly Mock<IAppointmentBackgroundJobsRecordsRepository> _jobsRecordsRepository = new();
 
     private readonly RescheduleAppointmentHandler _sut;
 
@@ -33,6 +35,18 @@ public class RescheduleAppointmentHandlerTests
             .Setup(x => x.GetByNewAppointmentIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((AppointmentRescheduleRecord?)null);
 
+        _backgroundNotificationService
+            .Setup(x => x.ScheduleAppointmentNotification(It.IsAny<Guid>(), It.IsAny<DateTime>(), It.IsAny<IEnumerable<TimeSpan>>()))
+            .ReturnsAsync(new List<string>());
+
+        _jobsRecordsRepository
+            .Setup(x => x.GetJobsIdsByAppointmentId(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<string>());
+
+        _jobsRecordsRepository
+            .Setup(x => x.AddJobsRecords(It.IsAny<List<AppointmentBackgroundJobsRecords>>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
         _sut = new RescheduleAppointmentHandler(
             _appointmentRepository.Object,
             _slotRepository.Object,
@@ -40,7 +54,9 @@ public class RescheduleAppointmentHandlerTests
             _notifier.Object,
             _rescheduleRecordRepository.Object,
             _identityService.Object,
-            _mediator.Object);
+            _mediator.Object,
+            _backgroundNotificationService.Object,
+            _jobsRecordsRepository.Object);
     }
 
     [Fact]

@@ -6,6 +6,7 @@ using PiedraAzul.Application.Common.Models.User;
 using PiedraAzul.Application.Features.Appointments.CreateAppointment;
 using PiedraAzul.Application.Features.Patients.Commands.CreateGuestPatient;
 using PiedraAzul.Domain.Common.Exceptions;
+using PiedraAzul.Domain.Entities.Operations;
 using PiedraAzul.Domain.Entities.Profiles.Doctor;
 using PiedraAzul.Domain.Entities.Profiles.Patients;
 using PiedraAzul.Domain.Entities.Shared.Enums;
@@ -22,6 +23,8 @@ public class AppointmentServiceTests
     private readonly Mock<IPatientGuestRepository> _guestRepository = new();
     private readonly Mock<IMediator> _mediator = new();
     private readonly Mock<IIdentityService> _identityService = new();
+    private readonly Mock<IAppointmentBackgroundJobsRecordsRepository> _jobsRecordsRepository = new();
+    private readonly Mock<IBackgroundNotificationService> _backgroundNotificationService = new();
 
     private readonly CreateAppointmentHandler _sut;
 
@@ -31,6 +34,14 @@ public class AppointmentServiceTests
             .Setup(x => x.GetById(It.IsAny<string>()))
             .ReturnsAsync(new UserDto("user-id", "test@test.com", "Test User", "", false));
 
+        _backgroundNotificationService
+            .Setup(x => x.ScheduleAppointmentNotification(It.IsAny<Guid>(), It.IsAny<DateTime>(), It.IsAny<IEnumerable<TimeSpan>>()))
+            .ReturnsAsync(new List<string>());
+
+        _jobsRecordsRepository
+            .Setup(x => x.AddJobsRecords(It.IsAny<List<AppointmentBackgroundJobsRecords>>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
         _sut = new CreateAppointmentHandler(
             _appointmentRepository.Object,
             _doctorRepository.Object,
@@ -39,7 +50,9 @@ public class AppointmentServiceTests
             _guestRepository.Object,
             new ImmediateUnitOfWork(),
             _mediator.Object,
-            _identityService.Object);
+            _identityService.Object,
+            _jobsRecordsRepository.Object,
+            _backgroundNotificationService.Object);
     }
 
     [Fact]
