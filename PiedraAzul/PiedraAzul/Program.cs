@@ -42,6 +42,10 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddInteractiveWebAssemblyComponents();
 
+// 🔹 Hangfire - Background jobs
+builder.Services.AddScoped<PiedraAzul.Application.Common.Interfaces.IBackgroundNotificationService,
+    PiedraAzul.Infrastructure.BackgroundJobs.BackgroundNotificationService>();
+
 // 🔹 API stuff
 builder.Services.AddScoped<IAppointmentNotifier, AppointmentNotifier>();
 builder.Services.AddSignalR();
@@ -119,6 +123,9 @@ app.Use(async (context, next) =>
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// 🔹 Hangfire Dashboard (solo en desarrollo)
+app.UseInfraestructure();
 
 app.UseAntiforgery();
 

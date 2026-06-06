@@ -19,6 +19,8 @@ public class CreateAppointmentHandler
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMediator _mediator;
     private readonly IIdentityService _identityService;
+    private readonly IAppointmentBackgroundJobsRecordsRepository _appointmentBackgroundJobsRecordsRepository;
+    private readonly IBackgroundNotificationService _backgroundNotificationService;
 
     public CreateAppointmentHandler(
         IAppointmentRepository appointmentRepository,
@@ -28,7 +30,9 @@ public class CreateAppointmentHandler
         IPatientGuestRepository patientGuestRepository,
         IUnitOfWork unitOfWork,
         IMediator mediator,
-        IIdentityService identityService)
+        IIdentityService identityService,
+        IAppointmentBackgroundJobsRecordsRepository appointmentBackgroundJobsRecordsRepository,
+        IBackgroundNotificationService backgroundNotificationService)
     {
         _appointmentRepository = appointmentRepository;
         _doctorRepository = doctorRepository;
@@ -38,6 +42,8 @@ public class CreateAppointmentHandler
         _unitOfWork = unitOfWork;
         _mediator = mediator;
         _identityService = identityService;
+        _appointmentBackgroundJobsRecordsRepository = appointmentBackgroundJobsRecordsRepository;
+        _backgroundNotificationService = backgroundNotificationService;
     }
 
     public async ValueTask<Appointment> Handle(
@@ -155,6 +161,34 @@ public class CreateAppointmentHandler
                 appointment.DoctorAvailabilitySlotId,
                 appointment.Date),
             cancellationToken);
+
+
+        // Enviar notificacion programada para recordatorio (24h antes) en el background job service (Hangfire).
+
+        _ = await _unitOfWork.ExecuteAsync(async ct =>
+        {
+            // El slot ya está cargado en este scope → calculamos appointmentStart aquí.
+            var slot = await _slotRepository.GetByIdAsync(appointment.DoctorAvailabilitySlotId, ct);
+            var appointmentStart = appointment.Date.ToDateTime(TimeOnly.FromTimeSpan(slot!.StartTime));
+
+            // Recordatorio 24 h antes y 1 h antes.
+            TimeSpan[] reminders =
+            [
+                TimeSpan.FromHours(24),
+                TimeSpan.FromHours(1)
+            ];
+            var jobsId = await _backgroundNotificationService.ScheduleAppointmentNotification(appointment.Id, appointmentStart, reminders);
+
+            List<AppointmentBackgroundJobsRecords> records = new List<AppointmentBackgroundJobsRecords>();
+            records.AddRange(jobsId.Select(id => new AppointmentBackgroundJobsRecords
+            {
+                AppointmentId = appointment.Id,
+                JobId = id
+            }));
+            await _appointmentBackgroundJobsRecordsRepository.AddJobsRecords(records, ct);
+
+            return true;
+        }, cancellationToken);
 
         return appointment;
     }

@@ -14,6 +14,9 @@ using PiedraAzul.Infrastructure.Caching;
 using PiedraAzul.Infrastructure.Identity;
 using PiedraAzul.Infrastructure.Persistence;
 using PiedraAzul.Infrastructure.Persistence.Repositories;
+using Hangfire;
+using Hangfire.Storage.SQLite;
+using Microsoft.AspNetCore.Builder;
 
 namespace PiedraAzul.Infrastructure;
 
@@ -106,6 +109,16 @@ public static class DependencyInjection
             });
         });
 
+
+        // HangFire (Background Jobs)
+        services.AddHangfire(config => config
+            .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+            .UseSimpleAssemblyNameTypeSerializer()
+            .UseRecommendedSerializerSettings()
+            .UseSQLiteStorage("hangfire_jobs.db"));
+
+        services.AddHangfireServer();
+
         // Unit of Work
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
@@ -134,5 +147,10 @@ public static class DependencyInjection
         services.AddScoped<IAuditService, AuditService>();
 
         return services;
+    }
+    public static WebApplication UseInfraestructure(this WebApplication app)
+    {
+        app.UseHangfireDashboard();
+        return app;
     }
 }

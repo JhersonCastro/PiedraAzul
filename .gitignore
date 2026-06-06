@@ -367,3 +367,6 @@ FodyWeavers.xsd
 /PiedraAzul/.claude/settings.local.json
 /PiedraAzul/PiedraAzul/appsettings.json
 /PiedraAzul/PiedraAzul/appsettings.Development.json
+hangfire_jobs.db
+hangfire_jobs.db-shm
+hangfire_jobs.db-wal
