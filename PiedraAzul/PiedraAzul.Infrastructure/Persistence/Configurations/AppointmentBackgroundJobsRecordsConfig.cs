@@ -12,13 +12,20 @@ namespace PiedraAzul.Infrastructure.Persistence.Configurations
         public void Configure(EntityTypeBuilder<AppointmentBackgroundJobsRecords> builder)
         {
             builder.ToTable("AppointmentBackgroundJobsRecords");
-            
-            builder.HasKey(x => x.JobId);
+
+            builder.HasKey(x => x.Id);
+
+            builder.Property(x => x.Id).ValueGeneratedNever();
+
+            builder.Property(x => x.JobId).IsRequired();
 
             builder.Property(x => x.AppointmentId);
 
-            // Index on AppointmentId for faster lookups
+            // Index on AppointmentId for faster lookups when cancelling jobs
             builder.HasIndex(x => x.AppointmentId);
+
+            // Index on JobId for deduplication lookups
+            builder.HasIndex(x => x.JobId).IsUnique();
         }
     }
 }
