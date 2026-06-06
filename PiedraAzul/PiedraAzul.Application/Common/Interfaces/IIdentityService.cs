@@ -16,6 +16,7 @@ namespace PiedraAzul.Application.Common.Interfaces
         Task<UserDto?> UpdateProfileAsync(string userId, string name, string? avatarUrl);
         Task<string?> GeneratePasswordResetTokenAsync(string email);
         Task<bool> ResetPasswordAsync(string email, string token, string newPassword);
+        Task<(bool Success, string? Error)> ChangePasswordAsync(string userId, string currentPassword, string newPassword);
         Task<object?> GetUserByIdAsync(string userId);
         Task<object?> GetUserByEmailAsync(string email);
         Task<bool> UpdateUserAsync(object user);

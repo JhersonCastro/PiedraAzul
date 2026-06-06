@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using PiedraAzul.Application.Common.Interfaces;
 using PiedraAzul.Application.Features.Account.Commands.ConfirmEmailChange;
 using PiedraAzul.Application.Features.Account.Commands.RequestEmailChange;
+using PiedraAzul.Application.Features.Auth.Commands.ChangePassword;
 using PiedraAzul.Application.Features.Auth.Commands.MFA;
 using PiedraAzul.GraphQL.Inputs;
 using PiedraAzul.GraphQL.Types;
@@ -14,6 +15,28 @@ namespace PiedraAzul.GraphQL;
 
 public partial class Mutation
 {
+    [Authorize]
+    public async Task<bool> ChangePasswordAsync(
+        ChangePasswordInput input,
+        [Service] IMediator mediator,
+        [Service] IHttpContextAccessor httpContextAccessor,
+        [Service] ILogger<Mutation> logger)
+    {
+        var userId = httpContextAccessor.HttpContext!.User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? throw new GraphQLException("No autenticado");
+
+        var (success, error) = await mediator.Send(new ChangePasswordCommand(userId, input.CurrentPassword, input.NewPassword));
+
+        if (!success)
+        {
+            logger.LogWarning("Password change failed for user: {UserId}. Error: {Error}", userId, error);
+            throw new GraphQLException(error ?? "No se pudo actualizar la contraseña");
+        }
+
+        logger.LogInformation("Password successfully changed for user: {UserId}", userId);
+        return true;
+    }
+
     [Authorize]
     public async Task<UserType> UpdateProfileAsync(
         UpdateProfileInput input,

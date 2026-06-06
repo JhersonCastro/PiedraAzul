@@ -24,16 +24,16 @@ public class AuthRateLimitMiddleware
             var body = await ReadBodyAsync(context.Request);
             _logger.LogInformation("GraphQL Request Body: {Body}", body[..Math.Min(200, body.Length)]);
 
-            if (IsAuthMutation(body))
+            if (IsRateLimitedMutation(body))
             {
                 var clientId = GetClientId(context);
-                _logger.LogInformation("Auth mutation detected for client: {ClientId}", clientId);
+                _logger.LogInformation("Rate-limited mutation detected for client: {ClientId}", clientId);
 
                 if (!CheckRateLimit(clientId))
                 {
-                    _logger.LogWarning("Rate limit exceeded for auth mutation from: {ClientId}", clientId);
+                    _logger.LogWarning("Rate limit exceeded for sensitive mutation from: {ClientId}", clientId);
                     context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-                    await context.Response.WriteAsync("Too many auth attempts. Please try again later.");
+                    await context.Response.WriteAsync("Too many attempts. Please try again later.");
                     return;
                 }
 
@@ -41,7 +41,7 @@ public class AuthRateLimitMiddleware
             }
             else
             {
-                _logger.LogInformation("Not an auth mutation");
+                _logger.LogInformation("Not a rate-limited mutation");
             }
         }
 
@@ -56,7 +56,9 @@ public class AuthRateLimitMiddleware
         return body;
     }
 
-    private static bool IsAuthMutation(string body)
+    private static readonly string[] SensitiveOperations = ["Login", "Register", "ChangePassword", "ResetPassword"];
+
+    private static bool IsRateLimitedMutation(string body)
     {
         try
         {
@@ -68,8 +70,8 @@ public class AuthRateLimitMiddleware
                 ? op.GetString()
                 : null;
 
-            if (operationName?.Contains("Login", StringComparison.OrdinalIgnoreCase) == true ||
-                operationName?.Contains("Register", StringComparison.OrdinalIgnoreCase) == true)
+            if (operationName is not null &&
+                SensitiveOperations.Any(o => operationName.Contains(o, StringComparison.OrdinalIgnoreCase)))
                 return true;
 
             // Si no hay operationName, buscar en el query
@@ -78,8 +80,8 @@ public class AuthRateLimitMiddleware
                 ? q.GetString()
                 : null;
 
-            return query?.Contains("mutation Login", StringComparison.OrdinalIgnoreCase) == true ||
-                   query?.Contains("mutation Register", StringComparison.OrdinalIgnoreCase) == true;
+            return query is not null &&
+                   SensitiveOperations.Any(o => query.Contains($"mutation {o}", StringComparison.OrdinalIgnoreCase));
         }
         catch
         {

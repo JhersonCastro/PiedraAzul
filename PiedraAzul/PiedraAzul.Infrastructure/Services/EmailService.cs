@@ -82,6 +82,21 @@ public class EmailService : IEmailService
         }
     }
 
+    public async Task<bool> SendPasswordChangedEmailAsync(string email, string userName)
+    {
+        try
+        {
+            var subject = "Tu contraseña fue cambiada - Piedra Azul";
+            var htmlBody = EmailTemplates.PasswordChangedTemplate(userName);
+            return await SendGenericEmailAsync(email, subject, htmlBody);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending password changed email to {Email}", email);
+            return false;
+        }
+    }
+
     public async Task<bool> SendMFASetupConfirmationAsync(string email, string userName, string mfaMethod)
     {
         try

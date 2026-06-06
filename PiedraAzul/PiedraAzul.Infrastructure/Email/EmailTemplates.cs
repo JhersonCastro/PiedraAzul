@@ -139,6 +139,13 @@ public static class EmailTemplates
             Button("Iniciar sesión", "https://piedraazul.com") +
             Note("Si no esperabas esta cuenta, comunícate con la clínica."));
 
+    public static string PasswordChangedTemplate(string userName) =>
+        Shell("Tu contraseña fue cambiada", "Tu contraseña fue cambiada", Brand,
+            Greeting(userName) +
+            Para("Te confirmamos que la contraseña de tu cuenta en Piedra Azul se actualizó correctamente. Por seguridad, cerramos las sesiones abiertas en otros dispositivos.") +
+            Para("Si fuiste tú, no necesitas hacer nada más.", muted: true) +
+            Note("Si <strong>no</strong> realizaste este cambio, tu cuenta podría estar comprometida. Restablece tu contraseña de inmediato y comunícate con la clínica."));
+
     public static string MFASetupConfirmationTemplate(string userName, string mfaMethod) =>
         Shell("Verificación en dos pasos activada", "Verificación en dos pasos activada", Brand,
             Greeting(userName) +

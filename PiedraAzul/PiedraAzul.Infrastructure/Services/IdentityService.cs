@@ -221,6 +221,33 @@ public class IdentityService(
         return result.Succeeded;
     }
 
+    public async Task<(bool Success, string? Error)> ChangePasswordAsync(string userId, string currentPassword, string newPassword)
+    {
+        var user = await userManager.FindByIdAsync(userId);
+        if (user is null)
+            return (false, "Usuario no encontrado");
+
+        var result = await userManager.ChangePasswordAsync(user, currentPassword, newPassword);
+        if (!result.Succeeded)
+        {
+            var firstError = result.Errors.FirstOrDefault();
+            return (false, firstError?.Code == "PasswordMismatch"
+                ? "La contraseña actual es incorrecta"
+                : "No se pudo actualizar la contraseña");
+        }
+
+        // Rotar el security stamp para invalidar las sesiones abiertas en otros
+        // dispositivos. ChangePasswordAsync ya lo rota internamente; lo reafirmamos
+        // de forma explícita para no depender de ese detalle de implementación.
+        await userManager.UpdateSecurityStampAsync(user);
+
+        // Notificar al usuario del cambio (no bloqueante para el resultado).
+        if (!string.IsNullOrEmpty(user.Email))
+            await emailService.SendPasswordChangedEmailAsync(user.Email, user.Name ?? user.Email);
+
+        return (true, null);
+    }
+
     public async Task<object?> GetUserByIdAsync(string userId)
     {
         return await userManager.FindByIdAsync(userId);

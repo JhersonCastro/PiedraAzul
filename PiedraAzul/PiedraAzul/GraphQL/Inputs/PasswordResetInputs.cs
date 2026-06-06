@@ -9,6 +9,16 @@ public class RequestPasswordResetInput
     public required string Email { get; set; }
 }
 
+public class ChangePasswordInput
+{
+    [Required(ErrorMessage = "La contraseña actual es requerida")]
+    public required string CurrentPassword { get; set; }
+
+    [Required(ErrorMessage = "La nueva contraseña es requerida")]
+    [StringLength(128, MinimumLength = 6, ErrorMessage = "La contraseña debe tener al menos 6 caracteres")]
+    public required string NewPassword { get; set; }
+}
+
 public class ResetPasswordInput
 {
     [Required(ErrorMessage = "El correo electrónico es requerido")]
