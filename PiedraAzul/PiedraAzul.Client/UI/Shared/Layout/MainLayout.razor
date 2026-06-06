@@ -145,17 +145,6 @@ else
 
                 <nav class="header-nav">
                     <a href="/" class="nav-link">Inicio</a>
-                    @if (UserState?.User?.Roles.Contains("Admin") == true)
-                    {
-                        <a href="/admin" class="nav-link">Admin</a>
-                        <a href="/admin/configurar-horario" class="nav-link">Horario</a>
-                    }
-                    @if (UserState?.User?.Roles.Contains("Doctor") == true)
-                    {
-                        <a href="/doctor" class="nav-link-highlight">Médico</a>
-                    }
-                    <a class="nav-link cursor-pointer">Ayuda</a>
-
                     <UIModeToggle ShowLabel="true" />
 
                     @if (!_isLoaded)
@@ -230,16 +219,6 @@ else
 
             <div class="drawer-links">
                 <a href="/" @onclick="CloseMobileMenu" class="drawer-link">Inicio</a>
-                @if (UserState?.User?.Roles.Contains("Admin") == true)
-                {
-                    <a href="/admin" @onclick="CloseMobileMenu" class="drawer-link">Admin</a>
-                }
-                @if (UserState?.User?.Roles.Contains("Doctor") == true)
-                {
-                    <a href="/doctor" @onclick="CloseMobileMenu" class="drawer-link-highlight">Médico</a>
-                }
-                <a class="drawer-link cursor-pointer">Ayuda</a>
-
                 <div class="px-2 pt-2">
                     <UIModeToggle ShowLabel="true" Class="w-full justify-center" />
                 </div>
