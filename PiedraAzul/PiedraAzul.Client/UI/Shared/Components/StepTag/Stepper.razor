@@ -19,8 +19,22 @@
                 <button type="button"
                         data-tour="booking-next-btn"
                         class="stepper-btn-next"
+                        disabled="@(Loading && CurrentStep == Steps.Count - 1)"
                         @onclick="Next">
-                    @(CurrentStep == Steps.Count-1 ? FinishText : "Siguiente")
+                    @if (Loading && CurrentStep == Steps.Count - 1)
+                    {
+                        <span class="inline-flex items-center gap-2">
+                            <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                            </svg>
+                            @(LoadingText ?? FinishText)
+                        </span>
+                    }
+                    else
+                    {
+                        @(CurrentStep == Steps.Count - 1 ? FinishText : "Siguiente")
+                    }
                 </button>
             </div>
 
@@ -35,6 +49,12 @@
 
     [Parameter, EditorRequired]
     public string FinishText { get; set; }
+
+    [Parameter]
+    public bool Loading { get; set; }
+
+    [Parameter]
+    public string? LoadingText { get; set; }
 
     [CascadingParameter]
     EditContext EditContext { get; set; }

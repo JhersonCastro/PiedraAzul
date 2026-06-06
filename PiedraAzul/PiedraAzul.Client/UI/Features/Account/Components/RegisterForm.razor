@@ -13,7 +13,12 @@
 
     <div class="form-shell">
 
-        <Stepper TModel="RegisterModel" FinishText="Crear cuenta" OnFinish="HandleRegister">
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <div class="notice-error mb-4">@_errorMessage</div>
+        }
+
+        <Stepper TModel="RegisterModel" FinishText="Crear cuenta" LoadingText="Creando cuenta..." OnFinish="HandleRegister" Loading="@_loading">
 
             <!-- STEP 1 -->
             <Step TModel="RegisterModel"
@@ -144,28 +149,49 @@
 
                 <h2 class="form-heading">Información adicional</h2>
                 <p class="form-heading-sub">
-                    Estos datos nos ayudan a brindarle un mejor servicio (opcional).
+                    Este paso es opcional, pero le ayuda a sacar más provecho de su cuenta.
                 </p>
 
-                <div class="form-grid">
+                <!-- Email -->
+                <div class="mb-5">
+                    <label class="label-lg">Correo electrónico</label>
+                    <p class="form-hint">Para enviarle confirmaciones y recordatorios de cita (opcional)</p>
+                    <InputText @bind-Value="registerModel.Email"
+                               type="email"
+                               class="input-lg"
+                               placeholder="ejemplo@gmail.com" />
+                    <ValidationMessage For="@(() => registerModel.Email)" class="form-error" />
+                </div>
 
-                    <!-- Email -->
-                    <div>
-                        <label class="label-lg">
-                            Correo electrónico
-                        </label>
-                        <p class="form-hint">
-                            Para enviarle confirmaciones (opcional)
-                        </p>
-
-                        <InputText @bind-Value="registerModel.Email"
-                                   type="email"
-                                   class="input-lg"
-                                   placeholder="ejemplo@gmail.com" />
-
-                        <ValidationMessage For="@(() => registerModel.Email)" class="form-error" />
+                <!-- Beneficios de tener correo -->
+                <div class="grid grid-cols-1 gap-3 mt-2">
+                    <div class="flex items-start gap-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+                        <svg class="mt-0.5 h-5 w-5 shrink-0 text-[#257D8D]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        <div>
+                            <p class="text-[13px] font-semibold text-[#0F172A]">Recordatorios de cita</p>
+                            <p class="text-[12px] text-[#64748B] mt-0.5">Recibirá un correo antes de cada cita para que no se le olvide.</p>
+                        </div>
                     </div>
-
+                    <div class="flex items-start gap-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+                        <svg class="mt-0.5 h-5 w-5 shrink-0 text-[#257D8D]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                        </svg>
+                        <div>
+                            <p class="text-[13px] font-semibold text-[#0F172A]">Recuperación de cuenta</p>
+                            <p class="text-[12px] text-[#64748B] mt-0.5">Si olvida su contraseña podrá recuperar el acceso por correo.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+                        <svg class="mt-0.5 h-5 w-5 shrink-0 text-[#257D8D]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                        </svg>
+                        <div>
+                            <p class="text-[13px] font-semibold text-[#0F172A]">Verificación de dos factores</p>
+                            <p class="text-[12px] text-[#64748B] mt-0.5">Proteja su cuenta con una capa extra de seguridad.</p>
+                        </div>
+                    </div>
                 </div>
 
             </Step>
@@ -239,6 +265,7 @@
     [Parameter]
     public EventCallback OnLoginClick { get; set; }
     private string? _errorMessage;
+    private bool _loading;
 
     private static string DocumentHint(DocumentType type) => type switch
     {
@@ -260,18 +287,30 @@
 
     private async Task HandleRegister()
     {
-        var result = await AuthService.RegisterAsync(registerModel, "Patient");
-        if (result.IsSuccess)
+        _loading = true;
+        _errorMessage = null;
+        StateHasChanged();
+
+        try
         {
-            var token = result.Value?.LoginToken;
-            if (!string.IsNullOrEmpty(token))
-                NavigationManager.NavigateTo($"/auth/apply-session?token={token}&redirect=/", forceLoad: true);
+            var result = await AuthService.RegisterAsync(registerModel, "Patient");
+            if (result.IsSuccess)
+            {
+                var token = result.Value?.LoginToken;
+                if (!string.IsNullOrEmpty(token))
+                    NavigationManager.NavigateTo($"/auth/apply-session?token={token}&redirect=/", forceLoad: true);
+                else
+                    NavigationManager.NavigateTo("/", forceLoad: true);
+            }
             else
-                NavigationManager.NavigateTo("/", forceLoad: true);
+            {
+                _errorMessage = "No se pudo completar el registro. Intenta de nuevo.";
+            }
         }
-        else
+        finally
         {
-            _errorMessage = "No se pudo completar el registro. Intenta de nuevo.";
+            _loading = false;
+            StateHasChanged();
         }
     }
 }

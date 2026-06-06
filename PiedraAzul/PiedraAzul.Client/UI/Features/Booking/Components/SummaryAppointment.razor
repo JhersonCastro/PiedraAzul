@@ -101,7 +101,12 @@
 
     private DateTime BuildAppointmentDate(DateTime date, string time)
     {
-        var parsedTime = DateTime.ParseExact(time, "hh:mm tt", CultureInfo.InvariantCulture);
+        // "03:30 p. m." → "03:30 PM"  (es-CO usa "p. m." / "a. m." con espacios y puntos)
+        var normalized = time
+            .Replace("p. m.", "PM", StringComparison.OrdinalIgnoreCase)
+            .Replace("a. m.", "AM", StringComparison.OrdinalIgnoreCase)
+            .Trim();
+        var parsedTime = DateTime.ParseExact(normalized, "hh:mm tt", CultureInfo.InvariantCulture);
         return new DateTime(date.Year, date.Month, date.Day, parsedTime.Hour, parsedTime.Minute, 0, DateTimeKind.Local);
     }
 }
