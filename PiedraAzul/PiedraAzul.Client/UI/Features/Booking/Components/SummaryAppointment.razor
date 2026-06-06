@@ -101,12 +101,21 @@
 
     private DateTime BuildAppointmentDate(DateTime date, string time)
     {
-        // "03:30 p. m." → "03:30 PM"  (es-CO usa "p. m." / "a. m." con espacios y puntos)
+        var esCO = new CultureInfo("es-CO");
+
+        // Intentar parsear con es-CO primero (maneja "a. m." / "p. m." nativamente,
+        // incluidos espacios no separables que Replace no detectaría)
+        if (DateTime.TryParseExact(time, "hh:mm tt", esCO, DateTimeStyles.None, out var parsed))
+            return new DateTime(date.Year, date.Month, date.Day, parsed.Hour, parsed.Minute, 0, DateTimeKind.Local);
+
+        // Fallback: normalizar manualmente y parsear con InvariantCulture
         var normalized = time
+            .Replace(' ', ' ')
             .Replace("p. m.", "PM", StringComparison.OrdinalIgnoreCase)
             .Replace("a. m.", "AM", StringComparison.OrdinalIgnoreCase)
             .Trim();
-        var parsedTime = DateTime.ParseExact(normalized, "hh:mm tt", CultureInfo.InvariantCulture);
-        return new DateTime(date.Year, date.Month, date.Day, parsedTime.Hour, parsedTime.Minute, 0, DateTimeKind.Local);
+
+        parsed = DateTime.ParseExact(normalized, "hh:mm tt", CultureInfo.InvariantCulture);
+        return new DateTime(date.Year, date.Month, date.Day, parsed.Hour, parsed.Minute, 0, DateTimeKind.Local);
     }
 }
