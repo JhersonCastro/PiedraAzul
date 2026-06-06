@@ -4,6 +4,7 @@ using PiedraAzul.Application.Common.Interfaces;
 using PiedraAzul.Infrastructure.Email;
 using System.Net;
 using System.Net.Mail;
+using Twilio.TwiML.Voice;
 
 namespace PiedraAzul.Infrastructure.Services;
 
@@ -185,6 +186,21 @@ public class EmailService : IEmailService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error sending email to {To}", to);
+            return false;
+        }
+    }
+
+    public async Task<bool> SendReminderAppointment(string email, DateTime appointmentStart, string patientName, string doctorName)
+    {
+        try
+        {
+            var subject = "Recordatorio de tu cita — Piedra Azul";
+            var htmlBody = EmailTemplates.AppointmentReminderTemplate(patientName, doctorName, appointmentStart);
+            return await SendGenericEmailAsync(email, subject, htmlBody);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending appointment reminder email to {Email}", email);
             return false;
         }
     }

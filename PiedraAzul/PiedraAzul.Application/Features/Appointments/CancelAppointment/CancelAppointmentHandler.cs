@@ -13,17 +13,23 @@ public class CancelAppointmentHandler : IRequestHandler<CancelAppointmentCommand
     private readonly IUnitOfWork _unitOfWork;
     private readonly IAppointmentNotifier _notifier;
     private readonly IMediator _mediator;
+    private readonly IBackgroundNotificationService _backgroundNotificationService;
+    private readonly IAppointmentBackgroundJobsRecordsRepository _jobsRecordsRepository;
 
     public CancelAppointmentHandler(
         IAppointmentRepository appointmentRepository,
         IUnitOfWork unitOfWork,
         IAppointmentNotifier notifier,
-        IMediator mediator)
+        IMediator mediator,
+        IBackgroundNotificationService backgroundNotificationService,
+        IAppointmentBackgroundJobsRecordsRepository jobsRecordsRepository)
     {
         _appointmentRepository = appointmentRepository;
         _unitOfWork = unitOfWork;
         _notifier = notifier;
         _mediator = mediator;
+        _backgroundNotificationService = backgroundNotificationService;
+        _jobsRecordsRepository = jobsRecordsRepository;
     }
 
     public async ValueTask<bool> Handle(CancelAppointmentCommand request, CancellationToken ct)
@@ -73,6 +79,11 @@ public class CancelAppointmentHandler : IRequestHandler<CancelAppointmentCommand
                 slotId,
                 date),
             ct);
+         
+        // Cancelar notificaciones programadas en el background job service (Hangfire).
+        var jobsToCancel = await _jobsRecordsRepository.GetJobsIdsByAppointmentId(request.AppointmentId, ct);
+
+        await _backgroundNotificationService.CancelScheduleAppointmentNotification(jobsToCancel);
 
         return true;
     }

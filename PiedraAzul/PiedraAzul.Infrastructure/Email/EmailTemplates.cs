@@ -1,4 +1,5 @@
 using System.Globalization;
+using Twilio.TwiML.Voice;
 
 namespace PiedraAzul.Infrastructure.Email;
 
@@ -189,5 +190,32 @@ public static class EmailTemplates
                 ("Fecha", dateStr),
                 ("Hora", timeStr)) +
             Note(note));
+    }
+
+    // Colombia: UTC-5, sin horario de verano.
+    private static readonly TimeZoneInfo ColombiaZone = TimeZoneInfo.FindSystemTimeZoneById(
+        OperatingSystem.IsWindows() ? "SA Pacific Standard Time" : "America/Bogota");
+
+    public static string AppointmentReminderTemplate(string patientName, string doctorName, DateTime appointmentStart)
+    {
+        var dateStr = char.ToUpper(appointmentStart.ToString("dddd", Es)[0])
+                      + appointmentStart.ToString("dddd, d 'de' MMMM 'de' yyyy", Es)[1..];
+        var timeStr = appointmentStart.ToString("hh:mm tt", CultureInfo.InvariantCulture);
+
+        // appointmentStart es hora colombiana → comparar contra "ahora" en Colombia.
+        var nowColombia = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, ColombiaZone);
+        var hoursUntil  = (appointmentStart - nowColombia).TotalHours;
+        var hoursText   = hoursUntil >= 23
+            ? "mañana"
+            : $"en aproximadamente {(int)Math.Round(hoursUntil)} hora{((int)Math.Round(hoursUntil) == 1 ? "" : "s")}";
+
+        return Shell("Recordatorio de cita", "Recordatorio de tu próxima cita", Brand,
+            Greeting(patientName) +
+            Para($"Este es un recordatorio de que tienes una cita <strong>{hoursText}</strong>:") +
+            InfoTable(
+                ("Especialista", doctorName),
+                ("Fecha",        dateStr),
+                ("Hora",         timeStr)) +
+            Note("Si necesitas cambiar o cancelar tu cita, hazlo desde «Mis citas» en tu cuenta."));
     }
 }
