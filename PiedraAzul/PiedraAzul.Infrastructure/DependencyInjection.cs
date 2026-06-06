@@ -15,8 +15,10 @@ using PiedraAzul.Infrastructure.Identity;
 using PiedraAzul.Infrastructure.Persistence;
 using PiedraAzul.Infrastructure.Persistence.Repositories;
 using Hangfire;
+using Hangfire.Dashboard;
 using Hangfire.Storage.SQLite;
 using Microsoft.AspNetCore.Builder;
+using PiedraAzul.Infrastructure.BackgroundJobs;
 
 namespace PiedraAzul.Infrastructure;
 
@@ -150,7 +152,16 @@ public static class DependencyInjection
     }
     public static WebApplication UseInfraestructure(this WebApplication app)
     {
-        app.UseHangfireDashboard();
+        var config = app.Services.GetRequiredService<IConfiguration>();
+        var filter = new HangfireDashboardAuthorizationFilter(config);
+
+        app.UseHangfireDashboard("/hangfire", new DashboardOptions
+        {
+            Authorization = [filter],
+            // Permite que el dashboard funcione detrás de un proxy inverso (MonsterASP)
+            DashboardTitle = "Piedra Azul — Jobs",
+        });
+
         return app;
     }
 }
