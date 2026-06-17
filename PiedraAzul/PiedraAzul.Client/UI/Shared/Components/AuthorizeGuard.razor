@@ -1,4 +1,4 @@
-﻿@using PiedraAzul.Client.Services.AuthServices
+@using PiedraAzul.Client.Services.AuthServices
 @using PiedraAzul.Client.States
 @inject UserState UserState
 @inject AuthenticationService AuthService
@@ -21,7 +21,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        if (UserState.UserResponse == null)
+        if (UserState.User == null)
         {
             var userResult = await AuthService.GetCurrentUserAsync();
 
@@ -31,12 +31,12 @@ else
                 return;
             }
 
-            UserState.UserResponse = userResult.Value;
+            UserState.User = userResult.Value;
         }
 
         if (!string.IsNullOrEmpty(RequiredRole))
         {
-            if (!UserState.UserResponse.Roles.Contains(RequiredRole))
+            if (!UserState.User.Roles.Contains(RequiredRole))
             {
                 NavigationManager.NavigateTo(ReturnUrl);
                 return;

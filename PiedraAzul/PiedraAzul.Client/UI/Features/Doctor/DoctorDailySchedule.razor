@@ -1,0 +1,341 @@
+@page "/doctor/cronograma-diario"
+@layout PiedraAzul.Client.UI.Shared.Layout.EmptyLayout
+@using System.Globalization
+@using PiedraAzul.Client.States
+@inject UserState UserState
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JS
+
+<div class="min-h-screen bg-slate-50 pb-12">
+
+    <!-- HEADER / NAV -->
+    <header class="bg-white border-b sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-8">
+                <!-- Logo -->
+                <div class="flex items-center gap-3">
+                    <div class="bg-primary p-2 rounded-lg text-white">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+                    </div>
+                    <span class="text-xl font-bold text-slate-800">Piedra Azul</span>
+                </div>
+
+                <!-- Nav Links -->
+                <nav class="hidden md:flex items-center gap-8">
+                    <a href="/doctor" class="text-slate-500 font-medium hover:text-slate-900 transition-colors">Dashboard</a>
+                    <a href="/doctor/pacientes" class="text-slate-500 font-medium hover:text-slate-900 transition-colors">Pacientes</a>
+                    <a href="/doctor/agenda" class="text-slate-900 font-semibold border-b-2 border-primary py-7">Mi Agenda</a>
+                </nav>
+            </div>
+
+            <div class="flex items-center gap-6">
+                <!-- User Profile -->
+                <div class="flex items-center gap-3 pl-6 border-l">
+                    <div class="text-right hidden sm:block">
+                        <div class="text-sm font-bold text-slate-900">Dr. Roberto Gómez</div>
+                        <div class="text-xs text-slate-400">Doctor</div>
+                    </div>
+                    <img src="https://ui-avatars.com/api/?name=Roberto+Gomez&background=257D8D&color=fff" alt="Doctor" class="w-10 h-10 rounded-full border-2 border-slate-100 shadow-sm" />
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 mt-8">
+        <!-- Breadcrumbs -->
+        <nav class="flex text-sm text-slate-400 mb-6 font-medium" aria-label="Breadcrumb">
+            <ol class="flex items-center space-x-2">
+                <li><a href="/doctor/agenda" class="hover:text-primary transition-colors">Mi agenda</a></li>
+                <li class="flex items-center space-x-2">
+                    <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+                    <a href="/doctor/agenda" class="hover:text-primary transition-colors">Horario</a>
+                </li>
+                <li class="flex items-center space-x-2">
+                    <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+                    <span class="text-slate-600">Cronograma diario</span>
+                </li>
+            </ol>
+        </nav>
+
+        <div class="grid grid-cols-1 lg:grid-cols-[1fr_350px] gap-8">
+            
+            <!-- Left Column: Schedule Table -->
+            <div class="space-y-6">
+                <!-- Date Navigation Card -->
+                <div class="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div class="flex items-center gap-6">
+                    <button @onclick="GoBack" class="p-4 bg-white border border-slate-200 rounded-2xl text-slate-400 hover:text-primary transition-all shadow-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                    </button>
+                    <div>
+                        <h1 class="text-4xl font-black text-slate-900 mb-1">Cronograma diario</h1>
+                        <p class="text-slate-400 font-medium capitalize">@SelectedDate.ToString("dddd, dd MMMM, yyyy", new CultureInfo("es-ES"))</p>
+                    </div>
+                </div>
+                    
+                    <div class="flex items-center gap-4">
+                        <div class="flex items-center bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
+                            <button @onclick="PrevDay" class="p-2.5 rounded-xl text-slate-400 hover:bg-white hover:shadow-sm transition-all">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                            </button>
+                            <span class="px-8 py-2.5 bg-primary text-white rounded-xl font-bold shadow-lg shadow-primary/20">
+                                @GetDateLabel(SelectedDate)
+                            </span>
+                            <button @onclick="NextDay" class="p-2.5 rounded-xl text-slate-400 hover:bg-white hover:shadow-sm transition-all">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                            </button>
+                        </div>
+                        <div class="relative">
+                            <button @onclick="AbrirCalendario" class="p-4 bg-white border border-slate-200 rounded-2xl text-primary hover:bg-slate-50 transition-all shadow-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                            </button>
+                            <input id="datePicker" type="date" 
+                                   value="@SelectedDate.ToString("yyyy-MM-dd")" 
+                                   @onchange="HandleDateChange"
+                                   style="position: absolute; visibility: hidden; width: 0; height: 0;" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Table Card -->
+                <div class="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/40 border border-slate-100 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50/50 border-b border-slate-100">
+                                    <th class="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Hora</th>
+                                    <th class="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Detalles Pendientes</th>
+                                    <th class="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">Tipo de Servicio</th>
+                                    <th class="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Estado</th>
+                                    <th class="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-50">
+                                @foreach (var app in Appointments)
+                                {
+                                    <tr class="group hover:bg-slate-50/50 transition-all">
+                                        <td class="px-8 py-6">
+                                            <div class="flex items-center gap-3">
+                                                <div class="text-primary opacity-40">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                                </div>
+                                                <span class="font-black text-slate-900">@app.Time</span>
+                                            </div>
+                                        </td>
+                                        <td class="px-8 py-6">
+                                            <div class="flex flex-col">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="font-bold text-slate-900">@app.PatientName</span>
+                                                    @if (app.IsPriority)
+                                                    {
+                                                        <span class="text-rose-500 animate-pulse">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                                                        </span>
+                                                    }
+                                                </div>
+                                                <span class="text-xs text-slate-400 font-medium">@app.IdNumber • @app.StatusNote</span>
+                                            </div>
+                                        </td>
+                                        <td class="px-8 py-6">
+                                            <span class="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-tight @(app.ServiceType == "Terapia Neural" ? "bg-primary/10 text-primary" : "bg-slate-100 text-slate-500")">
+                                                @app.ServiceType
+                                            </span>
+                                        </td>
+                                        <td class="px-8 py-6 text-center">
+                                            <div class="inline-flex items-center gap-2">
+                                                <span class="w-2 h-2 rounded-full @(app.Status == "CONFIRMADO" ? "bg-amber-500" : app.Status == "COMPLETADO" ? "bg-emerald-500" : "bg-rose-500")"></span>
+                                                <span class="text-[10px] font-black uppercase tracking-widest @(app.Status == "CONFIRMADO" ? "text-amber-600" : app.Status == "COMPLETADO" ? "text-emerald-600" : "text-rose-600")">@app.Status</span>
+                                            </div>
+                                        </td>
+                                        <td class="px-8 py-6 text-right">
+                                            @if (app.Status == "CONFIRMADO")
+                                            {
+                                                <button class="bg-primary text-white px-6 py-2 rounded-xl text-xs font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all">
+                                                    Empezar Consulta
+                                                </button>
+                                            }
+                                            else if (app.Status == "COMPLETADO")
+                                            {
+                                                <button class="bg-white border-2 border-primary text-primary px-6 py-2 rounded-xl text-xs font-bold hover:bg-primary hover:text-white transition-all">
+                                                    Ver Historial
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button class="bg-white border border-slate-200 text-slate-400 px-6 py-2 rounded-xl text-xs font-bold hover:bg-slate-50 transition-all">
+                                                    Reasignar
+                                                </button>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Sidebar -->
+            <aside class="space-y-8">
+                <!-- Daily Summary Card -->
+                <div class="bg-[#257D8D] rounded-[2.5rem] p-10 text-white shadow-2xl shadow-primary/40 relative overflow-hidden group">
+                    <div class="relative z-10">
+                        <span class="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 mb-6 block">Resumen Diario</span>
+                        
+                        <div class="flex items-center justify-between mb-8">
+                            <div>
+                                <div class="text-6xl font-black mb-1">05</div>
+                                <div class="text-xs font-bold opacity-60">Citas totales</div>
+                            </div>
+                            <div class="p-4 bg-white/10 rounded-2xl backdrop-blur-md">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4 mb-8">
+                            <div class="bg-white/10 p-5 rounded-2xl backdrop-blur-sm">
+                                <div class="text-2xl font-black">01</div>
+                                <div class="text-[9px] font-black uppercase tracking-widest opacity-60">Completadas</div>
+                            </div>
+                            <div class="bg-white/10 p-5 rounded-2xl backdrop-blur-sm">
+                                <div class="text-2xl font-black">03</div>
+                                <div class="text-[9px] font-black uppercase tracking-widest opacity-60">Pendientes</div>
+                            </div>
+                        </div>
+
+                        <a href="/servicios/exportar-citas" class="block w-full bg-white text-primary py-4 rounded-2xl font-black text-sm shadow-xl hover:-translate-y-0.5 transition-all text-center">
+                            Exportar datos
+                        </a>
+                    </div>
+
+                    <!-- Abstract background shapes -->
+                    <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-white/5 rounded-full blur-3xl group-hover:bg-white/10 transition-colors"></div>
+                    <div class="absolute -left-10 -top-10 w-40 h-40 bg-black/5 rounded-full blur-3xl"></div>
+                </div>
+
+                <!-- Quick Search Card -->
+                <div class="bg-white rounded-[2.5rem] p-10 shadow-sm border border-slate-100">
+                    <div class="flex items-center gap-3 mb-8">
+                        <div class="text-primary">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                        </div>
+                        <h3 class="text-xl font-black text-slate-900">Busqueda rápida</h3>
+                    </div>
+
+                    <p class="text-slate-400 font-medium text-sm leading-relaxed mb-8">
+                        Busque el historial de cualquier paciente o sus próximas visitas.
+                    </p>
+
+                    <div class="space-y-4">
+                        <div class="relative group">
+                            <input type="text" placeholder="Nombre o id del paciente..." 
+                                   class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-6 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all text-slate-700 font-bold placeholder:text-slate-300" />
+                        </div>
+                        <button class="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-sm hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/20">
+                            Buscar Resultados
+                        </button>
+                    </div>
+                </div>
+            </aside>
+        </div>
+
+        <footer class="mt-20 flex flex-col md:flex-row items-center justify-between gap-6 py-8 border-t border-slate-100">
+            <div class="text-slate-400 font-medium italic text-sm">
+                © 2026 Clínica Piedra Azul.
+            </div>
+            <div class="flex items-center gap-8 text-sm font-bold text-slate-500">
+                <a href="#" class="hover:text-primary transition-colors">Política de Privacidad</a>
+                <a href="#" class="hover:text-primary transition-colors">Términos y condiciones</a>
+                <a href="#" class="hover:text-primary transition-colors">Soporte</a>
+            </div>
+        </footer>
+    </main>
+</div>
+
+@code {
+    private async Task GoBack() => await JS.InvokeVoidAsync("history.back");
+
+    [Parameter] [SupplyParameterFromQuery] public string? date { get; set; }
+    private DateTime SelectedDate { get; set; } = DateTime.Today;
+
+    protected override void OnInitialized()
+    {
+        if (DateTime.TryParse(date, out var parsedDate))
+        {
+            SelectedDate = parsedDate;
+        }
+    }
+
+    private void PrevDay() => UpdateDate(SelectedDate.AddDays(-1));
+    private void NextDay() => UpdateDate(SelectedDate.AddDays(1));
+
+    private async Task AbrirCalendario()
+    {
+        await JS.InvokeVoidAsync("eval", "document.getElementById('datePicker').showPicker()");
+    }
+
+    private void HandleDateChange(ChangeEventArgs e)
+    {
+        if (DateTime.TryParse(e.Value?.ToString(), out var newDate))
+        {
+            UpdateDate(newDate);
+        }
+    }
+
+    private void UpdateDate(DateTime newDate)
+    {
+        SelectedDate = newDate;
+        NavigationManager.NavigateTo($"/doctor/cronograma-diario?date={SelectedDate:yyyy-MM-dd}", false);
+    }
+
+    private string GetDateLabel(DateTime date)
+    {
+        var diff = (date.Date - DateTime.Today).Days;
+        if (diff == 0) return "Hoy";
+        if (diff == -1) return "Ayer";
+        if (diff == 1) return "Mañana";
+        
+        if (diff < 0) {
+            int days = Math.Abs(diff);
+            if (days >= 31) {
+                int months = days / 30;
+                return $"Hace {months} {(months == 1 ? "mes" : "meses")}";
+            }
+            return $"Hace {days} días";
+        } else {
+            if (diff >= 31) {
+                int months = diff / 30;
+                return $"En {months} {(months == 1 ? "mes" : "meses")}";
+            }
+            return $"En {diff} días";
+        }
+    }
+
+    private class AppointmentVM
+    {
+        public string Time { get; set; } = "";
+        public string PatientName { get; set; } = "";
+        public string IdNumber { get; set; } = "";
+        public string StatusNote { get; set; } = "";
+        public string ServiceType { get; set; } = "";
+        public string Status { get; set; } = "";
+        public bool IsPriority { get; set; }
+    }
+
+    private List<AppointmentVM> Appointments = new()
+    {
+        new() { Time = "09:00 AM", PatientName = "Carlos Mendoza", IdNumber = "100238821", StatusNote = "Nuevo paciente", ServiceType = "Terapia Neural", Status = "CONFIRMADO" },
+        new() { Time = "10:15 AM", PatientName = "Aviles Rodriguez", IdNumber = "10023234532", StatusNote = "Pendiente", ServiceType = "Fisioterapia", Status = "COMPLETADO" },
+        new() { Time = "11:30 AM", PatientName = "Elena Silva", IdNumber = "10023931109", StatusNote = "Pendiente", ServiceType = "Terapia Neural", Status = "CANCELADO" },
+        new() { Time = "11:40 AM", PatientName = "Marco Polo", IdNumber = "10023937762", StatusNote = "Alta Prioridad", ServiceType = "Fisioterapia", Status = "CONFIRMADO", IsPriority = true },
+        new() { Time = "11:50 AM", PatientName = "Marco Fidel", IdNumber = "10023937123", StatusNote = "Pendiente", ServiceType = "Terapia Natural", Status = "CONFIRMADO" }
+    };
+}
+
+<style>
+    .bg-primary { background-color: #257D8D; }
+    .text-primary { color: #257D8D; }
+    .border-primary { border-color: #257D8D; }
+    .shadow-primary\/20 { --tw-shadow-color: rgba(37, 125, 141, 0.2); }
+    .shadow-primary\/40 { --tw-shadow-color: rgba(37, 125, 141, 0.4); }
+</style>

@@ -1,7 +1,8 @@
-﻿@page "/admin/agenda"
-@using global::Shared.Grpc
-@inject PiedraAzul.Client.Services.GrpcServices.GrpcAppointmentService AppointmentService
-@inject PiedraAzul.Client.Services.GrpcServices.GrpcDoctorService DoctorService
+@page "/admin/agenda"
+@using PiedraAzul.Client.Models.GraphQL
+@using PiedraAzul.Contracts.Enums
+@inject PiedraAzul.Client.Services.GraphQLServices.GraphQLAppointmentService AppointmentService
+@inject PiedraAzul.Client.Services.GraphQLServices.GraphQLDoctorService DoctorService
 
 <div class="min-h-screen bg-slate-50 p-8">
     <div class="mx-auto max-w-7xl">
@@ -9,16 +10,23 @@
         <!-- Header -->
         <div class="mb-8 flex items-center justify-between">
             <div>
-                <h1 class="text-3xl font-bold text-slate-900">Agenda Médica</h1>
-                <p class="mt-1 text-slate-500">Gestión y listado de citas de los especialistas</p>
+                <h1 class="text-4xl font-black text-slate-900">Agenda Médica</h1>
+                <p class="mt-1 text-slate-500 font-medium">Gestión y listado de citas de los especialistas</p>
             </div>
             
-            <a href="/booking/manual" class="flex items-center gap-2 rounded-lg bg-teal-800 px-6 py-2.5 font-medium text-white shadow-sm transition-colors hover:bg-teal-700">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
-                </svg>
-                Agendar Manualmente
-            </a>
+            <div class="flex items-center gap-4">
+                <a href="/admin/configurar-horario" class="flex items-center gap-2 rounded-xl border-2 border-primary/20 bg-white px-6 py-2.5 font-bold text-primary shadow-sm transition-all hover:border-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z"/><path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+                    Configurar Horario
+                </a>
+
+                <a href="/booking/manual" class="flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 font-bold text-white shadow-lg shadow-primary/20 transition-all hover:opacity-90">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                    </svg>
+                    Agendar Manualmente
+                </a>
+            </div>
         </div>
 
         <!-- Filtros -->
@@ -31,6 +39,7 @@
                     {
                         <option value="@doc.UserId">@doc.Name (@doc.Specialty)</option>
                     }
+
                 </select>
             </div>
             
@@ -71,7 +80,7 @@
                                 <tr class="transition-colors hover:bg-slate-50/50">
                                      <td class="px-6 py-4">
                                          <div class="font-semibold text-slate-800">
-                                             @cita.Start.ToDateTime().ToString("hh:mm tt")
+                                             @cita.Start.ToString("hh:mm tt")
                                          </div>
                                      </td>
                                      <td class="px-6 py-4">
@@ -108,47 +117,38 @@
 </div>
 
 @code {
-    private List<DoctorResponse> doctores = new();
-    private List<AppointmentResponse> citas = new();
+    private List<DoctorGQL> doctores = new();
+    private List<AppointmentGQL> citas = new();
     private string SelectedDoctorId { get; set; } = "";
     private DateTime SelectedDate { get; set; } = DateTime.Today;
 
     protected override async Task OnInitializedAsync()
     {
-        // Traeremos los especialistas iterando sobre el enum (0, 1, 2, 3)
-        // Ya que el método nativo retorna por grupo.
         for (int i = 0; i <= 3; i++)
         {
-            var result = await DoctorService.GetDoctorsByTypeAsync((global::PiedraAzul.Shared.Enums.DoctorType)i);
-            if (result != null && result.Any())
-            {
+            var type = (DoctorType)i;
+
+            var result = await DoctorService.GetDoctorsByTypeAsync(
+                type.ToGraphQL()
+            );
+
+            if (result.Any())
                 doctores.AddRange(result);
-            }
         }
     }
 
     private void OnDateChange(ChangeEventArgs e)
     {
         if (DateTime.TryParse(e.Value?.ToString(), out var parsedDate))
-        {
             SelectedDate = parsedDate;
-        }
     }
 
     private async Task CargarCitas()
     {
         if (string.IsNullOrEmpty(SelectedDoctorId)) return;
-        
-        var request = new DoctorAppointmentsRequest 
-        { 
-            DoctorId = SelectedDoctorId, 
-            Date = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(SelectedDate.ToUniversalTime()) 
-        };
-        
-        var result = await AppointmentService.GetDoctorAppointments(request);
+
+        var result = await AppointmentService.GetDoctorAppointments(SelectedDoctorId, SelectedDate);
         if (result.IsSuccess && result.Value != null)
-        {
-            citas = result.Value.Appointments.ToList();
-        }
+            citas = result.Value;
     }
 }

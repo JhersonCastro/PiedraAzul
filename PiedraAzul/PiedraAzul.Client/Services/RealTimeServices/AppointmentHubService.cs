@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
-using PiedraAzul.Shared.DTOs;
+using PiedraAzul.Contracts.DTOs;
 
 namespace PiedraAzul.Client.Services.RealTimeServices
 {

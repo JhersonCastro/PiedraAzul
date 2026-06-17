@@ -1,35 +1,38 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
-using PiedraAzul.ApplicationServices.Services;
-using PiedraAzul.Data;
-using PiedraAzul.Data.Models;
+using Microsoft.Extensions.DependencyInjection;
+using PiedraAzul.Infrastructure.Identity;
+using PiedraAzul.Infrastructure.Persistence;
+using Testcontainers.PostgreSql;
 
-public class PostgresFixture : IAsyncLifetime
+namespace PiedraAzul.Test;
+
+public sealed class PostgresFixture : IAsyncLifetime
 {
+    private readonly PostgreSqlContainer _postgresContainer = new PostgreSqlBuilder()
+        .WithImage("postgres:16-alpine")
+        .WithDatabase("piedraazul_test")
+        .WithUsername("postgres")
+        .WithPassword("postgres")
+        .Build();
+
     public IServiceProvider ServiceProvider { get; private set; } = null!;
     public IDbContextFactory<AppDbContext> DbContextFactory { get; private set; } = null!;
     public IConfiguration Configuration { get; private set; } = null!;
 
     public async Task InitializeAsync()
     {
+        await _postgresContainer.StartAsync();
+
         var services = new ServiceCollection();
-
-        var dbName = $"TestDb_{Guid.NewGuid()}";
-
-        var root = new InMemoryDatabaseRoot();
+        var connectionString = _postgresContainer.GetConnectionString();
 
         services.AddDbContext<AppDbContext>(options =>
-        {
-            options.UseInMemoryDatabase(dbName, root);
-        });
+            options.UseNpgsql(connectionString));
 
         services.AddDbContextFactory<AppDbContext>(options =>
-        {
-            options.UseInMemoryDatabase(dbName, root);
-        });
+            options.UseNpgsql(connectionString));
 
         services.AddIdentityCore<ApplicationUser>(options =>
         {
@@ -52,21 +55,22 @@ public class PostgresFixture : IAsyncLifetime
             .Build();
 
         services.AddSingleton(Configuration);
-        services.AddScoped<IUserService, UserService>();
-        services.AddScoped<IPatientService, PatientService>();
-        services.AddScoped<IDoctorService, DoctorService>();
-        services.AddScoped<IJwtTokenService, JwtTokenService>();
-        services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 
         ServiceProvider = services.BuildServiceProvider();
-
         DbContextFactory = ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
 
-        using var scope = ServiceProvider.CreateScope();
-        var ctx = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
-        await ctx.Database.EnsureCreatedAsync();
+        await using var scope = ServiceProvider.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await context.Database.MigrateAsync();
     }
 
-    public Task DisposeAsync() => Task.CompletedTask;
+    public async Task DisposeAsync()
+    {
+        await _postgresContainer.DisposeAsync();
+
+        if (ServiceProvider is IAsyncDisposable asyncDisposable)
+            await asyncDisposable.DisposeAsync();
+        else
+            (ServiceProvider as IDisposable)?.Dispose();
+    }
 }

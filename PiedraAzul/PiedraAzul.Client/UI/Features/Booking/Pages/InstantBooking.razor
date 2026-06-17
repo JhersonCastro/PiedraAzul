@@ -1,17 +1,17 @@
 ﻿@page "/instant-medical-booking"
 
-@using Google.Protobuf.WellKnownTypes
 @using Microsoft.AspNetCore.Components.Forms
 @using PiedraAzul.Client.Models
 @using PiedraAzul.Client.Models.Booking
 @using PiedraAzul.Client.Models.UserProfiles
 @using PiedraAzul.Client.Services.AuthServices
-@using PiedraAzul.Client.Services.GrpcServices
+@using PiedraAzul.Client.Services.GraphQLServices
+@using PiedraAzul.Client.Services.Utils
 @using PiedraAzul.Client.States
 @using PiedraAzul.Client.UI.Features.Booking.Components
 @using PiedraAzul.Client.UI.Shared.Components.StepTag
 @inject NavigationManager Navigation
-@inject GrpcAppointmentService AppointmentService
+@inject GraphQLAppointmentService AppointmentService
 @inject AuthenticationService AuthService
 @inject UserState UserState
 
@@ -180,6 +180,147 @@ else
 
                 </Step>
 
+                <!-- STEP 5 — Verificación OTP -->
+                <Step TModel="BookingModel" Title="Verificación">
+
+                    <div class="mb-6 flex flex-col items-center text-center">
+                        <h2 class="text-2xl font-bold">Verifica tu identidad</h2>
+                        <p class="mt-2 text-gray-600">
+                            Te enviaremos un código de 6 dígitos para confirmar tu cita.
+                        </p>
+                    </div>
+
+                    <div class="flex w-full flex-col gap-5 rounded border-2 border-gray-200 p-5">
+
+                        @if (!_otpSent)
+                        {
+                            <!-- Selección de canal -->
+                            <div>
+                                <p class="mb-3 text-base font-semibold text-gray-700">¿Cómo quieres recibir el código?</p>
+                                <div class="flex gap-3">
+                                    <button type="button"
+                                            disabled
+                                            class="relative flex flex-1 flex-col items-center gap-2 rounded-xl border-2 p-4 transition
+                                                   border-gray-300 bg-gray-100 cursor-not-allowed opacity-60"
+                                            title="WhatsApp temporalmente deshabilitado">
+                                        <svg class="h-8 w-8 text-gray-400" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                                            <path d="M12 0C5.373 0 0 5.373 0 12c0 2.128.558 4.122 1.532 5.855L.057 23.171a.75.75 0 00.92.919l5.355-1.462A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.907 0-3.698-.501-5.254-1.378l-.376-.215-3.898 1.064 1.08-3.818-.233-.386A9.955 9.955 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
+                                        </svg>
+                                        <span class="text-sm font-semibold text-gray-500">
+                                            WhatsApp
+                                        </span>
+                                        <span class="text-xs text-gray-400">Deshabilitado</span>
+                                    </button>
+
+                                    <button type="button"
+                                            @onclick='() => Model.OtpChannel = "email"'
+                                            class="flex flex-1 flex-col items-center gap-2 rounded-xl border-2 p-4 transition
+                                                   @(Model.OtpChannel == "email" ? "border-[#2A9D8F] bg-[#e8f5f3]" : "border-gray-200 hover:border-gray-300")">
+                                        <svg class="h-8 w-8 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                            <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                                        </svg>
+                                        <span class="text-sm font-semibold @(Model.OtpChannel == "email" ? "text-[#2A9D8F]" : "text-gray-700")">
+                                            Email
+                                        </span>
+                                        <span class="text-xs text-gray-500">Ingresa tu correo</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Email input solo si canal es Email -->
+                            @if (Model.OtpChannel == "email")
+                            {
+                                <div class="flex flex-col">
+                                    <label class="mb-1 text-sm font-semibold text-gray-700">Correo electrónico</label>
+                                    <InputText type="email"
+                                               @bind-Value="Model.PatientEmail"
+                                               placeholder="tucorreo@ejemplo.com"
+                                               class="rounded-md border-2 border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#2A9D8F]" />
+                                    <ValidationMessage For="@(() => Model.PatientEmail)" class="mt-1 text-sm text-red-500" />
+                                </div>
+                            }
+
+                            @if (!string.IsNullOrEmpty(_otpError))
+                            {
+                                <p class="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-600">@_otpError</p>
+                            }
+
+                            <button type="button"
+                                    @onclick="SendOtpAsync"
+                                    disabled="@_otpLoading"
+                                    class="w-full rounded-lg bg-[#2A9D8F] py-3 text-base font-semibold text-white
+                                           transition hover:bg-[#1e7168] disabled:opacity-50">
+                                @(_otpLoading ? "Enviando..." : "Enviar código")
+                            </button>
+                        }
+                        else
+                        {
+                            <!-- Ingreso del código -->
+                            <div class="flex flex-col items-center gap-4">
+                                <div class="flex h-14 w-14 items-center justify-center rounded-full bg-[#e8f5f3]">
+                                    <svg class="h-7 w-7 text-[#2A9D8F]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                        <path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                                    </svg>
+                                </div>
+
+                                <div class="text-center">
+                                    <p class="text-sm font-semibold text-gray-800">
+                                        Código enviado por
+                                        @(Model.OtpChannel == "whatsapp" ? $"WhatsApp al {Model.PatientPhone}" : $"Email a {Model.PatientEmail}")
+                                    </p>
+                                    <p class="mt-0.5 text-xs text-gray-500">Válido por 10 minutos</p>
+                                </div>
+
+                                <input type="text"
+                                       @bind="Model.OtpCode"
+                                       @bind:event="oninput"
+                                       maxlength="6"
+                                       placeholder="000000"
+                                       class="w-48 rounded-xl border-2 border-gray-300 px-4 py-3 text-center text-3xl
+                                              font-bold tracking-widest focus:border-[#2A9D8F] focus:outline-none
+                                              focus:ring-2 focus:ring-[#2A9D8F]/20" />
+
+                                @if (!string.IsNullOrEmpty(_otpError))
+                                {
+                                    <p class="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-600">@_otpError</p>
+                                }
+
+                                @if (Model.OtpVerified)
+                                {
+                                    <div class="flex items-center gap-2 rounded-lg bg-[#edf7f2] px-4 py-2 text-sm font-semibold text-[#166534]">
+                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                            <polyline points="20 6 9 17 4 12"/>
+                                        </svg>
+                                        Identidad verificada
+                                    </div>
+                                }
+
+                                <button type="button"
+                                        @onclick="VerifyOtpAsync"
+                                        disabled="@(Model.OtpCode?.Length != 6 || _otpLoading || Model.OtpVerified)"
+                                        class="w-full rounded-lg bg-[#2A9D8F] py-3 text-base font-semibold text-white
+                                               transition hover:bg-[#1e7168] disabled:opacity-50">
+                                    @if (_otpLoading)
+                                    { <span>Verificando...</span> }
+                                    else if (Model.OtpVerified)
+                                    { <span>✓ Verificado</span> }
+                                    else
+                                    { <span>Verificar código</span> }
+                                </button>
+
+                                <button type="button"
+                                        @onclick="ResetOtp"
+                                        class="text-xs text-[#2A9D8F] underline hover:text-[#1e7168]">
+                                    ¿No recibiste el código? Volver a enviar
+                                </button>
+                            </div>
+                        }
+
+                    </div>
+
+                </Step>
+
 
                 <p class="text-md text-primary mt-4 text-center">
                     ¿Necesitas ayuda para hacer una cita? Llame al +57 301 123 4567
@@ -188,70 +329,4 @@ else
 
         </div>
     </EditForm>
-}
-@code {
-
-    BookingModel Model = new();
-    bool isLoading = false;
-    bool isSuccess = false;
-
-    Stepper<BookingModel> Stepper { get; set; }
-
-    string _errorMessage;
-    protected override async Task OnInitializedAsync()
-    {
-        await base.OnInitializedAsync();
-
-        if (UserState.UserResponse != null) Navigation.NavigateTo("/medical-booking", forceLoad: false, replace: true); 
-
-        var response = await AuthService.GetCurrentUserAsync();
-        if (response.IsSuccess)
-            Navigation.NavigateTo("/medical-booking", forceLoad: false, replace: true);
-
-    }
-    private void SelectedDoctor(DoctorModel? args)
-    {
-        if (args == null) return;
-        Model.DoctorId = args.Id;
-        Model.Doctor = args;
-    }
-    private async Task HandlerSubmit()
-    {
-        var result = await AppointmentService.CreateAppointment(new()
-        {
-            PatientId = string.Empty,
-            PatientIdentification = Model.PatientIdentification,
-            PatientName = Model.PatientName,
-            PatientPhone = Model.PatientPhone,
-
-            DoctorId = Model.DoctorId,
-            DoctorAvailabilitySlotId = Model.SlotId,
-            Date = Timestamp.FromDateTime(Model.DayOfYear.ToUniversalTime()),
-        });
-        if (!result.IsSuccess)
-        {
-            _errorMessage = "Ocurrió un error al crear la cita. Por favor, inténtelo de nuevo.";
-            return;
-        }
-        
-        isLoading = false;
-        isSuccess = true;
-
-        Stepper?.GoToStep(0);
-        Console.WriteLine("meow");
-    }
-    private void SelectSlot(AppointmentSchedulerModel args)
-    {
-        if (args == null) return;
-
-        args.Time = args.Time.Replace("a. m.", "AM")
-                             .Replace("p. m.", "PM")
-                             .Replace("a.m.", "AM")
-                             .Replace("p.m.", "PM")
-                             .Trim();
-
-        Model.SlotId = args.SlotId;
-        Model.DayOfYear = args.Date;
-        Model.AppointmentSchedulerModel = args;
-    }
 }

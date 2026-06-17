@@ -19,6 +19,25 @@ namespace PiedraAzul.Client.Models.Booking
 
 
         public string? PatientAddress { get; set; }
+
+        // ── OTP Verification ─────────────────────────────────────────
+        /// <summary>Canal elegido por el huésped: "whatsapp" o "email"</summary>
+        public string OtpChannel { get; set; } = "email";
+
+        /// <summary>Email solo requerido si OtpChannel == "email"</summary>
+        [EmailAddress(ErrorMessage = "Email inválido")]
+        public string? PatientEmail { get; set; }
+
+        /// <summary>Token opaco devuelto por sendGuestOtp</summary>
+        public string? OtpSessionToken { get; set; }
+
+        /// <summary>Código de 6 dígitos ingresado por el usuario</summary>
+        public string? OtpCode { get; set; }
+
+        /// <summary>true cuando el OTP fue verificado correctamente</summary>
+        public bool OtpVerified { get; set; }
+        // ─────────────────────────────────────────────────────────────
+
         [Required(ErrorMessage = "El doctor es obligatorio")]
         public string? DoctorId { get; set; }
 

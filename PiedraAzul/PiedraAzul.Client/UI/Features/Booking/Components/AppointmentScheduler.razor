@@ -1,10 +1,8 @@
 ﻿@using PiedraAzul.Client.Models.Booking
-@using PiedraAzul.Client.Services
-@using PiedraAzul.Client.Services.GrpcServices
+@using PiedraAzul.Client.Services.GraphQLServices
 @using PiedraAzul.Client.Services.RealTimeServices
-@using PiedraAzul.Shared.DTOs
-@using Google.Protobuf.WellKnownTypes
-@inject GrpcAvailability AvailabilityClient
+@using PiedraAzul.Contracts.DTOs
+@inject GraphQLAvailabilityService AvailabilityClient
 @inject IAppointmentHubService HubService
 @inject ILogger<AppointmentScheduler> Logger
 
@@ -131,7 +129,7 @@ else
     private Dictionary<DateTime, List<TimeSlot>> _cache = new();
     private DayItem? _selectedDay;
     private TimeSlot? _selectedSlot;
-    private string? _myLockedSlotId; 
+    private string? _myLockedSlotId;
     private CancellationTokenSource? _cts;
     private List<DayItem> Days = new();
     private List<TimeSlot> MorningSlots = new();
@@ -142,7 +140,7 @@ else
         Logger.LogInformation("=== AppointmentScheduler OnInitializedAsync INICIO ===");
         Logger.LogInformation("DoctorId recibido: {DoctorId}", DoctorId);
         
-        var startDate = DateTime.Today.AddDays(0);
+        var startDate = DateTime.Today.AddDays(1);
         Days = Enumerable.Range(0, 14)
             .Select(i =>
             {
@@ -252,7 +250,7 @@ else
             var availability = await AvailabilityClient.GetDoctorSlotsByDate(DoctorId, date, CancellationToken.None);
             if (availability.IsSuccess)
             {
-                var slots = availability.Value!.Slots;
+                var slots = availability.Value!;
                 var refreshedSlot = slots.FirstOrDefault(s => s.Id == slotId);
             
                 if (_cache.TryGetValue(date.Date, out var cachedSlots))
@@ -309,14 +307,14 @@ else
                 return;
             }
 
-            var slots = availability.Value!.Slots;
-        
+            var slots = availability.Value!;
+
             var slotStates = slots
-                .OrderBy(sl => sl.Start.ToDateTime())
+                .OrderBy(sl => sl.Start)
                 .Select(s => new SlotStateDto
                 {
                     SlotId = s.Id,
-                    Start = s.Start.ToDateTime(),
+                    Start = s.Start,
                     IsReserved = !s.IsAvailable,
                     LockedBy = null,
                     LockExpiresAt = null

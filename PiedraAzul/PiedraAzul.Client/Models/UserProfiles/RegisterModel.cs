@@ -1,4 +1,4 @@
-﻿using PiedraAzul.Shared.Enums;
+﻿using PiedraAzul.Contracts.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace PiedraAzul.Client.Models.UserProfiles

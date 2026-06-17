@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.SignalR;
-using PiedraAzul.Data.Cache;
-using PiedraAzul.Shared.DTOs;
-using PiedraAzul.Shared.RealTime.Contracts;
+using PiedraAzul.Application.Common.Interfaces;
+using PiedraAzul.Contracts.DTOs;
+using PiedraAzul.Contracts.RealTime.Contracts;
 using System.Collections.Concurrent;
 
 namespace PiedraAzul.RealTime.Hubs;

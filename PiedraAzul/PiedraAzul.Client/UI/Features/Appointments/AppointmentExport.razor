@@ -1,0 +1,412 @@
+@page "/servicios/exportar-citas"
+@layout PiedraAzul.Client.UI.Shared.Layout.EmptyLayout
+@using PiedraAzul.Client.Models.GraphQL
+@using PiedraAzul.Client.States
+@using PiedraAzul.Client.Services.GraphQLServices
+@using PiedraAzul.Contracts.Enums
+@inject UserState UserState
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JS
+@inject GraphQLDoctorService DoctorService
+@inject GraphQLAppointmentService AppointmentService
+
+<div class="min-h-screen bg-slate-50 pb-12">
+    
+    <!-- HEADER / NAV -->
+    <header class="bg-white border-b sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-8">
+                <!-- Logo -->
+                <div class="flex items-center gap-3">
+                    <div class="bg-primary p-2 rounded-lg text-white">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+                    </div>
+                    <span class="text-xl font-bold text-slate-800">Piedra Azul</span>
+                </div>
+
+                <nav class="hidden md:flex items-center gap-8">
+                    @if (IsAdmin)
+                    {
+                        <a href="/admin" class="text-slate-500 font-medium hover:text-slate-900 transition-colors">Panel Admin</a>
+                    }
+                    @if (IsDoctor)
+                    {
+                        <a href="/doctor" class="text-slate-500 font-medium hover:text-slate-900 transition-colors">Dashboard</a>
+                    }
+                    <a href="#" class="text-slate-900 font-semibold border-b-2 border-primary py-7">Servicios</a>
+                </nav>
+            </div>
+
+            <div class="flex items-center gap-6">
+                <button class="relative p-2 text-slate-400 hover:text-slate-600 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                </button>
+
+                <div class="flex items-center gap-3 pl-6 border-l">
+                    <div class="text-right hidden sm:block">
+                        <div class="text-sm font-bold text-slate-900">@UserState?.User?.Name</div>
+                        <div class="text-xs text-slate-400">@UserState?.User?.Roles.FirstOrDefault()</div>
+                    </div>
+                    <img src="@(string.IsNullOrEmpty(UserState?.User?.AvatarUrl) || UserState?.User?.AvatarUrl == "default.png" ? $"https://ui-avatars.com/api/?name={UserState?.User?.Name}&background=257D8D&color=fff" : UserState.User.AvatarUrl)" alt="User" class="w-10 h-10 rounded-full border-2 border-slate-100 shadow-sm" />
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 mt-12">
+        
+        <!-- Page Title & Back -->
+        <div class="flex items-start gap-6 mb-10">
+            <button @onclick="GoBack" class="mt-1 bg-white p-3 rounded-xl border border-slate-200 shadow-sm hover:bg-slate-50 transition-all text-slate-600">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
+            <div>
+                <h1 class="text-4xl font-black text-slate-900 mb-2">Exportación de Citas (xls)</h1>
+                <p class="text-slate-500 text-lg font-medium">Prepare su consulta offline descargando el listado del día</p>
+            </div>
+        </div>
+
+        <!-- Filters Section -->
+        <div class="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100 mb-8">
+            <div class="flex items-center gap-3 mb-8">
+                <div class="text-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                </div>
+                <h2 class="text-xl font-bold text-slate-900">Filtros de Exportación</h2>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <label class="block text-slate-500 font-bold uppercase tracking-wider text-xs mb-3 ml-1">MÉDICO / TERAPISTA</label>
+                    <div class="relative">
+                        <select value="@SelectedDoctor" @onchange="OnDoctorChanged" 
+                                class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-6 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all text-slate-700 font-medium appearance-none">
+                            <option value="all">Todos los profesionales</option>
+                            @foreach (var doc in allDoctors)
+                            {
+                                <option value="@doc.UserId">@doc.Name (@doc.Specialty)</option>
+                            }
+                        </select>
+                        <div class="absolute inset-y-0 right-6 flex items-center pointer-events-none text-slate-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-slate-500 font-bold uppercase tracking-wider text-xs mb-3 ml-1">FECHA DE CITAS</label>
+                    <input type="date" value="@SelectedDate.ToString("yyyy-MM-dd")" @onchange="OnDateChanged"
+                           class="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-6 focus:outline-none focus:ring-4 focus:ring-primary/10 transition-all text-slate-700 font-medium" />
+                </div>
+            </div>
+        </div>
+
+        <!-- Preview Section -->
+        <div class="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden mb-8">
+            <div class="px-8 py-6 bg-slate-50/30 flex items-center justify-between border-b border-slate-100">
+                <h3 class="text-xl font-bold text-slate-900">Vista Previa de Exportación</h3>
+                <span class="bg-primary/10 text-primary px-4 py-1.5 rounded-full text-xs font-bold tracking-tight">@appointments.Count citas encontradas</span>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full border-collapse text-left">
+                    <thead>
+                        <tr class="border-b border-slate-50 bg-slate-50/20 text-slate-400 font-bold uppercase tracking-[0.1em] text-[10px]">
+                            <th class="px-8 py-5">PACIENTE</th>
+                            <th class="px-8 py-5">HORARIO</th>
+                            <th class="px-8 py-5">ESPECIALIDAD</th>
+                            <th class="px-8 py-5">ESTADO</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-50">
+                        @if (isLoading)
+                        {
+                            <tr><td colspan="4" class="px-8 py-10 text-center text-slate-400 italic">Cargando citas...</td></tr>
+                        }
+                        else if (!appointments.Any())
+                        {
+                            <tr><td colspan="4" class="px-8 py-10 text-center text-slate-400 italic">No se encontraron citas para los filtros seleccionados</td></tr>
+                        }
+                        else
+                        {
+                            @foreach (var app in appointments)
+                            {
+                                <tr class="text-slate-700 font-medium">
+                                    <td class="px-8 py-5 font-bold text-slate-900">@app.Patient</td>
+                                    <td class="px-8 py-5 text-slate-500 font-mono">@app.Time</td>
+                                    <td class="px-8 py-5 text-slate-500">@app.Specialty</td>
+                                    <td class="px-8 py-5">
+                                        <span class="inline-flex items-center gap-2">
+                                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                            Confirmada
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="p-6 text-center border-t border-slate-50">
+                <button class="text-primary font-bold hover:underline transition-all">
+                    Ver lista completa (@appointments.Count resultados)
+                </button>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row items-center justify-end gap-4 mb-10">
+            <button @onclick="PrintList" class="w-full sm:w-auto flex items-center justify-center gap-3 bg-white border-2 border-slate-100 px-10 py-4 rounded-2xl font-bold text-slate-600 hover:bg-slate-50 transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
+                Imprimir Listado
+            </button>
+            <button @onclick="ExportToExcel" class="w-full sm:w-auto flex items-center justify-center gap-3 bg-primary text-white px-10 py-4 rounded-2xl font-bold hover:opacity-90 transition-all shadow-xl shadow-primary/30">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Exportar datos
+            </button>
+        </div>
+
+        <!-- Info Banner -->
+        <div class="bg-blue-50/50 border border-blue-100 rounded-3xl p-8 flex items-start gap-6">
+            <div class="text-blue-500 mt-1">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+            </div>
+            <p class="text-blue-900/70 font-medium leading-relaxed">
+                El archivo XLS es compatible con Excel, Google Sheets y Numbers. Incluye datos de contacto del paciente para su uso en emergencias offline.
+            </p>
+        </div>
+
+        <footer class="mt-20 py-8 border-t border-slate-100 text-center">
+            <p class="text-slate-400 font-bold uppercase tracking-widest text-[11px]">PIEDRA AZUL - SISTEMA DE GESTIÓN MÉDICA</p>
+        </footer>
+
+    </main>
+</div>
+
+@code {
+    private string SelectedDoctor { get; set; } = "all";
+    private DateTime SelectedDate { get; set; } = DateTime.Today;
+    private bool isLoading = true;
+
+    private List<DoctorGQL> allDoctors = new();
+    private List<AppointmentVM> appointments = new();
+
+    private bool IsAdmin => UserState?.User?.Roles.Contains("Admin") == true;
+    private bool IsDoctor => UserState?.User?.Roles.Contains("Doctor") == true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        
+        // Cargar todos los doctores de todas las especialidades secuencialmente (como en AdminAgenda)
+        for (int i = 0; i <= 3; i++)
+        {
+            var type = (DoctorType)i;
+            var result = await DoctorService.GetDoctorsByTypeAsync(type.ToGraphQL());
+            if (result.Any())
+            {
+                allDoctors.AddRange(result);
+            }
+        }
+
+        // Si es doctor, pre-seleccionar su ID si está en la lista
+        if (IsDoctor && UserState.User != null)
+        {
+            var myDoctor = allDoctors.FirstOrDefault(d => d.UserId == UserState.User.Id);
+            if (myDoctor != null) SelectedDoctor = myDoctor.UserId;
+        }
+
+        await LoadAppointmentsAsync();
+    }
+
+    private async Task OnDoctorChanged(ChangeEventArgs e)
+    {
+        SelectedDoctor = e.Value?.ToString() ?? "all";
+        await LoadAppointmentsAsync();
+    }
+
+    private async Task OnDateChanged(ChangeEventArgs e)
+    {
+        if (DateTime.TryParse(e.Value?.ToString(), out var date))
+        {
+            SelectedDate = date;
+            await LoadAppointmentsAsync();
+        }
+    }
+
+    private async Task LoadAppointmentsAsync()
+    {
+        isLoading = true;
+        StateHasChanged();
+
+        var list = new List<AppointmentVM>();
+
+        if (SelectedDoctor == "all")
+        {
+            foreach (var doc in allDoctors)
+            {
+                var res = await AppointmentService.GetDoctorAppointments(doc.UserId, SelectedDate);
+                if (res.IsSuccess)
+                {
+                    list.AddRange(res.Value.Select(a => new AppointmentVM 
+                    {
+                        Patient = a.PatientName,
+                        Time = a.Start.ToString("hh:mm tt"),
+                        Specialty = doc.Specialty,
+                        Status = "Confirmada"
+                    }));
+                }
+            }
+        }
+        else
+        {
+            var doc = allDoctors.FirstOrDefault(d => d.UserId == SelectedDoctor);
+            var res = await AppointmentService.GetDoctorAppointments(SelectedDoctor, SelectedDate);
+            if (res.IsSuccess)
+            {
+                list.AddRange(res.Value.Select(a => new AppointmentVM 
+                {
+                    Patient = a.PatientName,
+                    Time = a.Start.ToString("hh:mm tt"),
+                    Specialty = doc?.Specialty ?? "General",
+                    Status = "Confirmada"
+                }));
+            }
+        }
+
+        appointments = list.OrderBy(a => a.Time).ToList();
+        isLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task GoBack() => await JS.InvokeVoidAsync("history.back");
+
+    private async Task PrintList()
+    {
+        var doctorName = SelectedDoctor == "all" ? "Todos los profesionales" : allDoctors.FirstOrDefault(d => d.UserId == SelectedDoctor)?.Name ?? "Desconocido";
+        var dateStr = SelectedDate.ToString("dd/MM/yyyy");
+        
+        var html = $@"
+            <html>
+            <head>
+                <style>
+                    body {{ font-family: sans-serif; padding: 40px; }}
+                    table {{ width: 100%; border-collapse: collapse; }}
+                    th, td {{ border: 1px solid black; padding: 12px; text-align: left; }}
+                    .header-row {{ background-color: #f0f0f0; font-weight: bold; text-align: center; font-size: 18px; }}
+                    .sub-header {{ font-weight: bold; }}
+                    .col-header {{ background-color: #f9f9f9; font-weight: bold; font-size: 12px; text-transform: uppercase; }}
+                </style>
+            </head>
+            <body>
+                <table>
+                    <tr class='header-row'><th colspan='5'>Registro Piedra Azul {dateStr}</th></tr>
+                    <tr><th colspan='5' class='sub-header'>Especialista: {doctorName}</th></tr>
+                    <tr class='col-header'>
+                        <th>Paciente</th><th>Horario</th><th>Especialidad</th><th>Estado</th><th>Asistencia</th>
+                    </tr>";
+        
+        foreach (var app in appointments)
+        {
+            html += $"<tr><td><b>{app.Patient}</b></td><td>{app.Time}</td><td>{app.Specialty}</td><td>{app.Status}</td><td></td></tr>";
+        }
+        
+        html += "</table><script>window.print();</script></body></html>";
+
+        await JS.InvokeVoidAsync("eval", $@"
+            var win = window.open('', '_blank');
+            win.document.write(`{html}`);
+            win.document.close();
+        ");
+    }
+
+    private async Task ExportToExcel()
+    {
+        var doctorName = SelectedDoctor == "all" ? "Todos los profesionales" : allDoctors.FirstOrDefault(d => d.UserId == SelectedDoctor)?.Name ?? "Desconocido";
+        var dateStr = SelectedDate.ToString("dd/MM/yyyy");
+        
+        // Creamos una tabla HTML que Excel reconoce como un archivo .xls
+        // Ajustamos el diseño para que coincida exactamente con la imagen
+        var html = $@"
+            <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:x='urn:schemas-microsoft-com:office:excel' xmlns='http://www.w3.org/TR/REC-html40'>
+            <head>
+                <meta charset='utf-8'>
+                <style>
+                    table {{ border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; table-layout: fixed; }}
+                    td, th {{ border: 1px solid black; padding: 12px 8px; font-size: 10pt; word-wrap: break-word; vertical-align: middle; }}
+                    .title {{ font-weight: bold; text-align: center; font-size: 14pt; border: none; padding: 20px; }}
+                    .specialist {{ font-weight: bold; text-align: left; border: none; padding: 10px 0; }}
+                    .header-cell {{ font-weight: bold; text-align: center; background-color: #f8fafc; }}
+                    .center-cell {{ text-align: center; }}
+                    
+                    /* Anchos de columna fijos para impresión (Total ~700px para A4) */
+                    .col-paciente {{ width: 220px; }}
+                    .col-horario {{ width: 100px; }}
+                    .col-especialidad {{ width: 150px; }}
+                    .col-estado {{ width: 110px; }}
+                    .col-asistencia {{ width: 100px; }}
+                </style>
+            </head>
+            <body>
+                <table>
+                    <colgroup>
+                        <col class='col-paciente'>
+                        <col class='col-horario'>
+                        <col class='col-especialidad'>
+                        <col class='col-estado'>
+                        <col class='col-asistencia'>
+                    </colgroup>
+                    <tr>
+                        <td colspan='5' class='title'>Registro Piedra Azul {dateStr}</td>
+                    </tr>
+                    <tr>
+                        <td colspan='5' class='specialist'>Especialista: {doctorName}</td>
+                    </tr>
+                    <tr>
+                        <td class='header-cell'>Paciente</td>
+                        <td class='header-cell'>Horario</td>
+                        <td class='header-cell'>Especialidad</td>
+                        <td class='header-cell'>Estado</td>
+                        <td class='header-cell'>Asistencia</td>
+                    </tr>";
+
+        foreach (var app in appointments)
+        {
+            html += $@"
+                <tr>
+                    <td>{app.Patient}</td>
+                    <td class='center-cell'>{app.Time}</td>
+                    <td class='center-cell'>{app.Specialty}</td>
+                    <td class='center-cell'>{app.Status}</td>
+                    <td></td>
+                </tr>";
+        }
+
+        html += @"
+                </table>
+            </body>
+            </html>";
+
+        var fileName = $"Listado_Citas_{SelectedDate:yyyyMMdd}.xls";
+        var bytes = System.Text.Encoding.UTF8.GetBytes(html);
+        var base64 = Convert.ToBase64String(bytes);
+        
+        await JS.InvokeVoidAsync("eval", $@"
+            var link = document.createElement('a');
+            link.download = '{fileName}';
+            link.href = 'data:application/vnd.ms-excel;base64,{base64}';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        ");
+    }
+
+    private class AppointmentVM
+    {
+        public string Patient { get; set; } = "";
+        public string Time { get; set; } = "";
+        public string Specialty { get; set; } = "";
+        public string Status { get; set; } = "";
+    }
+}

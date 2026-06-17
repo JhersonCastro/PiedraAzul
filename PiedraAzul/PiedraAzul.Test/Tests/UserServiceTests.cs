@@ -1,247 +1,121 @@
-﻿using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using PiedraAzul.ApplicationServices.Services;
-using PiedraAzul.Data;
-using PiedraAzul.Data.Models;
+﻿using Moq;
+using PiedraAzul.Application.Common.Interfaces;
+using PiedraAzul.Application.Common.Models.User;
+using PiedraAzul.Application.Features.Doctors.Queries.GetDoctorByUserId;
+using PiedraAzul.Domain.Entities.Profiles.Doctor;
+using PiedraAzul.Domain.Entities.Shared.Enums;
+using PiedraAzul.Domain.Repositories;
 
-namespace PiedraAzul.Test.Tests
+namespace PiedraAzul.Test.Tests;
+
+public class UserServiceTests
 {
-    public class UserServiceTests : IClassFixture<PostgresFixture>
+    [Fact]
+    public async Task GetDoctorByUserId_MapsAvatarAndSpecialty()
     {
-        private readonly PostgresFixture _fixture;
-        private readonly IUserService _sut;
+        var doctorRepo = new Mock<IDoctorRepository>();
+        var identity = new Mock<IIdentityService>();
 
-        public UserServiceTests(PostgresFixture fixture)
-        {
-            _fixture = fixture;
+        doctorRepo.Setup(x => x.GetByIdAsync("doc-x", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Doctor("doc-x", DoctorType.Chiropractic, "LIC-X", "Perfil"));
+        identity.Setup(x => x.GetById("doc-x"))
+            .ReturnsAsync(new UserDto("doc-x", "docx@test.com", "Doc X", "x.png"));
 
-            var userManager = _fixture.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            var roleManager = _fixture.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+        var sut = new GetDoctorByUserIdHandler(doctorRepo.Object, identity.Object);
 
-            _sut = new UserService(_fixture.DbContextFactory, userManager, roleManager);
-        }
+        var result = await sut.Handle(new GetDoctorByUserIdQuery("doc-x"), CancellationToken.None);
 
-        // ─────────────────────────────────────────────
-        // Helpers
-        // ─────────────────────────────────────────────
+        Assert.NotNull(result);
+        Assert.Equal("x.png", result!.AvatarUrl);
+        Assert.Equal(DoctorType.Chiropractic, result.Specialty);
+    }
 
-        private async Task<ApplicationUser> SeedUserAsync()
-        {
-            await using var ctx = _fixture.DbContextFactory.CreateDbContext();
+    [Fact]
+    public async Task GetDoctorByUserId_UsesDoctorLicenseNumber()
+    {
+        var doctorRepo = new Mock<IDoctorRepository>();
+        var identity = new Mock<IIdentityService>();
 
-            var user = new ApplicationUser
-            {
-                Id = Guid.NewGuid().ToString(),
-                Email = $"{Guid.NewGuid()}@test.com",
-                PhoneNumber = Guid.NewGuid().ToString(),
-                IdentificationNumber = Guid.NewGuid().ToString(),
-                UserName = Guid.NewGuid().ToString(),
-                Name = "Test User",
-                PasswordHash = new PasswordHasher<ApplicationUser>()
-                    .HashPassword(null!, "Test123*")
-            };
+        doctorRepo.Setup(x => x.GetByIdAsync("doc-y", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Doctor("doc-y", DoctorType.Optometry, "LIC-999", ""));
+        identity.Setup(x => x.GetById("doc-y"))
+            .ReturnsAsync(new UserDto("doc-y", "docy@test.com", "Doc Y", "y.png"));
 
-            ctx.Users.Add(user);
-            await ctx.SaveChangesAsync();
+        var sut = new GetDoctorByUserIdHandler(doctorRepo.Object, identity.Object);
 
-            return user;
-        }
+        var result = await sut.Handle(new GetDoctorByUserIdQuery("doc-y"), CancellationToken.None);
 
-        private async Task SeedRoleAsync(string role)
-        {
-            var roleManager = _fixture.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+        Assert.Equal("LIC-999", result!.LicenseNumber);
+    }
 
-            if (!await roleManager.RoleExistsAsync(role))
-            {
-                var result = await roleManager.CreateAsync(new IdentityRole(role));
+    [Fact]
+    public async Task GetDoctorByUserId_UsesIdentityNameInsteadOfDomainName()
+    {
+        var doctorRepo = new Mock<IDoctorRepository>();
+        var identity = new Mock<IIdentityService>();
 
-                if (!result.Succeeded)
-                {
-                    throw new Exception(string.Join(", ", result.Errors.Select(e => e.Description)));
-                }
-            }
-        }
+        doctorRepo.Setup(x => x.GetByIdAsync("doc-z", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Doctor("doc-z", DoctorType.NaturalMedicine, "LIC-100", ""));
+        identity.Setup(x => x.GetById("doc-z"))
+            .ReturnsAsync(new UserDto("doc-z", "docz@test.com", "Nombre Visible", "z.png"));
 
-        private async Task AddUserToRoleAsync(ApplicationUser user, string role)
-        {
-            await using var ctx = _fixture.DbContextFactory.CreateDbContext();
+        var sut = new GetDoctorByUserIdHandler(doctorRepo.Object, identity.Object);
 
-            var roleEntity = await ctx.Roles.FirstAsync(r => r.Name == role);
+        var result = await sut.Handle(new GetDoctorByUserIdQuery("doc-z"), CancellationToken.None);
 
-            ctx.UserRoles.Add(new IdentityUserRole<string>
-            {
-                UserId = user.Id,
-                RoleId = roleEntity.Id
-            });
+        Assert.Equal("Nombre Visible", result!.Name);
+    }
 
-            await ctx.SaveChangesAsync();
-        }
+    [Fact]
+    public async Task GetDoctorByUserId_ReturnsNull_WhenIdentityReturnsNull()
+    {
+        var doctorRepo = new Mock<IDoctorRepository>();
+        var identity = new Mock<IIdentityService>();
 
-        // ─────────────────────────────────────────────
-        // TESTS
-        // ─────────────────────────────────────────────
+        doctorRepo.Setup(x => x.GetByIdAsync("doc-10", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Doctor("doc-10", DoctorType.Chiropractic, "LIC-10", ""));
+        identity.Setup(x => x.GetById("doc-10")).ReturnsAsync((UserDto?)null);
 
-        [Fact]
-        public async Task Register_WithValidRoles_Success()
-        {
-            await SeedRoleAsync("patient");
+        var sut = new GetDoctorByUserIdHandler(doctorRepo.Object, identity.Object);
 
-            var user = new ApplicationUser
-            {
-                Email = $"{Guid.NewGuid()}@test.com",
-                PhoneNumber = Guid.NewGuid().ToString(),
-                IdentificationNumber = Guid.NewGuid().ToString(),
-                Name = "New User"
-            };
+        var result = await sut.Handle(new GetDoctorByUserIdQuery("doc-10"), CancellationToken.None);
 
-            var result = await _sut.Register(user, "Test123*", new List<string> { "patient" });
+        Assert.Null(result);
+    }
 
-            Assert.NotNull(result);
-        }
+    [Fact]
+    public async Task GetDoctorByUserId_CallsRepositoryOnce()
+    {
+        var doctorRepo = new Mock<IDoctorRepository>();
+        var identity = new Mock<IIdentityService>();
 
-        [Fact]
-        public async Task Register_InvalidRole_ReturnsNull()
-        {
-            var user = new ApplicationUser
-            {
-                Email = $"{Guid.NewGuid()}@test.com",
-                PhoneNumber = Guid.NewGuid().ToString(),
-                IdentificationNumber = Guid.NewGuid().ToString(),
-                Name = "New User"
-            };
+        doctorRepo.Setup(x => x.GetByIdAsync("doc-11", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Doctor("doc-11", DoctorType.Physiotherapy, "LIC-11", ""));
+        identity.Setup(x => x.GetById("doc-11"))
+            .ReturnsAsync(new UserDto("doc-11", "11@test.com", "Doc 11", "11.png"));
 
-            var result = await _sut.Register(user, "Test123*", new List<string> { "invalid-role" });
+        var sut = new GetDoctorByUserIdHandler(doctorRepo.Object, identity.Object);
 
-            Assert.Null(result);
-        }
+        await sut.Handle(new GetDoctorByUserIdQuery("doc-11"), CancellationToken.None);
 
-        [Fact]
-        public async Task Login_WithEmail_Success()
-        {
-            await SeedRoleAsync("patient");
+        doctorRepo.Verify(x => x.GetByIdAsync("doc-11", It.IsAny<CancellationToken>()), Times.Once);
+    }
 
-            var user = await SeedUserAsync();
-            await AddUserToRoleAsync(user, "patient");
+    [Fact]
+    public async Task GetDoctorByUserId_CallsIdentityOnce()
+    {
+        var doctorRepo = new Mock<IDoctorRepository>();
+        var identity = new Mock<IIdentityService>();
 
-            var (resultUser, roles) = await _sut.Login(user.Email, "Test123*");
+        doctorRepo.Setup(x => x.GetByIdAsync("doc-12", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Doctor("doc-12", DoctorType.NaturalMedicine, "LIC-12", ""));
+        identity.Setup(x => x.GetById("doc-12"))
+            .ReturnsAsync(new UserDto("doc-12", "12@test.com", "Doc 12", "12.png"));
 
-            Assert.NotNull(resultUser);
-            Assert.Contains("patient", roles);
-        }
+        var sut = new GetDoctorByUserIdHandler(doctorRepo.Object, identity.Object);
 
-        [Fact]
-        public async Task Login_InvalidPassword_ReturnsNull()
-        {
-            var user = await SeedUserAsync();
+        await sut.Handle(new GetDoctorByUserIdQuery("doc-12"), CancellationToken.None);
 
-            var (resultUser, roles) = await _sut.Login(user.Email, "wrong-password");
-
-            Assert.Null(resultUser);
-            Assert.Null(roles);
-        }
-
-        [Fact]
-        public async Task Login_UserNotFound_ReturnsNull()
-        {
-            var (user, roles) = await _sut.Login("no-existe@test.com", "1234");
-
-            Assert.Null(user);
-            Assert.Null(roles);
-        }
-
-        [Fact]
-        public async Task GetById_ReturnsUser()
-        {
-            var user = await SeedUserAsync();
-
-            var result = await _sut.GetById(user.Id);
-
-            Assert.NotNull(result);
-            Assert.Equal(user.Id, result!.Id);
-        }
-
-        [Fact]
-        public async Task GetById_NotFound_ReturnsNull()
-        {
-            var result = await _sut.GetById(Guid.NewGuid().ToString());
-
-            Assert.Null(result);
-        }
-
-        [Fact]
-        public async Task GetRolesByUser_ReturnsRoles()
-        {
-            await SeedRoleAsync("doctor");
-
-            var user = await SeedUserAsync();
-            await AddUserToRoleAsync(user, "doctor");
-
-            var roles = await _sut.GetRolesByUser(user);
-
-            Assert.Contains("doctor", roles);
-        }
-
-        [Fact]
-        public async Task GetRolesByUser_NoRoles_ReturnsEmpty()
-        {
-            var user = await SeedUserAsync();
-
-            var roles = await _sut.GetRolesByUser(user);
-
-            Assert.Empty(roles);
-        }
-
-        [Fact]
-        public async Task CreateProfileForRole_Patient_CreatesProfile()
-        {
-            var user = await SeedUserAsync();
-
-            await _sut.CreateProfileForRoleAsync(user, "patient");
-
-            await using var ctx = _fixture.DbContextFactory.CreateDbContext();
-
-            var exists = await ctx.PatientProfiles.AnyAsync(p => p.UserId == user.Id);
-
-            Assert.True(exists);
-        }
-
-        [Fact]
-        public async Task CreateProfileForRole_Doctor_CreatesProfile()
-        {
-            var user = await SeedUserAsync();
-
-            await _sut.CreateProfileForRoleAsync(user, "doctor");
-
-            await using var ctx = _fixture.DbContextFactory.CreateDbContext();
-
-            var exists = await ctx.DoctorProfiles.AnyAsync(d => d.UserId == user.Id);
-
-            Assert.True(exists);
-        }
-
-        [Fact]
-        public async Task CreateProfileForRole_Duplicate_DoesNotCreateTwice()
-        {
-            var user = await SeedUserAsync();
-
-            await _sut.CreateProfileForRoleAsync(user, "patient");
-            await _sut.CreateProfileForRoleAsync(user, "patient");
-
-            await using var ctx = _fixture.DbContextFactory.CreateDbContext();
-
-            var count = await ctx.PatientProfiles.CountAsync(p => p.UserId == user.Id);
-
-            Assert.Equal(1, count);
-        }
-
-        [Fact]
-        public async Task CreateProfileForRole_InvalidRole_Throws()
-        {
-            var user = await SeedUserAsync();
-
-            await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                _sut.CreateProfileForRoleAsync(user, "admin"));
-        }
+        identity.Verify(x => x.GetById("doc-12"), Times.Once);
     }
 }

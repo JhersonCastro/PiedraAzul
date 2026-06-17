@@ -1,10 +1,8 @@
-﻿using Shared.Grpc;
+using PiedraAzul.Client.Models.GraphQL;
 
-namespace PiedraAzul.Client.States
+namespace PiedraAzul.Client.States;
+
+public class UserState
 {
-    public class UserState
-    {
-        public UserResponse? UserResponse { get; set; }
-
-    }
+    public UserGQL? User { get; set; }
 }

@@ -2,29 +2,39 @@
 @page "/admin/usuarios"
 
 <div class="min-h-screen bg-slate-50 p-8">
-<div class="max-w-6xl mx-auto">
-    <!-- Header -->
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
         <div class="flex items-center justify-between mb-8">
             <div>
                 <h1 class="text-4xl font-bold text-slate-900 tracking-tight">Gestión de usuarios</h1>
                 <p class="text-slate-500 mt-2 text-sm max-w-2xl">Administrar el acceso al sistema, los protocolos de seguridad y los roles organizacionales del equipo médico de Piedra Azul.</p>
             </div>
-            
-            <a href="/admin/agenda" class="bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M1 2.828c.885-.37 2.154-.769 3.388-.893 1.33-.134 2.458.063 3.112.752v9.746c-.935-.53-2.12-.603-3.213-.493-1.18.12-2.37.461-3.287.811zm7.5-.141c.654-.689 1.782-.886 3.112-.752 1.234.124 2.503.523 3.388.893v9.923c-.918-.35-2.107-.692-3.287-.81-1.094-.111-2.278-.039-3.213.492zM8 1.783C7.015.936 5.587.81 4.287.94c-1.514.153-3.042.672-3.994 1.105A.5.5 0 0 0 0 2.5v11a.5.5 0 0 0 .707.455c.882-.4 2.303-.881 3.68-1.02 1.409-.142 2.59.087 3.223.877a.5.5 0 0 0 .78 0c.633-.79 1.814-1.019 3.222-.877 1.378.139 2.8.62 3.681 1.02A.5.5 0 0 0 16 13.5v-11a.5.5 0 0 0-.293-.455c-.952-.433-2.48-.952-3.994-1.105C10.413.809 8.985.936 8 1.783"/>
-                </svg>
-                Agendador
-            </a>
-            <button class="bg-teal-700 hover:bg-teal-800 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z" />
-                </svg>
-                Añadir usuario
-            </button>
+
+            <div class="flex items-center gap-3">
+                <a href="/admin/agenda" class="bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M1 2.828c.885-.37 2.154-.769 3.388-.893 1.33-.134 2.458.063 3.112.752v9.746c-.935-.53-2.12-.603-3.213-.493-1.18.12-2.37.461-3.287.811zm7.5-.141c.654-.689 1.782-.886 3.112-.752 1.234.124 2.503.523 3.388.893v9.923c-.918-.35-2.107-.692-3.287-.81-1.094-.111-2.278-.039-3.213.492zM8 1.783C7.015.936 5.587.81 4.287.94c-1.514.153-3.042.672-3.994 1.105A.5.5 0 0 0 0 2.5v11a.5.5 0 0 0 .707.455c.882-.4 2.303-.881 3.68-1.02 1.409-.142 2.59.087 3.223.877a.5.5 0 0 0 .78 0c.633-.79 1.814-1.019 3.222-.877 1.378.139 2.8.62 3.681 1.02A.5.5 0 0 0 16 13.5v-11a.5.5 0 0 0-.293-.455c-.952-.433-2.48-.952-3.994-1.105C10.413.809 8.985.936 8 1.783" />
+                    </svg>
+                    Agendador
+                </a>
+
+                <a href="/admin/configurar-horario" class="bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1z" />
+                        <path d="M18 9H2v7a2 2 0 002 2h12a2 2 0 002-2V9zm-9 2a1 1 0 012 0v1h1a1 1 0 110 2h-1v1a1 1 0 11-2 0v-1H8a1 1 0 110-2h1v-1z" />
+                    </svg>
+                     Horarios
+                </a>
+                <button class="bg-teal-700 hover:bg-teal-800 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z" />
+                    </svg>
+                    Usuarios
+                </button>
+            </div>
         </div>
 
-    <!-- Panel de Filtros -->
+        <!-- Panel de Filtros -->
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-6 flex flex-wrap gap-6 items-end">
             <div class="flex-grow min-w-[250px]">
                 <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Buscar Usuario</label>
@@ -61,11 +71,11 @@
             </div>
 
             <div>
-                <button class="text-teal-600 hover:text-teal-800 font-semibold text-sm transition-colors py-2.5 px-2">Limpiar<br/>Filtros</button>
+                <button class="text-teal-600 hover:text-teal-800 font-semibold text-sm transition-colors py-2.5 px-2">Limpiar<br />Filtros</button>
             </div>
         </div>
 
-    <!-- Tabla Principal -->
+        <!-- Tabla Principal -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-8">
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
@@ -190,8 +200,8 @@
                     </button>
                 </div>
             </div>
-    </div>
-    <!-- Panel de Creación Rápida -->
+        </div>
+        <!-- Panel de Creación Rápida -->
         <div class="bg-teal-50/50 rounded-2xl p-8 border border-teal-100 relative overflow-hidden">
             <!-- Icon Background Decoration -->
             <div class="absolute -right-8 -bottom-16 text-teal-100/50 pointer-events-none">
@@ -258,7 +268,7 @@
                 </div>
             </div>
         </div>
-</div>
+    </div>
 </div>
 
 @code {
